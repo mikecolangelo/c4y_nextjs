@@ -1,0 +1,16 @@
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  distDir: '.next-prod-deploy',
+  eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: true },
+  images: { unoptimized: true },
+  optimizeFonts: false,
+  productionBrowserSourceMaps: false,
+  experimental: {
+    optimizeCss: false,
+    webpackBuildWorker: false,
+    parallelServerCompiles: false,
+    parallelServerBuildTraces: false,
+  },
+}
+module.exports = nextConfig

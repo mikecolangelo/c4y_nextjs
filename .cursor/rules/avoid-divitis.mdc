@@ -1,0 +1,205 @@
+---
+alwaysApply: true
+---
+
+# Evitar Divitis - Usar Componentes de shadcn
+
+**Entorno**: Frontend - Next.js, React, TypeScript, TailwindCSS, shadcn/ui
+
+## Regla Principal: NO Crear Divs Innecesarios
+
+**CRÍTICO**: NUNCA uses divs genéricos cuando exista un componente de shadcn apropiado. Los componentes de shadcn proporcionan mejor semántica, accesibilidad y consistencia visual.
+
+## ❌ INCORRECTO: Divitis
+
+```tsx
+// ❌ MAL: Demasiados divs anidados
+<div className="flex flex-col gap-3">
+  <div className="flex items-center gap-2">
+    <div className="flex flex-col">
+      <p>Label</p>
+      <p>Value</p>
+    </div>
+  </div>
+</div>
+```
+
+## ✅ CORRECTO: Componentes de shadcn
+
+```tsx
+// ✅ BIEN: Usando componentes apropiados
+<Card>
+  <CardHeader>
+    <CardTitle>Title</CardTitle>
+  </CardHeader>
+  <CardContent className="flex flex-col gap-2">
+    <p>Label</p>
+    <p>Value</p>
+  </CardContent>
+</Card>
+```
+
+## Componentes de shadcn Disponibles
+
+### Layout y Contenedores
+
+- **Card, CardHeader, CardTitle, CardContent, CardFooter**: Para contenedores con contenido estructurado
+- **Separator**: Para dividir secciones visualmente
+- **ScrollArea**: Para áreas con scroll personalizado
+
+### Formularios y Controles
+
+- **ToggleGroup, ToggleGroupItem**: Para controles segmentados (ej: selector de semana/período)
+- **Button**: Para acciones y navegación
+- **Badge**: Para etiquetas y estados
+
+### Navegación
+
+- **DropdownMenu, DropdownMenuContent, DropdownMenuItem**: Para menús desplegables
+- **Tabs, TabsList, TabsTrigger, TabsContent**: Para navegación por pestañas
+
+## Reglas Específicas
+
+### 1. Cards y Contenedores
+
+```tsx
+// ❌ MAL
+<div className="rounded-lg border p-4">
+  <div className="mb-2">
+    <h3>Título</h3>
+  </div>
+  <div>Contenido</div>
+</div>
+
+// ✅ BIEN
+<Card>
+  <CardHeader>
+    <CardTitle>Título</CardTitle>
+  </CardHeader>
+  <CardContent>Contenido</CardContent>
+</Card>
+```
+
+### 2. Selectores Segmentados
+
+```tsx
+// ❌ MAL: Divs con labels e inputs ocultos
+<div className="flex bg-muted p-1">
+  {options.map(opt => (
+    <label>
+      <input type="radio" className="hidden" />
+      <span>{opt}</span>
+    </label>
+  ))}
+</div>
+
+// ✅ BIEN: ToggleGroup de shadcn
+<ToggleGroup type="single" value={selected} onValueChange={setSelected}>
+  {options.map(opt => (
+    <ToggleGroupItem value={opt}>{opt}</ToggleGroupItem>
+  ))}
+</ToggleGroup>
+```
+
+### 3. Separadores
+
+```tsx
+// ❌ MAL
+<div className="border-t pt-2 mt-2">...</div>
+
+// ✅ BIEN
+<Separator className="my-2" />
+```
+
+### 4. Grids y Listas
+
+```tsx
+// ❌ MAL: Divs anidados innecesarios
+<div className="grid grid-cols-3 gap-4">
+  <div>
+    <div className="flex flex-col">
+      <p>Label</p>
+      <p>Value</p>
+    </div>
+  </div>
+</div>
+
+// ✅ BIEN: Estructura simplificada
+<div className="grid grid-cols-3 gap-4">
+  <div className="flex flex-col">
+    <p>Label</p>
+    <p>Value</p>
+  </div>
+</div>
+```
+
+### 5. CardContent NO es un Div Genérico
+
+**IMPORTANTE**: `CardContent` solo debe usarse DENTRO de un `Card`. NO lo uses como reemplazo genérico de divs.
+
+```tsx
+// ❌ MAL: CardContent fuera de Card
+<CardContent className="flex gap-2">
+  <Button>Click</Button>
+</CardContent>
+
+// ✅ BIEN: CardContent dentro de Card
+<Card>
+  <CardContent className="flex gap-2">
+    <Button>Click</Button>
+  </CardContent>
+</Card>
+
+// ✅ BIEN: Div simple cuando no hay Card
+<div className="flex gap-2">
+  <Button>Click</Button>
+</div>
+```
+
+## Estructura Recomendada
+
+### Para Secciones con Título
+
+```tsx
+<Card className="bg-transparent border-0 shadow-none">
+  <CardHeader className="px-0 pt-0 pb-2">
+    <CardTitle>Título de Sección</CardTitle>
+  </CardHeader>
+  <CardContent className="p-0">
+    {/* Contenido */}
+  </CardContent>
+</Card>
+```
+
+### Para Contenedores Simples
+
+```tsx
+// Si solo necesitas un contenedor simple, usa div
+<div className="flex flex-col gap-3">
+  {/* Contenido */}
+</div>
+```
+
+## Checklist Antes de Crear un Div
+
+1. ✅ ¿Existe un componente de shadcn que haga esto?
+2. ✅ ¿Es parte de una Card? → Usa CardContent
+3. ✅ ¿Es un separador visual? → Usa Separator
+4. ✅ ¿Es un selector segmentado? → Usa ToggleGroup
+5. ✅ ¿Es un menú? → Usa DropdownMenu
+6. ✅ ¿Es solo layout? → Div está bien, pero simplifica
+
+## Beneficios
+
+- ✅ Mejor semántica HTML
+- ✅ Mejor accesibilidad
+- ✅ Consistencia visual automática
+- ✅ Menos código CSS personalizado
+- ✅ Más fácil de mantener
+- ✅ Componentes probados y accesibles
+
+## Referencias
+
+- Componentes shadcn: `.cursor/rules/shadcn.mdc`
+- Design System: `.cursor/rules/design-system.mdc`
+- Ejemplos: `.cursor/rules/design-system-examples.mdc`

@@ -1,0 +1,76 @@
+---
+alwaysApply: true
+---
+
+# Código Minimalista - Frontend
+
+## Principios Fundamentales
+
+### 1. Procesamiento Automático de Datos
+- **Centraliza el procesamiento de datos en las funciones de obtención de datos** (ej: `getStrapiData`, `getDashboard`)
+- **Nunca proceses datos manualmente en los componentes** - los componentes deben recibir datos ya procesados y listos para usar
+- **Ejemplo**: Si necesitas construir URLs de imágenes de Strapi, hazlo en `getStrapiData()` o funciones similares, no en cada componente
+
+### 2. Funciones Helper Reutilizables
+- **Crea funciones helper centralizadas** para operaciones comunes (ej: construcción de URLs, formateo de datos)
+- **Exporta estas funciones** para reutilización en múltiples lugares
+- **Evita duplicar lógica** - si encuentras código repetido, extrae una función helper
+
+### 3. Componentes Simples y Directos
+- **Los componentes deben ser "tontos" (dumb components)** - solo reciben props y renderizan
+- **No deben contener lógica de transformación de datos** - esa lógica va en funciones helper o en las funciones de obtención de datos
+- **Ejemplo**: Un componente que muestra una imagen debe recibir `src={image.url}` directamente, no `src={image.url.startsWith("http") ? image.url : `${BASE_URL}${image.url}`}`
+
+### 4. Procesamiento Recursivo de Estructuras Complejas
+- **Cuando trabajes con APIs externas (como Strapi)**, procesa automáticamente todas las estructuras anidadas
+- **Usa funciones recursivas** para procesar arrays y objetos anidados
+- **Ejemplo**: Si Strapi devuelve imágenes en diferentes niveles (favicon, sections[].image, etc.), procesa todas automáticamente en una sola función
+
+## Ejemplos de Buenas Prácticas
+
+### ✅ CORRECTO: Procesamiento Centralizado
+```typescript
+// lib/strapi.ts
+function processStrapiImages(data: any): any {
+  // Procesa recursivamente todas las imágenes
+  // ...
+}
+
+export async function getStrapiData(path: string) {
+  const data = await fetch(...);
+  return processStrapiImages(data); // Procesa automáticamente
+}
+
+// Componente
+const dashboard = await getDashboard();
+<img src={dashboard.favicon.url} /> // URL ya procesada
+```
+
+### ❌ INCORRECTO: Procesamiento en Componentes
+```typescript
+// Componente
+const dashboard = await getDashboard();
+const faviconURL = dashboard.favicon?.url?.startsWith("http")
+  ? dashboard.favicon.url
+  : `${STRAPI_BASE_URL}${dashboard.favicon.url}`;
+<img src={faviconURL} />
+```
+
+## Reglas Específicas
+
+1. **Nunca construyas URLs manualmente en componentes** - usa funciones helper centralizadas
+2. **Nunca transformes datos en componentes** - transforma en las funciones de obtención de datos
+3. **Crea funciones recursivas** para procesar estructuras de datos complejas y anidadas
+4. **Exporta funciones helper** para reutilización, pero úsalas principalmente en funciones de obtención de datos
+5. **Los componentes deben ser simples** - solo renderizan lo que reciben, sin lógica de transformación
+6. **Elimina código sin usar** - nunca dejes imports, variables, funciones o tipos sin usar. Si algo no se usa, elimínalo inmediatamente
+7. **Usa tipos TypeScript** - siempre tipa tus funciones y datos, usa los tipos definidos en `lib/types.ts` en lugar de tipos inline
+8. **Centraliza los tipos** - todos los tipos relacionados con Strapi deben estar en `lib/types.ts`, no inline en los componentes
+
+## Beneficios
+
+- **Código más limpio**: Los componentes son más fáciles de leer y mantener
+- **Menos duplicación**: La lógica está centralizada
+- **Más fácil de mantener**: Cambios en la lógica de procesamiento se hacen en un solo lugar
+- **Mejor testabilidad**: Las funciones helper se pueden testear independientemente
+- **Consistencia**: Todos los datos se procesan de la misma manera

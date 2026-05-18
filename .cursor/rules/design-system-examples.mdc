@@ -1,0 +1,231 @@
+---
+alwaysApply: true
+---
+
+# Design System - Ejemplos Prácticos
+
+**Entorno**: Frontend - Next.js, React, TypeScript, TailwindCSS, shadcn/ui
+
+Ejemplos prácticos de cómo usar los tokens del design system en componentes reales. Estos ejemplos muestran patrones comunes y mejores prácticas.
+
+## Ejemplo 1: Card de Métrica Simple
+
+```tsx
+import { Card, CardContent } from "@/components_shadcn/ui/card";
+import { commonClasses, spacing } from "@/lib/design-system";
+
+export function MetricCard() {
+  return (
+    <Card className={commonClasses.card}>
+      <CardContent className={spacing.card.padding}>
+        <p className={commonClasses.metricLabel}>Ventas del Mes</p>
+        <p className={commonClasses.metricValue}>42</p>
+      </CardContent>
+    </Card>
+  );
+}
+```
+
+## Ejemplo 2: Grid de Métricas
+
+```tsx
+import { Card, CardContent } from "@/components_shadcn/ui/card";
+import { commonClasses, spacing, layout } from "@/lib/design-system";
+
+export function MetricsGrid() {
+  return (
+    <div className={layout.metricsGrid}>
+      <Card className={commonClasses.card}>
+        <CardContent className={spacing.card.padding}>
+          <p className={commonClasses.metricLabel}>Ventas del Mes</p>
+          <p className={commonClasses.metricValue}>42</p>
+        </CardContent>
+      </Card>
+      <Card className={commonClasses.card}>
+        <CardContent className={spacing.card.padding}>
+          <p className={commonClasses.metricLabel}>Ingresos Totales</p>
+          <p className={commonClasses.metricValue}>$1.25M</p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+```
+
+## Ejemplo 3: Card con Header
+
+```tsx
+import { Card, CardContent, CardHeader, CardTitle } from "@/components_shadcn/ui/card";
+import { Badge } from "@/components_shadcn/ui/badge";
+import { commonClasses, spacing, colors, typography, components } from "@/lib/design-system";
+
+export function CardWithHeader() {
+  return (
+    <Card className={commonClasses.card}>
+      <CardHeader className={spacing.card.header}>
+        <CardTitle className={commonClasses.sectionTitle}>
+          Resumen de Inventario
+        </CardTitle>
+      </CardHeader>
+      <CardContent className={spacing.card.content}>
+        <div className={spacing.gap.base}>
+          <div className="flex items-center gap-2">
+            <Badge 
+              className={components.inventoryBadge}
+              style={{ backgroundColor: colors.inventory.nuevos }}
+            />
+            <p className={typography.body.base}>Nuevos: 150 (60%)</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge 
+              className={components.inventoryBadge}
+              style={{ backgroundColor: colors.inventory.usados }}
+            />
+            <p className={typography.body.base}>Usados: 75 (30%)</p>
+          </div>
+        </div>
+        <div className="mt-2 pt-2">
+          <p className={commonClasses.description}>
+            Valor del Inventario: $8.5M
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+```
+
+## Ejemplo 4: Botones de Período/Filtro
+
+```tsx
+import { Button } from "@/components_shadcn/ui/button";
+import { spacing, components } from "@/lib/design-system";
+
+export function PeriodButtons() {
+  const periods = ["Hoy", "Semana", "Mes", "Año"];
+  const selectedPeriod = "Hoy";
+
+  return (
+    <div className={spacing.gap.small}>
+      {periods.map((period) => (
+        <Button
+          key={period}
+          className={
+            selectedPeriod === period
+              ? `${components.periodButton.base} ${components.periodButton.active}`
+              : `${components.periodButton.base} ${components.periodButton.inactive}`
+          }
+        >
+          <span className={components.periodButton.text}>{period}</span>
+        </Button>
+      ))}
+    </div>
+  );
+}
+```
+
+## Ejemplo 5: Layout Completo de Página
+
+```tsx
+import { Card, CardContent, CardHeader, CardTitle } from "@/components_shadcn/ui/card";
+import { commonClasses, spacing, layout, typography } from "@/lib/design-system";
+
+export function FullPageLayout() {
+  return (
+    <div className="relative flex min-h-screen w-full flex-col bg-background">
+      {/* Header */}
+      <header className={layout.header}>
+        <div className={`flex ${spacing.header.height} items-center justify-between ${spacing.header.padding}`}>
+          <h1 className={typography.h3}>Resumen General</h1>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className={commonClasses.mainContainer}>
+        {/* Grid de Métricas */}
+        <div className={layout.metricsGrid}>
+          <Card className={commonClasses.card}>
+            <CardContent className={spacing.card.padding}>
+              <p className={commonClasses.metricLabel}>Ventas del Mes</p>
+              <p className={commonClasses.metricValue}>42</p>
+            </CardContent>
+          </Card>
+          <Card className={commonClasses.card}>
+            <CardContent className={spacing.card.padding}>
+              <p className={commonClasses.metricLabel}>Ingresos Totales</p>
+              <p className={commonClasses.metricValue}>$1.25M</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Card con Título */}
+        <Card className={commonClasses.card}>
+          <CardHeader className={spacing.card.header}>
+            <CardTitle className={commonClasses.sectionTitle}>
+              Evolución de Ventas
+            </CardTitle>
+          </CardHeader>
+          <CardContent className={spacing.card.content}>
+            <div className={spacing.gap.base}>
+              <div className="flex items-baseline gap-2">
+                <p className={typography.metric.large}>$1.2M</p>
+                <p className="text-sm font-medium text-green-600">+5.2%</p>
+              </div>
+              <p className={commonClasses.description}>
+                respecto al último mes
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+    </div>
+  );
+}
+```
+
+## Ejemplo 6: Uso de Colores en Estilos Inline
+
+```tsx
+import { colors, spacing } from "@/lib/design-system";
+
+export function ColorsExample() {
+  return (
+    <div className={spacing.gap.base}>
+      <div 
+        style={{ backgroundColor: colors.inventory.nuevos }}
+        className="p-4 rounded-lg"
+      >
+        <p className="text-white font-semibold">Nuevos</p>
+      </div>
+      
+      <div 
+        style={{ backgroundColor: colors.inventory.usados }}
+        className="p-4 rounded-lg"
+      >
+        <p className="text-white font-semibold">Usados</p>
+      </div>
+      
+      <div 
+        style={{ backgroundColor: colors.inventory.taller }}
+        className="p-4 rounded-lg"
+      >
+        <p className="text-white font-semibold">En Taller</p>
+      </div>
+    </div>
+  );
+}
+```
+
+## Patrones Clave
+
+1. **Cards**: Siempre usa `commonClasses.card` y `spacing.card.*` para padding consistente
+2. **Métricas**: Usa `commonClasses.metricLabel` y `commonClasses.metricValue` para valores numéricos
+3. **Layouts**: Usa `layout.*` para estructuras comunes como grids y headers
+4. **Colores inline**: Usa `colors.inventory.*` para estilos inline en gráficos y badges
+5. **Espaciado**: Usa `spacing.gap.*` en lugar de valores hardcodeados
+6. **Tipografía**: Usa `typography.*` para mantener consistencia en textos
+
+## Referencias
+
+- Documentación completa: `.cursor/rules/design-system.mdc`
+- Configuración: `lib/design-system.ts`

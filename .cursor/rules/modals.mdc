@@ -1,0 +1,152 @@
+---
+alwaysApply: true
+---
+
+# Estilos de Modales - Liquid Glass
+
+> **IMPORTANTE**: Estos estilos están definidos y funcionando correctamente. NO modificar los componentes `Dialog` y `AlertDialog` a menos que sea absolutamente necesario. Estos son los estilos estándar que se deben usar en todos los modales del proyecto.
+
+## Componentes Estándar
+
+### Dialog (Modal Principal)
+
+**Archivo**: `frontend/components_shadcn/ui/dialog.tsx`
+
+**Características**:
+- **Overlay**: `bg-black/50` - Fondo oscuro semitransparente
+- **Efecto Liquid Glass**:
+  - Fondo: `color-mix(in oklch, var(--background) 50%, transparent)` - 50% de opacidad
+  - Borde: `color-mix(in oklch, var(--border) 85%, transparent)` - 85% de opacidad
+  - Blur: `backdrop-blur-sm`
+- **Border Radius**: `rounded-lg` - Bordes moderadamente redondeados
+- **Cierre**: Se cierra al hacer clic fuera del modal (excepto cuando se interactúa con Select dentro del modal)
+
+**Uso**:
+```tsx
+<Dialog open={isOpen} onOpenChange={setIsOpen}>
+  <DialogContent className="max-w-2xl h-[90vh] p-0 !flex !flex-col overflow-hidden">
+    {/* Contenido del modal */}
+  </DialogContent>
+</Dialog>
+```
+
+### AlertDialog (Modal de Confirmación)
+
+**Archivo**: `frontend/components_shadcn/ui/alert-dialog.tsx`
+
+**Características**:
+- **Overlay**: `bg-black/50` - Mismo que Dialog
+- **Efecto Liquid Glass**:
+  - Fondo: `color-mix(in oklch, var(--background) 50%, transparent)` - 50% de opacidad
+  - Borde: `color-mix(in oklch, var(--border) 85%, transparent)` - 85% de opacidad
+  - Blur: `backdrop-blur-sm`
+- **Border Radius**: `rounded-lg` - Mismo que Dialog
+- **Cierre**: Se cierra al hacer clic fuera del modal (requiere pasar `onClose`)
+
+**Uso**:
+```tsx
+<AlertDialog open={isOpen} onOpenChange={setIsOpen}>
+  <AlertDialogContent onClose={() => setIsOpen(false)}>
+    <AlertDialogHeader>
+      <AlertDialogTitle>Título</AlertDialogTitle>
+      <AlertDialogDescription>Descripción</AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+      <AlertDialogAction>Confirmar</AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
+```
+
+## Especificaciones Técnicas
+
+### Efecto Liquid Glass
+
+El efecto "liquid glass" se logra mediante:
+
+1. **Fondo semitransparente**: Usa `color-mix` con variables CSS para mantener consistencia con el tema
+2. **Backdrop blur**: Aplica desenfoque al fondo detrás del modal
+3. **Borde semitransparente**: Borde que complementa el fondo
+
+**Valores actuales** (NO modificar sin justificación):
+- Opacidad del fondo: **50%** (`50%` en color-mix)
+- Opacidad del borde: **85%** (`85%` en color-mix)
+- Blur: `backdrop-blur-sm`
+
+### Overlay
+
+- Color: `bg-black/50` (negro al 50% de opacidad)
+- Z-index: `z-50`
+- Posición: `fixed inset-0`
+
+### Border Radius
+
+- Todos los modales usan: `rounded-lg`
+- **NO usar** `squircle-dialog` u otros estilos de bordes redondeados excesivos
+
+## Reglas de Uso
+
+1. **Consistencia**: Todos los modales deben usar estos estilos estándar
+2. **No modificar**: Los componentes base están configurados correctamente
+3. **Reutilizar**: Usar estos componentes como base para cualquier nuevo modal
+4. **Cierre**: Los modales se cierran al hacer clic fuera (Dialog automático, AlertDialog requiere `onClose`)
+
+## Ejemplos de Implementación
+
+### Modal de Formulario (Dialog)
+```tsx
+const [isOpen, setIsOpen] = useState(false);
+
+<Dialog open={isOpen} onOpenChange={setIsOpen}>
+  <DialogContent className="max-w-2xl h-[90vh] p-0 !flex !flex-col overflow-hidden">
+    <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+      <DialogTitle>Título</DialogTitle>
+      <DialogDescription>Descripción</DialogDescription>
+    </DialogHeader>
+    <ScrollArea className="flex-1">
+      {/* Contenido del formulario */}
+    </ScrollArea>
+    <DialogFooter className="px-6 py-4 border-t shrink-0">
+      <Button variant="outline" onClick={() => setIsOpen(false)}>Cancelar</Button>
+      <Button onClick={handleSubmit}>Guardar</Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+```
+
+### Modal de Confirmación (AlertDialog)
+```tsx
+const [isOpen, setIsOpen] = useState(false);
+
+<AlertDialog open={isOpen} onOpenChange={setIsOpen}>
+  <AlertDialogContent onClose={() => setIsOpen(false)}>
+    <AlertDialogHeader>
+      <AlertDialogTitle>¿Confirmar acción?</AlertDialogTitle>
+      <AlertDialogDescription>
+        Esta acción no se puede deshacer.
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+      <AlertDialogAction onClick={handleConfirm}>
+        Confirmar
+      </AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
+```
+
+## Notas Importantes
+
+- Los estilos están implementados usando `color-mix` para compatibilidad con variables CSS `oklch`
+- El efecto glass se aplica mediante estilos inline para garantizar que funcione correctamente
+- El overlay es clickeable y cierra el modal automáticamente
+- Los modales respetan el tema claro/oscuro automáticamente mediante variables CSS
+
+## Referencias
+
+- Dialog base: `frontend/components_shadcn/ui/dialog.tsx`
+- AlertDialog base: `frontend/components_shadcn/ui/alert-dialog.tsx`
+- Ejemplo de uso Dialog: `frontend/app/fleet/page.tsx` (línea 693)
+- Ejemplo de uso AlertDialog: `frontend/app/fleet/page.tsx` (línea 983)

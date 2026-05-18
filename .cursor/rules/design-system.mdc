@@ -1,0 +1,238 @@
+---
+alwaysApply: true
+---
+
+# Design System - Guía de Uso
+
+**Entorno**: Frontend - Next.js, React, TypeScript, TailwindCSS, shadcn/ui
+
+Sistema de diseño centralizado para mantener consistencia en toda la aplicación.
+
+## 📦 Importación
+
+```typescript
+import { colors, typography, spacing, components, layout, commonClasses } from "@/lib/design-system";
+```
+
+## 🎨 Colores
+
+### Colores Principales
+
+```typescript
+import { colors } from "@/lib/design-system";
+
+// Color primario
+colors.primary // "oklch(0.73 0.13 75)"
+
+// Colores de inventario (gráficos)
+colors.inventory.nuevos   // "oklch(0.73 0.13 75)"
+colors.inventory.usados   // "oklch(0.7 0.15 50)"
+colors.inventory.taller   // "oklch(0.85 0.1 75)"
+```
+
+### Uso
+
+```tsx
+// Estilos inline
+<div style={{ backgroundColor: colors.primary }}>...</div>
+
+// Clases de Tailwind (usar variables CSS)
+<div className="bg-primary">...</div>
+```
+
+## 📝 Tipografía
+
+### Títulos
+
+```tsx
+import { typography } from "@/lib/design-system";
+
+<h1 className={typography.h1}>Título Principal</h1>
+<h2 className={typography.h2}>Subtítulo</h2>
+<h3 className={typography.h3}>Sección</h3>
+<h4 className={typography.h4}>Card Title</h4>
+```
+
+### Texto de Cuerpo
+
+```tsx
+<p className={typography.body.large}>Texto destacado</p>
+<p className={typography.body.base}>Texto normal</p>
+<p className={typography.body.small}>Descripción</p>
+```
+
+### Métricas
+
+```tsx
+<span className={typography.metric.large}>$1.2M</span>
+<span className={typography.metric.base}>42</span>
+<p className={typography.label}>Ventas del Mes</p>
+```
+
+## 📏 Espaciado
+
+### Contenedores
+
+```tsx
+import { spacing } from "@/lib/design-system";
+
+<main className={spacing.container.both}>...</main>
+<div className={spacing.container.horizontal}>...</div>
+<div className={spacing.container.vertical}>...</div>
+```
+
+### Cards
+
+```tsx
+<Card className={components.card}>
+  <CardHeader className={spacing.card.header}>...</CardHeader>
+  <CardContent className={spacing.card.padding}>...</CardContent>
+</Card>
+```
+
+### Gaps
+
+```tsx
+<div className={spacing.gap.small}>...</div>   // 8px
+<div className={spacing.gap.base}>...</div>    // 12px
+<div className={spacing.gap.medium}>...</div>   // 16px
+<div className={spacing.gap.large}>...</div>   // 20px
+<div className={spacing.gap.xlarge}>...</div>  // 24px
+```
+
+## 🧩 Componentes
+
+### Cards
+
+```tsx
+import { components } from "@/lib/design-system";
+
+<Card className={components.card}>...</Card>
+```
+
+### Botones de Período
+
+```tsx
+<Button className={`${components.periodButton.base} ${components.periodButton.active}`}>
+  <span className={components.periodButton.text}>Hoy</span>
+</Button>
+```
+
+### Badge de Inventario
+
+```tsx
+<Badge 
+  className={components.inventoryBadge}
+  style={{ backgroundColor: colors.inventory.nuevos }}
+/>
+```
+
+## 🏗️ Layout
+
+### Contenedor Principal
+
+```tsx
+import { layout } from "@/lib/design-system";
+
+<main className={layout.main}>...</main>
+```
+
+### Grid de Métricas
+
+```tsx
+<div className={layout.metricsGrid}>
+  <Card>Métrica 1</Card>
+  <Card>Métrica 2</Card>
+</div>
+```
+
+### Header Sticky
+
+```tsx
+<header className={layout.header}>...</header>
+```
+
+## 🎯 Clases Comunes
+
+Para uso rápido, clases pre-combinadas:
+
+```tsx
+import { commonClasses } from "@/lib/design-system";
+
+<h3 className={commonClasses.sectionTitle}>Mi Sección</h3>
+<p className={commonClasses.metricLabel}>Ventas del Mes</p>
+<span className={commonClasses.metricValue}>$1.2M</span>
+<p className={commonClasses.description}>Descripción</p>
+<Card className={commonClasses.card}>...</Card>
+<main className={commonClasses.mainContainer}>...</main>
+```
+
+## 📋 Ejemplo Completo
+
+```tsx
+import { Card, CardContent, CardHeader, CardTitle } from "@/components_shadcn/ui/card";
+import { commonClasses, colors, spacing, components } from "@/lib/design-system";
+
+export function ExamplePage() {
+  return (
+    <main className={commonClasses.mainContainer}>
+      <div className="grid grid-cols-2 gap-5">
+        <Card className={commonClasses.card}>
+          <CardContent className={spacing.card.padding}>
+            <p className={commonClasses.metricLabel}>Ventas del Mes</p>
+            <p className={commonClasses.metricValue}>42</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className={commonClasses.card}>
+        <CardHeader className={spacing.card.header}>
+          <CardTitle className={commonClasses.sectionTitle}>
+            Resumen de Inventario
+          </CardTitle>
+        </CardHeader>
+        <CardContent className={spacing.card.content}>
+          <Badge 
+            className={components.inventoryBadge}
+            style={{ backgroundColor: colors.inventory.nuevos }}
+          />
+        </CardContent>
+      </Card>
+    </main>
+  );
+}
+```
+
+## 🎨 Paleta de Colores
+
+### Inventario (Gráficos)
+- **Nuevos**: `oklch(0.73 0.13 75)` - Amarillo/dorado
+- **Usados**: `oklch(0.7 0.15 50)` - Naranja/amarillo oscuro
+- **En Taller**: `oklch(0.85 0.1 75)` - Amarillo claro
+
+### Estado
+- **Success**: `oklch(0.6 0.15 150)` - Verde
+- **Warning**: `oklch(0.85 0.1 75)` - Amarillo
+- **Error**: `oklch(0.577 0.245 27.325)` - Rojo
+
+## 📐 Espaciado Estándar
+
+Múltiplos de 4px (0.25rem):
+- **8px** (0.5rem) - gap-2
+- **12px** (0.75rem) - gap-3
+- **16px** (1rem) - gap-4
+- **20px** (1.25rem) - gap-5
+- **24px** (1.5rem) - gap-6, padding estándar
+
+## 📚 Ver Más
+
+Para ejemplos prácticos completos, consulta la regla: `.cursor/rules/design-system-examples.mdc`
+
+## Reglas de Uso
+
+1. **SIEMPRE usa los tokens del design system** en lugar de valores hardcodeados
+2. **Importa desde** `@/lib/design-system` para mantener consistencia
+3. **Usa `commonClasses`** para combinaciones frecuentes
+4. **Colores inline**: usa `colors.inventory.*` para estilos inline en gráficos
+5. **Espaciado**: usa `spacing.*` en lugar de valores como `p-6`, `gap-4`, etc.
+6. **Tipografía**: usa `typography.*` en lugar de clases como `text-2xl font-bold`

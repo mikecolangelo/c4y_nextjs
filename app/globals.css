@@ -1,0 +1,1260 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.73 0.13 75);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.73 0.13 75);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.73 0.13 75);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.73 0.13 75);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  
+  /* Scrollbar personalizado que se adapta al tema claro/oscuro */
+  /* Aplicado solo a elementos con overflow scroll/auto explicito */
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+  }
+  
+  /* Webkit scrollbar (Chrome, Safari, Edge) - solo elementos scrollables */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 4px;
+    min-height: 40px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+  
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  
+  /* Firefox - asegurar que funcione en todos los tamaños */
+  @-moz-document url-prefix() {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+    }
+  }
+  
+  html {
+    @apply min-h-screen;
+  }
+  body {
+    @apply min-h-screen bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Scroll suave para ScrollArea */
+  [data-radix-scroll-area-viewport] {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    scroll-padding: 0;
+  }
+  
+  /* Mejorar la fluidez del scroll */
+  [data-radix-scroll-area-viewport] * {
+    will-change: scroll-position;
+  }
+
+  /* Icono de calendario en inputs de tipo date - Modo oscuro */
+  .dark input[type="date"]::-webkit-calendar-picker-indicator,
+  .dark .date-input-dark::-webkit-calendar-picker-indicator,
+  input[type="date"].date-input-dark.dark::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(1.5) !important;
+    cursor: pointer;
+    opacity: 1 !important;
+  }
+
+  .dark input[type="date"]::-webkit-inner-spin-button,
+  .dark input[type="date"]::-webkit-clear-button,
+  .dark .date-input-dark::-webkit-inner-spin-button,
+  .dark .date-input-dark::-webkit-clear-button {
+    filter: invert(1) brightness(1.5) !important;
+  }
+
+  /* Para Firefox y otros navegadores */
+  .dark input[type="date"],
+  .dark .date-input-dark {
+    color-scheme: dark;
+  }
+
+  /* Asegurar que funcione también sin la clase .dark (si el modo oscuro se aplica de otra manera) */
+  @media (prefers-color-scheme: dark) {
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    .date-input-dark::-webkit-calendar-picker-indicator {
+      filter: invert(1) brightness(1.5) !important;
+      cursor: pointer;
+      opacity: 1 !important;
+    }
+
+    input[type="date"]::-webkit-inner-spin-button,
+    input[type="date"]::-webkit-clear-button,
+    .date-input-dark::-webkit-inner-spin-button,
+    .date-input-dark::-webkit-clear-button {
+      filter: invert(1) brightness(1.5) !important;
+    }
+
+    input[type="date"],
+    .date-input-dark {
+      color-scheme: dark;
+    }
+  }
+}
+
+@layer utilities {
+  /* Transiciones suaves para inputs y botones */
+  .transition-smooth {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+  }
+
+  /* Focus visible mejorado para accesibilidad */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+
+  /* Animación suave para hover en elementos interactivos */
+  .hover-lift {
+    @apply transition-all duration-300 ease-in-out hover:scale-[1.02] active:scale-[0.98];
+  }
+
+  /* Estilo de botón negro principal */
+  .btn-black {
+    @apply w-full h-14 text-lg font-semibold rounded-xl bg-black text-white hover:bg-gray-900 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] duration-300 ease-in-out;
+    @apply dark:bg-white dark:text-black dark:hover:bg-gray-200;
+  }
+
+  /* Ocultar scrollbar */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Scrollbar con tema adaptativo para elementos específicos */
+  .scrollbar-themed {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+    overflow: auto;
+  }
+  
+  .scrollbar-themed::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  .scrollbar-themed::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .scrollbar-themed::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 4px;
+    min-height: 40px;
+  }
+  
+  .scrollbar-themed::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+  
+  /* Scrollbar más visible (para áreas con mucho scroll) */
+  .scrollbar-visible {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.5) transparent;
+    overflow: auto;
+  }
+  
+  .scrollbar-visible::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  
+  .scrollbar-visible::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.5);
+    border-radius: 5px;
+    min-height: 40px;
+  }
+  
+  .scrollbar-visible::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.7);
+  }
+  
+  /* Scrollbar para Cards con overflow - mantiene diseño en todas las resoluciones */
+  .card-scrollable {
+    overflow: auto;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.25) transparent;
+  }
+  
+  .card-scrollable::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .card-scrollable::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.25);
+    border-radius: 3px;
+  }
+  
+  .card-scrollable::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.45);
+  }
+  
+  /* Scrollbar consistente en todas las resoluciones - fix para pantallas grandes */
+  @media screen and (min-width: 1024px) {
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    
+    [data-radix-scroll-area-viewport]::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+  }
+  
+  /* Asegurar que overflow funcione correctamente en Cards */
+  [data-slot="card"] .overflow-auto,
+  [data-slot="card"] [class*="overflow-y-auto"],
+  [data-slot="card"] [class*="overflow-x-auto"] {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+  }
+  
+  [data-slot="card"] .overflow-auto::-webkit-scrollbar,
+  [data-slot="card"] [class*="overflow-y-auto"]::-webkit-scrollbar,
+  [data-slot="card"] [class*="overflow-x-auto"]::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  [data-slot="card"] .overflow-auto::-webkit-scrollbar-thumb,
+  [data-slot="card"] [class*="overflow-y-auto"]::-webkit-scrollbar-thumb,
+  [data-slot="card"] [class*="overflow-x-auto"]::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 4px;
+  }
+
+  /* Scroll suave y fluido */
+  .scroll-smooth {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  
+  /* Momentum scrolling mejorado para iOS */
+  @supports (-webkit-overflow-scrolling: touch) {
+    [data-radix-scroll-area-viewport] {
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+    }
+  }
+
+  /* ========================================================================
+     DESIGN SYSTEM UTILITIES - Estilos del Dashboard
+     ======================================================================== */
+
+  /* Card estándar con sombra y borde elegante */
+  .card-elegant {
+    @apply shadow-sm ring-1 ring-inset ring-border/50;
+  }
+
+  /* Contenedor principal con padding y max-width */
+  .container-main {
+    @apply flex flex-col gap-6 px-6 py-6 max-w-7xl mx-auto w-full;
+  }
+
+  /* Header sticky con backdrop blur */
+  .header-sticky {
+    @apply sticky top-0 z-10 w-full border-b bg-background/80 backdrop-blur-sm;
+  }
+
+  /* Título de sección */
+  .section-title {
+    @apply text-base font-semibold;
+  }
+
+  /* Título grande (métricas) */
+  .metric-title {
+    @apply text-[32px] font-bold tracking-tight;
+  }
+
+  /* Título mediano */
+  .metric-subtitle {
+    @apply text-2xl font-bold tracking-tight;
+  }
+
+  /* Label de métrica */
+  .metric-label {
+    @apply text-sm font-medium text-muted-foreground;
+  }
+
+  /* Texto de descripción */
+  .text-description {
+    @apply text-sm text-muted-foreground;
+  }
+
+  /* Botón de período/filtro activo */
+  .period-button-active {
+    @apply h-9 shrink-0 rounded-full px-4 bg-primary text-primary-foreground;
+  }
+
+  /* Botón de período/filtro inactivo */
+  .period-button-inactive {
+    @apply h-9 shrink-0 rounded-full px-4 bg-card;
+  }
+
+  /* Grid de métricas (2 columnas) */
+  .metrics-grid {
+    @apply grid grid-cols-2 gap-5;
+  }
+
+  /* Padding de card estándar */
+  .card-padding {
+    @apply p-6;
+  }
+
+  /* Padding de card header */
+  .card-header-padding {
+    @apply px-6 pt-6 pb-4;
+  }
+
+  /* Padding de card content */
+  .card-content-padding {
+    @apply px-6 pb-6;
+  }
+
+  /* Gap estándar entre elementos */
+  .gap-standard {
+    @apply gap-6;
+  }
+
+  /* Gap pequeño entre elementos */
+  .gap-small {
+    @apply gap-3;
+  }
+
+  /* Separador con margen superior */
+  .separator-margin {
+    @apply mt-2 pt-2;
+  }
+
+  /* Squircle shape - Esquinas redondeadas tipo iOS con fallback */
+  .squircle {
+    /* Fallback para navegadores que no soportan mask-image */
+    border-radius: 1.5rem;
+    
+    /* Squircle usando mask-image con SVG - Compatible con Chrome, Firefox, Safari, Edge */
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0,20 C0,9 9,0 20,0 L80,0 C91,0 100,9 100,20 L100,80 C100,91 91,100 80,100 L20,100 C9,100 0,91 0,80 Z' fill='black'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0,20 C0,9 9,0 20,0 L80,0 C91,0 100,9 100,20 L100,80 C100,91 91,100 80,100 L20,100 C9,100 0,91 0,80 Z' fill='black'/%3E%3C/svg%3E");
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+  }
+
+  /* Squircle más suave para diálogos - Preserva el borde */
+  .squircle-dialog {
+    /* Squircle simulado con border-radius que preserva el borde */
+    border-radius: 2rem 2rem 1.75rem 1.75rem;
+    
+    /* Para navegadores modernos, usar valores más suaves tipo squircle */
+    @supports (border-radius: 2rem) {
+      border-radius: 2.5rem 2.5rem 2rem 2rem;
+    }
+  }
+
+  /* Layout container para el diálogo con capa de opacidad inferior */
+  .dialog-layout-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Capa de opacidad solo en la parte inferior del diálogo */
+  .dialog-layout-container::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.15) 40%, transparent 100%);
+    pointer-events: none;
+    z-index: 50;
+  }
+
+  .dark .dialog-layout-container::before {
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.3) 40%, transparent 100%);
+  }
+
+  /* Efecto de difuminado adicional justo debajo del diálogo */
+  .dialog-layout-container::after {
+    content: '';
+    position: absolute;
+    bottom: calc(50% - 150px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 500px;
+    height: 120px;
+    background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.2) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 49;
+    filter: blur(25px);
+  }
+
+  .dark .dialog-layout-container::after {
+    background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.4) 0%, transparent 70%);
+    filter: blur(30px);
+  }
+
+  /* ========================================================================
+     SONNER TOAST - Personalización con fondo sólido
+     ======================================================================== */
+
+  /* Toast de éxito - fondo sólido */
+  [data-sonner-toast][data-type="success"] {
+    background: var(--card) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--card-foreground) !important;
+    backdrop-filter: none !important;
+    opacity: 1 !important;
+  }
+
+  [data-sonner-toast][data-type="success"] [data-icon] {
+    color: var(--primary) !important;
+  }
+
+  /* Toast de error - fondo sólido */
+  [data-sonner-toast][data-type="error"] {
+    background: var(--card) !important;
+    border: 1px solid var(--destructive) !important;
+    color: var(--card-foreground) !important;
+    backdrop-filter: none !important;
+    opacity: 1 !important;
+  }
+
+  [data-sonner-toast][data-type="error"] [data-icon] {
+    color: var(--destructive) !important;
+  }
+
+  /* Toast de información - fondo sólido */
+  [data-sonner-toast][data-type="info"] {
+    background: var(--card) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--card-foreground) !important;
+    backdrop-filter: none !important;
+    opacity: 1 !important;
+  }
+
+  [data-sonner-toast][data-type="info"] [data-icon] {
+    color: var(--primary) !important;
+  }
+
+  /* Toast de advertencia - fondo sólido */
+  [data-sonner-toast][data-type="warning"] {
+    background: var(--card) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--card-foreground) !important;
+    backdrop-filter: none !important;
+    opacity: 1 !important;
+  }
+
+  [data-sonner-toast][data-type="warning"] [data-icon] {
+    color: var(--primary) !important;
+  }
+
+  /* Asegurar que todos los toasts tengan fondo sólido */
+  [data-sonner-toast] {
+    background: var(--card) !important;
+    backdrop-filter: none !important;
+    opacity: 1 !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+    touch-action: pan-x pan-y !important;
+    cursor: grab !important;
+    user-select: none !important;
+  }
+
+  [data-sonner-toast]:active {
+    cursor: grabbing !important;
+  }
+
+  /* Estilo del botón de acción "Marcar como leído" - igual al botón de referencia */
+  [data-sonner-toast] button[data-action] {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0 !important;
+    white-space: nowrap !important;
+    border-radius: 0.375rem !important;
+    font-size: 0 !important;
+    font-weight: 500 !important;
+    transition: all 0.2s !important;
+    height: 1.75rem !important;
+    width: 1.75rem !important;
+    min-width: 1.75rem !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    color: var(--muted-foreground) !important;
+    cursor: pointer !important;
+    position: relative !important;
+  }
+
+  /* Ocultar el texto del label */
+  [data-sonner-toast] button[data-action] > span {
+    display: none !important;
+  }
+
+  /* Agregar ícono Circle mediante SVG inline (estado inicial - light mode) */
+  [data-sonner-toast] button[data-action]:not([data-read])::before {
+    content: "" !important;
+    display: block !important;
+    width: 1rem !important;
+    height: 1rem !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3C/svg%3E") !important;
+    background-size: contain !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+  }
+
+  /* Agregar ícono Circle blanco en dark mode */
+  .dark [data-sonner-toast] button[data-action]:not([data-read])::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3C/svg%3E") !important;
+  }
+
+  /* Agregar ícono CheckCircle2 cuando está marcado como leído */
+  [data-sonner-toast] button[data-action][data-read]::before {
+    content: "" !important;
+    display: block !important;
+    width: 1rem !important;
+    height: 1rem !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2316a34a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M9 12l2 2 4-4'/%3E%3C/svg%3E") !important;
+    background-size: contain !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+  }
+
+  /* Cambiar color cuando está marcado como leído */
+  [data-sonner-toast] button[data-action][data-read] {
+    color: rgb(22, 163, 74) !important; /* green-600 */
+  }
+
+  [data-sonner-toast] button[data-action]:hover {
+    background: var(--accent) !important;
+    color: var(--accent-foreground) !important;
+  }
+
+  [data-sonner-toast] button[data-action]:focus-visible {
+    outline: none !important;
+    box-shadow: 0 0 0 2px var(--ring) !important;
+  }
+
+  [data-sonner-toast] button[data-action]:disabled {
+    pointer-events: none !important;
+    opacity: 0.5 !important;
+  }
+
+  /* =======================================================================
+     FULLCALENDAR CUSTOM STYLES
+     ======================================================================= */
+  
+  .fc {
+    --fc-border-color: hsl(var(--border));
+    --fc-button-text-color: hsl(var(--primary-foreground));
+    --fc-button-bg-color: hsl(var(--primary));
+    --fc-button-border-color: hsl(var(--primary));
+    --fc-button-hover-bg-color: hsl(var(--primary) / 0.9);
+    --fc-button-hover-border-color: hsl(var(--primary) / 0.9);
+    --fc-button-active-bg-color: hsl(var(--primary) / 0.8);
+    --fc-button-active-border-color: hsl(var(--primary) / 0.8);
+    --fc-event-bg-color: hsl(var(--primary));
+    --fc-event-border-color: hsl(var(--primary));
+    --fc-event-text-color: hsl(var(--primary-foreground));
+    --fc-page-bg-color: transparent;
+    --fc-neutral-bg-color: hsl(var(--muted));
+    --fc-neutral-text-color: hsl(var(--muted-foreground));
+    --fc-today-bg-color: hsl(var(--accent) / 0.3);
+    --fc-highlight-color: hsl(var(--accent) / 0.5);
+    font-family: inherit;
+  }
+
+  .fc .fc-button {
+    border-radius: calc(var(--radius) - 2px);
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-transform: capitalize;
+    transition: all 0.2s;
+  }
+
+  .fc .fc-button-primary:disabled {
+    background-color: hsl(var(--muted));
+    border-color: hsl(var(--muted));
+    color: hsl(var(--muted-foreground));
+  }
+
+  .fc .fc-button-primary:not(:disabled).fc-button-active,
+  .fc .fc-button-primary:not(:disabled):active {
+    background-color: hsl(var(--primary) / 0.8);
+    border-color: hsl(var(--primary) / 0.8);
+  }
+
+  .fc .fc-toolbar-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: hsl(var(--foreground));
+  }
+
+  .fc .fc-col-header-cell {
+    padding: 0.75rem 0;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: hsl(var(--foreground));
+  }
+
+  .fc .fc-daygrid-day-number {
+    font-size: 0.875rem;
+    padding: 0.5rem;
+    color: hsl(var(--foreground));
+  }
+
+  .fc .fc-daygrid-day.fc-day-today {
+    background-color: transparent !important;
+  }
+
+  .fc .fc-event {
+    border-radius: calc(var(--radius) - 2px);
+    font-size: 0.75rem;
+    padding: 0.125rem 0.25rem;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+
+  .fc .fc-event:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 10 !important;
+  }
+
+  .fc .fc-more-link {
+    display: none !important;
+  }
+
+  /* El enlace "+X más" se elimina configurando dayMaxEvents={false} en los componentes.
+     Esta regla es un respaldo por si acaso. */
+
+  .fc .fc-popover {
+    border-radius: var(--radius);
+    border: 1px solid hsl(var(--border));
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+
+  .fc .fc-popover-header {
+    background-color: hsl(var(--muted));
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+
+  .fc .fc-popover-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .fc .fc-timegrid-slot {
+    height: 3rem;
+  }
+
+  .fc .fc-timegrid-axis-frame {
+    font-size: 0.75rem;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .fc .fc-timegrid-event-harness-inset .fc-timegrid-event {
+    border-radius: calc(var(--radius) - 2px);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Dark mode support */
+  @media (prefers-color-scheme: dark) {
+    .fc {
+      --fc-border-color: hsl(var(--border));
+      --fc-page-bg-color: transparent;
+      --fc-neutral-bg-color: hsl(var(--muted));
+      --fc-today-bg-color: hsl(var(--accent) / 0.2);
+    }
+    
+    .fc .fc-day-other .fc-daygrid-day-top {
+      opacity: 0.5;
+    }
+  }
+
+  /* Mobile optimizations */
+  @media (max-width: 640px) {
+    .fc .fc-toolbar {
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    
+    .fc .fc-toolbar-title {
+      font-size: 1rem;
+    }
+    
+    .fc .fc-button {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+    }
+  }
+
+  /* =======================================================================
+     COMPACT CALENDAR STYLES - Calendario de notificaciones compacto
+     ======================================================================= */
+  
+  /* Quitar bordes del calendario */
+  .compact-calendar .fc {
+    --fc-border-color: transparent;
+  }
+  
+  .compact-calendar .fc-theme-standard td,
+  .compact-calendar .fc-theme-standard th {
+    border: none !important;
+  }
+  
+  .compact-calendar .fc-theme-standard .fc-scrollgrid {
+    border: none !important;
+  }
+  
+  /* Encabezados de días (S M T W T F S) */
+  .compact-calendar .fc-col-header-cell {
+    padding: 0.25rem 0 !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    color: hsl(var(--muted-foreground)) !important;
+    background: transparent !important;
+    border: none !important;
+  }
+  
+  /* Celdas de días */
+  .compact-calendar .fc-daygrid-day {
+    border: none !important;
+    background: transparent !important;
+    transition: all 0.2s ease;
+    overflow: visible !important;
+  }
+  
+  /* Efecto hover sutil en las celdas */
+  .compact-calendar .fc-daygrid-day .fc-daygrid-day-frame {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 2px !important;
+  }
+  
+  .compact-calendar .fc-daygrid-day:hover .fc-daygrid-day-frame {
+    border-radius: calc(var(--radius) - 2px);
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.15);
+    z-index: 10;
+    position: relative;
+  }
+  
+  /* Días coloreados - hover más intenso */
+  .compact-calendar .fc-daygrid-day:has(.bg-red-500\/20):hover .fc-daygrid-day-frame {
+    background-color: rgba(239, 68, 68, 0.35) !important;
+  }
+  
+  .compact-calendar .fc-daygrid-day:has(.bg-primary\/20):hover .fc-daygrid-day-frame {
+    background-color: hsl(var(--primary) / 0.35) !important;
+  }
+  
+  .compact-calendar .fc-daygrid-day:has(.bg-green-500\/15):hover .fc-daygrid-day-frame {
+    background-color: rgba(34, 197, 94, 0.3) !important;
+  }
+  
+  /* Números de días alineados */
+  .compact-calendar .fc-daygrid-day-top {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: flex-start !important;
+    padding-top: 0.25rem;
+  }
+  
+  .compact-calendar .fc-daygrid-day-number {
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    padding: 0.25rem 0.375rem !important;
+    float: none !important;
+    margin: 0 !important;
+    line-height: 1;
+  }
+  
+  /* Día actual */
+  .compact-calendar .fc-daygrid-day.fc-day-today {
+    background-color: transparent !important;
+  }
+  
+  .compact-calendar .fc-day-today .fc-daygrid-day-number {
+    color: hsl(var(--primary)) !important;
+    font-weight: 700 !important;
+  }
+  
+  /* Ocultar días de otros meses */
+  .compact-calendar .fc-day-other {
+    visibility: hidden !important;
+  }
+  
+  .compact-calendar .fc-day-other .fc-daygrid-day-top {
+    display: none !important;
+  }
+  
+  /* Ajustar fila del calendario */
+  .compact-calendar .fc-daygrid-body tr {
+    height: auto !important;
+  }
+  
+  .compact-calendar .fc-daygrid-day-frame {
+    min-height: auto !important;
+    padding: 0.125rem;
+  }
+  
+  /* Eventos más compactos */
+  .compact-calendar .fc-daygrid-event {
+    border-radius: calc(var(--radius) - 4px);
+    margin: 0 1px;
+  }
+  
+  .compact-calendar .fc-event {
+    font-size: 0.65rem !important;
+    line-height: 1.2;
+  }
+  
+  /* Título del mes */
+  .compact-calendar .fc-toolbar-title {
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    text-align: center;
+  }
+  
+  /* Toolbar sin bordes */
+  .compact-calendar .fc-header-toolbar {
+    margin-bottom: 0.5rem !important;
+  }
+  
+  /* Ajustar altura del calendario */
+  .compact-calendar .fc-view-harness {
+    background: transparent !important;
+    height: 100% !important;
+  }
+  
+  /* Calendario cuadrado - distribución uniforme */
+  .compact-calendar .fc-daygrid-body {
+    width: 100% !important;
+    height: 100% !important;
+  }
+  
+  .compact-calendar .fc-daygrid-body table {
+    height: 100% !important;
+  }
+  
+  .compact-calendar .fc-scrollgrid {
+    height: 100% !important;
+  }
+  
+  .compact-calendar .fc-daygrid-body tbody tr {
+    height: auto !important;
+    min-height: 36px !important;
+  }
+  
+  .compact-calendar .fc-daygrid-day {
+    height: auto !important;
+    min-height: 36px !important;
+  }
+  
+  .compact-calendar .fc-daygrid-day-frame {
+    height: auto !important;
+    min-height: 36px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    padding: 0.125rem !important;
+  }
+  
+  .compact-calendar .fc-daygrid-day-top {
+    flex: 0 0 auto !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    padding: 0.125rem 0 !important;
+    min-height: 20px !important;
+  }
+  
+  .compact-calendar .fc-daygrid-day-events {
+    width: 100% !important;
+    min-height: 0 !important;
+    max-height: 40px !important;
+    margin-top: 0.125rem !important;
+    overflow: hidden !important;
+  }
+  
+  .compact-calendar .fc-daygrid-event-harness {
+    margin: 1px 0 !important;
+  }
+  
+  /* Ajustes para el calendario de notificaciones - evitar celdas alargadas */
+  .fc-daygrid-body tbody tr {
+    height: auto !important;
+  }
+  
+  .fc-daygrid-day {
+    height: auto !important;
+  }
+  
+  .fc-daygrid-day-frame {
+    min-height: 40px !important;
+  }
+  
+  .fc-daygrid-day-events {
+    max-height: 60px !important;
+    overflow: hidden !important;
+  }
+  
+  /* Limitar altura de eventos individuales */
+  .fc-daygrid-event {
+    max-height: 18px !important;
+    overflow: hidden !important;
+  }
+  
+  /* Estilos para celdas del calendario de notificaciones */
+  .calendar-day-cell {
+    height: auto !important;
+  }
+  
+  .calendar-day-cell .fc-daygrid-day-frame {
+    min-height: 32px !important;
+    height: auto !important;
+  }
+  
+  .calendar-day-cell .fc-daygrid-day-top {
+    min-height: 20px !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+  
+  /* Eliminar cualquier recuadro/fondo en las celdas del calendario de notificaciones */
+  .calendar-day-cell,
+  .calendar-day-cell .fc-daygrid-day-frame,
+  .calendar-day-cell .fc-daygrid-day-top,
+  .calendar-day-cell.fc-day-today,
+  .calendar-day-cell.fc-day-today .fc-daygrid-day-frame {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  /* ========================================================================
+     REACT DAY PICKER v9 OVERRIDES - Normalizar estilos del calendario
+     ======================================================================== */
+  
+  /* Días de la semana: forzar mayúsculas, centrar y limpiar */
+  .rdp-weekday {
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    font-weight: 600 !important;
+    font-size: 0.75rem !important;
+    color: hsl(var(--muted-foreground)) !important;
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+  }
+  
+  /* Botones de día: asegurar que sean circulares y sin bordes extra */
+  .rdp-day_button {
+    border-radius: 9999px !important;
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 0.875rem !important;
+    font-weight: 400 !important;
+    border: none !important;
+    background: transparent !important;
+    color: hsl(var(--foreground)) !important;
+    transition: background-color 0.2s, color 0.2s !important;
+  }
+  
+  .rdp-day_button:hover:not([disabled]) {
+    background-color: hsl(var(--accent)) !important;
+    color: hsl(var(--accent-foreground)) !important;
+  }
+  
+  /* Día seleccionado */
+  .rdp-day_button[data-selected="true"],
+  .rdp-selected .rdp-day_button {
+    background-color: hsl(var(--primary)) !important;
+    color: hsl(var(--primary-foreground)) !important;
+  }
+  
+  .rdp-day_button[data-selected="true"]:hover,
+  .rdp-selected .rdp-day_button:hover {
+    background-color: hsl(var(--primary) / 0.9) !important;
+  }
+  
+  /* Día de hoy */
+  .rdp-day_button[data-today="true"] {
+    background-color: hsl(var(--accent)) !important;
+    color: hsl(var(--accent-foreground)) !important;
+    font-weight: 600 !important;
+  }
+  
+  /* Día fuera del mes */
+  .rdp-day_button[data-outside="true"] {
+    color: hsl(var(--muted-foreground)) !important;
+    opacity: 0.5 !important;
+  }
+  
+  /* Día deshabilitado */
+  .rdp-day_button[disabled] {
+    color: hsl(var(--muted-foreground)) !important;
+    opacity: 0.4 !important;
+    cursor: not-allowed !important;
+  }
+  
+  /* Dropdowns de mes/año: wrapper limpio */
+  .rdp-dropdown_root {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: calc(var(--radius) - 2px) !important;
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    color: hsl(var(--foreground)) !important;
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    transition: background-color 0.2s, border-color 0.2s !important;
+  }
+  
+  .rdp-dropdown_root:hover {
+    background-color: hsl(var(--muted)) !important;
+    border-color: hsl(var(--border)) !important;
+  }
+  
+  /* Select invisible encima del texto */
+  .rdp-dropdown {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    opacity: 0 !important;
+    cursor: pointer !important;
+    z-index: 20 !important;
+    appearance: none !important;
+    border: none !important;
+    background: transparent !important;
+  }
+  
+  /* Título del mes */
+  .rdp-caption_label {
+    font-weight: 500 !important;
+    font-size: 0.875rem !important;
+    color: hsl(var(--foreground)) !important;
+  }
+  
+  /* Tabla del calendario */
+  .rdp-month_grid {
+    border-collapse: separate !important;
+    border-spacing: 0.125rem !important;
+    width: 100% !important;
+  }
+  
+  /* Fila de encabezados */
+  .rdp-head_row {
+    display: flex !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    border: none !important;
+    background: transparent !important;
+  }
+  
+  /* Filas de semanas */
+  .rdp-week {
+    display: flex !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    border: none !important;
+    background: transparent !important;
+  }
+  
+  /* Celdas del calendario */
+  .rdp-cell {
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+    padding: 0 !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    border: none !important;
+    background: transparent !important;
+  }
+  
+  /* Navegación */
+  .rdp-nav_button {
+    border-radius: 9999px !important;
+    width: 1.75rem !important;
+    height: 1.75rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid hsl(var(--border)) !important;
+    background: transparent !important;
+    color: hsl(var(--foreground)) !important;
+    opacity: 0.6 !important;
+    transition: opacity 0.2s, background-color 0.2s !important;
+  }
+  
+  .rdp-nav_button:hover {
+    opacity: 1 !important;
+    background-color: hsl(var(--muted)) !important;
+  }
+  
+  /* Chevron de navegación */
+  .rdp-chevron {
+    fill: hsl(var(--foreground)) !important;
+  }
+}

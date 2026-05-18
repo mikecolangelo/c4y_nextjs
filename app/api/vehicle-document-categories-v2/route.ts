@@ -1,0 +1,99 @@
+import { NextResponse } from "next/server";
+import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
+import { requireAdmin } from "@/lib/admin-guard";
+
+function generateSlug(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+// GET - Obtener todas las categorías de documentos
+export async function GET() {
+  try {
+    try {
+      await requireAdmin();
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
+    const response = await fetch(
+      `${STRAPI_BASE_URL}/api/vehicle-document-categories?sort[0]=order:asc`,
+      {
+        headers: {
+          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        },
+        cache: "no-store",
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("[vehicle-document-categories] GET error:", response.status, errorText);
+      throw new Error(`Error ${response.status}: ${errorText || response.statusText}`);
+    }
+
+    const result = await response.json();
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error("[vehicle-document-categories] GET error:", error);
+    const message = error instanceof Error ? error.message : "Error desconocido";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+// POST - Crear una nueva categoría
+export async function POST(request: Request) {
+  try {
+    try {
+      await requireAdmin();
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
+    const body = await request.json();
+    const { data } = body;
+
+    if (!data?.name) {
+      return NextResponse.json({ error: "El nombre es requerido" }, { status: 400 });
+    }
+
+    const payload = { ...data };
+    if (!payload.slug && payload.name) {
+      payload.slug = generateSlug(payload.name as string);
+    }
+
+    const response = await fetch(`${STRAPI_BASE_URL}/api/vehicle-document-categories`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      },
+      body: JSON.stringify({ data: payload }),
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("[vehicle-document-categories] POST error:", response.status, errorText);
+      throw new Error(`Error ${response.status}: ${errorText || response.statusText}`);
+    }
+
+    const result = await response.json();
+    return NextResponse.json(result, { status: 201 });
+  } catch (error) {
+    console.error("[vehicle-document-categories] POST error:", error);
+    const message = error instanceof Error ? error.message : "Error desconocido";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}

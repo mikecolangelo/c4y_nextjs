@@ -1,0 +1,88 @@
+---
+alwaysApply: true
+---
+
+# Documentación y Archivos de Texto
+
+**Entorno**: Todo el proyecto (Frontend y Backend)
+
+## Regla Principal: NO Crear Archivos .md Sueltos
+
+**CRÍTICO**: NUNCA crees archivos `.md` (Markdown) sueltos en el proyecto. Toda la documentación debe ir en reglas de Cursor (`.mdc`).
+
+### ¿Por qué?
+
+1. **Las reglas de Cursor son más útiles**: El AI puede leerlas automáticamente y aplicarlas
+2. **Mejor organización**: Toda la documentación está centralizada en `.cursor/rules/`
+3. **Más accesible**: Las reglas están disponibles directamente en el contexto del AI
+4. **Evita archivos huérfanos**: Los `.md` sueltos tienden a quedar desactualizados
+
+### Formato de Reglas
+
+Todas las reglas deben seguir este formato:
+
+```markdown
+# Título de la Regla
+
+**Entorno**: [Frontend/Backend/Fullstack] - [Tecnologías relevantes]
+
+[Contenido de la regla]
+```
+
+### Estructura de Reglas
+
+1. **Título claro** que indique el propósito
+2. **Línea de entorno** que especifique:
+   - Si es Frontend, Backend o Fullstack
+   - Tecnologías relevantes (ej: Next.js, React, TypeScript, TailwindCSS)
+3. **Contenido** organizado y claro
+4. **Ejemplos prácticos** cuando sea relevante
+
+### Ejemplos de Reglas Correctas
+
+- `design-system.mdc` - **Entorno**: Frontend - Next.js, React, TypeScript, TailwindCSS
+- `minimalist-code.mdc` - **Entorno**: Frontend - React, Next.js
+- `nextjs.mdc` - **Entorno**: Frontend - Next.js, React, TypeScript
+- `shadcn.mdc` - **Entorno**: Frontend - shadcn/ui, React, TailwindCSS
+
+### Qué Hacer Si Necesitas Documentar Algo
+
+1. **Crea una regla en** `.cursor/rules/[nombre-descriptivo].mdc`
+2. **Incluye el entorno** en la primera línea después del título
+3. **Organiza el contenido** con secciones claras
+4. **Añade ejemplos** cuando sea útil
+
+### Excepciones
+
+Los únicos archivos `.md` permitidos son:
+- `README.md` en la raíz del proyecto (si es necesario)
+- Archivos generados automáticamente por herramientas externas
+
+### Migración
+
+Si encuentras un archivo `.md` suelto:
+1. Lee su contenido
+2. Crea una regla `.mdc` equivalente en `.cursor/rules/`
+3. Incluye el entorno apropiado
+4. Elimina el archivo `.md` original
+
+## Estructura de Documentación
+
+```
+.cursor/
+  rules/
+    design-system.mdc          # Sistema de diseño
+    minimalist-code.mdc        # Principios de código minimalista
+    nextjs.mdc                 # Guías de Next.js
+    shadcn.mdc                 # Componentes shadcn/ui
+    documentation.mdc          # Esta regla
+    [otras-reglas].mdc         # Más reglas según necesidad
+```
+
+## Beneficios
+
+- ✅ Documentación siempre accesible para el AI
+- ✅ Mejor organización y mantenimiento
+- ✅ Contexto claro del entorno de cada regla
+- ✅ Evita archivos de documentación desactualizados
+- ✅ Facilita la búsqueda y referencia

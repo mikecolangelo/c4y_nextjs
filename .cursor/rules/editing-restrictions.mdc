@@ -1,0 +1,44 @@
+---
+alwaysApply: true
+---
+
+# Reglas de Edición - Restricciones
+
+## Regla Principal
+
+**NO modificar, mejorar o agregar funcionalidad a menos que el usuario lo solicite explícitamente.**
+
+### Directrices Específicas
+
+1. **Solo editar lo solicitado**: Trabajar únicamente en los archivos, componentes y características que el usuario mencione específicamente.
+
+2. **No hacer mejoras proactivas**: 
+   - No optimizar código no relacionado
+   - No refactorizar componentes no mencionados
+   - No agregar validaciones adicionales sin solicitud
+   - No mejorar estilos de elementos no mencionados
+   - No agregar funcionalidades "extra" que parezcan útiles
+
+3. **Enfoque estricto**: 
+   - Si el usuario pide trabajar en el formulario de edición, solo trabajar en el formulario de edición
+   - Si el usuario pide agregar campos, solo agregar esos campos específicos
+   - Si el usuario pide reorganizar layout, solo reorganizar el layout mencionado
+
+4. **Excepciones**:
+   - Correcciones de errores de sintaxis o tipos que impidan la compilación
+   - Errores obvios que rompan la funcionalidad solicitada
+
+### Ejemplos
+
+✅ **Correcto**:
+- Usuario: "Agrega el campo VIN al formulario"
+- Acción: Agregar solo el campo VIN al formulario
+
+❌ **Incorrecto**:
+- Usuario: "Agrega el campo VIN al formulario"
+- Acción: Agregar VIN + validación de formato + mejoras de UX + refactorización del componente
+
+---
+
+**Fecha de creación**: Sesión actual
+<!-- **Contexto**: Trabajo en formulario de edición de vehículos en `frontend/app/fleet/details/[id]/page.tsx` -->

@@ -1,0 +1,10 @@
+{
+  "components/service-v2/service-calendar-wrapper.tsx -> ./service-calendar-inner": {
+    "id": 47412,
+    "files": [
+      "static/chunks/46b0c19c-6ebe7baa8d2fe9d8.js",
+      "static/chunks/1039-a11ac24370daef15.js",
+      "static/chunks/7412.e63ca266dc3dbf70.js"
+    ]
+  }
+}

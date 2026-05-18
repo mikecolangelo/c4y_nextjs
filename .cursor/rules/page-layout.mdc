@@ -1,0 +1,251 @@
+---
+alwaysApply: true
+---
+
+# Layout Estándar de Páginas
+
+**Entorno**: Frontend - Next.js, React, TypeScript, TailwindCSS, shadcn/ui
+
+## Regla Principal: Layout Consistente en Todas las Páginas
+
+**CRÍTICO**: Todas las páginas deben seguir el mismo patrón de layout, espaciado y tipografía para mantener consistencia visual en toda la aplicación.
+
+## Estructura Estándar de Página
+
+### 1. Contenedor Principal
+
+```tsx
+<div className="relative flex min-h-screen w-full flex-col bg-background">
+  {/* Header */}
+  {/* Main */}
+</div>
+```
+
+### 2. Header Estándar
+
+**Estructura obligatoria**:
+
+```tsx
+<header className="sticky top-0 z-10 w-full border-b bg-background/80 backdrop-blur-sm">
+  <div className="flex h-16 items-center justify-between px-6">
+    {/* Contenido del header */}
+  </div>
+</header>
+```
+
+**Características**:
+- `sticky top-0 z-10`: Header fijo en la parte superior
+- `w-full border-b`: Ancho completo con borde inferior
+- `bg-background/80 backdrop-blur-sm`: Fondo semitransparente con blur
+- Contenedor interno: `flex h-16 items-center justify-between px-6`
+  - Altura fija: `h-16` (64px)
+  - Padding horizontal: `px-6` (24px)
+
+### 3. Título del Header
+
+**Usar tipografía del design-system**:
+
+```tsx
+import { typography } from "@/lib/design-system";
+
+<h1 className={typography.h3}>Título de la Página</h1>
+```
+
+**Clase**: `typography.h3` = `"text-lg font-bold"`
+
+### 4. Main Container
+
+**Usar clase común del design-system**:
+
+```tsx
+import { commonClasses } from "@/lib/design-system";
+
+<main className={commonClasses.mainContainer}>
+  {/* Contenido */}
+</main>
+```
+
+**Clase**: `commonClasses.mainContainer` = `"flex flex-col gap-6 px-6 py-6 max-w-7xl mx-auto w-full"`
+
+**Características**:
+- Layout vertical: `flex flex-col`
+- Espaciado entre secciones: `gap-6` (24px)
+- Padding: `px-6 py-6` (24px horizontal y vertical)
+- Ancho máximo: `max-w-7xl` (1280px)
+- Centrado: `mx-auto`
+- Ancho completo: `w-full`
+
+### 5. Menú de Navegación
+
+**Botones de navegación estándar**:
+
+```tsx
+import { components } from "@/lib/design-system";
+
+<Button 
+  variant={components.navButton.variant} 
+  className={components.navButton.base}
+  asChild
+>
+  <Link href="/ruta">
+    <Icon className="h-4 w-4" />
+    Texto
+  </Link>
+</Button>
+```
+
+**Características**:
+- Altura: `h-10` (40px)
+- Gap: `gap-2` (8px entre icono y texto)
+- Padding horizontal: `px-4` (16px)
+- Variant: `ghost`
+
+**Menú móvil (DropdownMenu)**:
+
+```tsx
+<DropdownMenu>
+  <DropdownMenuTrigger asChild>
+    <Button variant="ghost" size="icon" className="md:hidden rounded-full">
+      <Menu className="h-5 w-5" />
+    </Button>
+  </DropdownMenuTrigger>
+  <DropdownMenuContent align="start" className="w-48">
+    {/* Items del menú */}
+  </DropdownMenuContent>
+</DropdownMenu>
+```
+
+## Ejemplo Completo
+
+```tsx
+"use client";
+
+import { Button } from "@/components_shadcn/ui/button";
+import { Menu } from "lucide-react";
+import { commonClasses, typography } from "@/lib/design-system";
+import Link from "next/link";
+
+export default function MiPagina() {
+  return (
+    <div className="relative flex min-h-screen w-full flex-col bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-10 w-full border-b bg-background/80 backdrop-blur-sm">
+        <div className="flex h-16 items-center justify-between px-6">
+          <div className="flex items-center gap-4 md:gap-8">
+            <Button variant="ghost" size="icon" className="md:hidden">
+              <Menu className="h-5 w-5" />
+            </Button>
+            <h1 className={typography.h3}>Título de la Página</h1>
+            {/* Navegación desktop */}
+            <nav className="hidden md:flex items-center gap-1">
+              {/* Botones de navegación */}
+            </nav>
+            {/* Menú móvil */}
+            <DropdownMenu>
+              {/* Contenido del menú móvil */}
+            </DropdownMenu>
+          </div>
+          <div className="flex items-center gap-3">
+            {/* Botones de acción (notificaciones, usuario, logout) */}
+          </div>
+        </div>
+      </header>
+
+      {/* Main */}
+      <main className={commonClasses.mainContainer}>
+        {/* Contenido de la página */}
+      </main>
+    </div>
+  );
+}
+```
+
+## Reglas Específicas
+
+### ❌ INCORRECTO: Header con CardContent
+
+```tsx
+// ❌ MAL: CardContent no debe usarse en el header
+<header>
+  <CardContent className="flex h-16 items-center justify-between px-6">
+    {/* contenido */}
+  </CardContent>
+</header>
+```
+
+### ✅ CORRECTO: Header con div estándar
+
+```tsx
+// ✅ BIEN: Usar div con clases estándar
+<header className="sticky top-0 z-10 w-full border-b bg-background/80 backdrop-blur-sm">
+  <div className="flex h-16 items-center justify-between px-6">
+    {/* contenido */}
+  </div>
+</header>
+```
+
+### ❌ INCORRECTO: Main con clases personalizadas
+
+```tsx
+// ❌ MAL: Clases personalizadas inconsistentes
+<main className="flex flex-col gap-6 px-6 py-6 max-w-7xl mx-auto w-full">
+```
+
+### ✅ CORRECTO: Main con clase común
+
+```tsx
+// ✅ BIEN: Usar clase del design-system
+<main className={commonClasses.mainContainer}>
+```
+
+## Espaciado y Tipografía
+
+### Títulos de Sección
+
+```tsx
+import { typography } from "@/lib/design-system";
+
+<CardTitle className={typography.h2}>Título de Sección</CardTitle>
+<CardTitle className={typography.h4}>Subtítulo</CardTitle>
+```
+
+### Espaciado entre Elementos
+
+```tsx
+import { spacing } from "@/lib/design-system";
+
+<div className={`flex flex-col ${spacing.gap.base}`}>
+  {/* Elementos con gap-3 (12px) */}
+</div>
+
+<div className={`grid grid-cols-2 ${spacing.gap.medium}`}>
+  {/* Elementos con gap-4 (16px) */}
+</div>
+```
+
+## Checklist de Implementación
+
+Antes de crear una nueva página, verifica:
+
+1. ✅ Contenedor principal con `bg-background`
+2. ✅ Header con estructura estándar (`sticky`, `h-16`, `px-6`)
+3. ✅ Título usando `typography.h3`
+4. ✅ Main usando `commonClasses.mainContainer`
+5. ✅ Botones de navegación con `h-10 gap-2 px-4`
+6. ✅ Menú móvil con `DropdownMenu` y `md:hidden`
+7. ✅ Espaciado usando `spacing.gap.*` del design-system
+8. ✅ Tipografía usando `typography.*` del design-system
+
+## Beneficios
+
+- ✅ Consistencia visual en toda la aplicación
+- ✅ Mantenimiento más fácil (cambios centralizados)
+- ✅ Mejor experiencia de usuario
+- ✅ Código más limpio y reutilizable
+- ✅ Facilita el diseño responsive
+
+## Referencias
+
+- Design System: `.cursor/rules/design-system.mdc`
+- Evitar Divitis: `.cursor/rules/avoid-divitis.mdc`
+- Ejemplos: `.cursor/rules/design-system-examples.mdc`

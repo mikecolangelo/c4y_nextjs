@@ -1,0 +1,1 @@
+{"timestamp":"2026-05-11T21:40:01.884Z","strapiBaseUrl":"https://api.car4youpanama.com","checks":{"basic_connectivity":{"status":"ok","responseTime":21},"upload_endpoint":{"status":"ok","responseTime":3},"document_types":{"status":"ok","responseTime":3}}}

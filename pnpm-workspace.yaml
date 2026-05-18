@@ -1,0 +1,7 @@
+minimumReleaseAge: 60 # 24 hours
+# minimumReleaseAgeExclude:
+#   - next
+#   - react
+onlyBuiltDependencies:
+  - sharp
+  - unrs-resolver
