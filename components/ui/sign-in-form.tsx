@@ -34,11 +34,11 @@ export function SignInForm({ data }: SignInFormProps) {
   // Hooks primero (reglas de React)
   const [formState, setFormState] = useState<FormState>(INITIAL_STATE);
   const [isPending, startTransition] = useTransition();
-  
+
   // Verificación de data después de los hooks
   if (!data) return null;
-  
-  const { 
+
+  const {
     header,
     email_label,
     email_placeholder,
@@ -48,7 +48,7 @@ export function SignInForm({ data }: SignInFormProps) {
     singup_previous_link_text,
     singup_link,
   } = data;
-  
+
   const singupLink = singup_link?.[0];
 
   const form = useForm<z.infer<typeof SignInFormSchema>>({
@@ -57,23 +57,24 @@ export function SignInForm({ data }: SignInFormProps) {
       identifier: "",
       password: "",
     },
-  }); 
+  });
 
   async function onSubmit(values: z.infer<typeof SignInFormSchema>) {
     const formData = new FormData();
     formData.append("identifier", values.identifier);
     formData.append("password", values.password);
-    
+
     startTransition(async () => {
       try {
         const result = await actions.auth.loginUserAction(formState, formData);
-        // Asegurar que result es válido, si no, mantener estado actual
         if (result) {
+          if (result.redirectTo) {
+            window.location.href = result.redirectTo;
+            return;
+          }
           setFormState(result);
         }
       } catch (error) {
-        // Si hay redirect, esto no se ejecuta
-        // Si hay otro error, mostramos mensaje genérico
         console.error("Login error:", error);
         setFormState({
           ...INITIAL_STATE,

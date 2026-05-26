@@ -63,16 +63,18 @@ export function SignUpForm({ data }: { readonly data: Readonly<SingupFormData> }
     formData.append("username", values.username);
     formData.append("email", values.email);
     formData.append("password", values.password);
-    
+
     startTransition(async () => {
       try {
         const result = await actions.auth.registerUserAction(formState, formData);
-        // Asegurar que result es válido, si no, mantener estado actual
         if (result) {
+          if (result.redirectTo) {
+            window.location.href = result.redirectTo;
+            return;
+          }
           setFormState(result);
         }
       } catch (error) {
-        // Si hay redirect, esto no se ejecuta
         console.error("Registration error:", error);
         setFormState({
           ...INITIAL_STATE,

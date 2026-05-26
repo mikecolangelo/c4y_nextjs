@@ -236,10 +236,12 @@ export function CreatePaymentDialog({
     );
 
     // Determinar estado
+    // - Adelanto: cubre al menos 1 cuota completa Y tiene excedente para futuras
+    // - Abonado/Pagado: pago normal sin excedente o pago parcial
     let status: "pagado" | "adelanto" | "retrasado" | "pendiente" = "pagado";
     if (isLate) {
       status = "retrasado";
-    } else if (quotasCovered > 1 || advanceCredit > 0) {
+    } else if (quotasCovered >= 1 && advanceCredit > 0) {
       status = "adelanto";
     }
 

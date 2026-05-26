@@ -239,12 +239,12 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const jwt = await getCurrentUserJwt();
 
-    // Limpiar campos de fecha: convertir strings vacías a null
-    const dateFields = ['dateOfBirth', 'hireDate'];
+    // Limpiar campos vacíos: convertir strings vacías y undefined a null
+    // Strapi rechaza strings vacíos en campos como email (type: email)
     const cleanedData = { ...body.data };
-    for (const field of dateFields) {
-      if (cleanedData[field] === '' || cleanedData[field] === undefined) {
-        cleanedData[field] = null;
+    for (const key of Object.keys(cleanedData)) {
+      if (cleanedData[key] === '' || cleanedData[key] === undefined) {
+        cleanedData[key] = null;
       }
     }
 
@@ -262,8 +262,22 @@ export async function PATCH(request: Request, context: RouteContext) {
     );
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Error actualizando perfil de contacto: ${errorText || response.statusText}`);
+      let errorText = "";
+      try {
+        const errorJson = await response.json();
+        if (errorJson?.error?.message) {
+          errorText = errorJson.error.message;
+        } else if (errorJson?.message) {
+          errorText = errorJson.message;
+        } else if (errorJson?.error) {
+          errorText = typeof errorJson.error === 'string' ? errorJson.error : JSON.stringify(errorJson.error);
+        } else {
+          errorText = await response.text();
+        }
+      } catch {
+        errorText = response.statusText || `HTTP ${response.status}`;
+      }
+      throw new Error(`Error actualizando perfil de contacto: ${errorText}`);
     }
 
     const data = await response.json();

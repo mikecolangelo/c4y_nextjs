@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const SignInFormSchema = z.object({
   identifier: z.string().min(3, "Ingresa correo o usuario (mín. 3 caracteres)"),
-  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
+  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
 });
 
 export const SignUpFormSchema = z.object({
@@ -24,6 +24,7 @@ export type FormState = {
   success?: boolean;
   isLoading?: boolean;
   message?: string;
+  redirectTo?: string;
   data?: {
     identifier?: string;
     fullName?: string;

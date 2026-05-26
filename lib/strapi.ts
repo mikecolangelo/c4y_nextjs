@@ -104,7 +104,7 @@ export async function loginUserService(userData: { identifier: string; password:
 
   try {
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000)
+    const timeoutId = setTimeout(() => controller.abort(), 30000)
 
     const response = await fetch(url, {
       method: 'POST',
@@ -125,15 +125,14 @@ export async function loginUserService(userData: { identifier: string; password:
     const data = await response.json()
     return data
   } catch (error) {
-    // Manejar diferentes tipos de errores
     if (error instanceof Error) {
       if (error.name === 'AbortError' || error.message.includes('timeout') || error.message.includes('aborted')) {
         console.error('Error logging in user: Timeout al conectar con Strapi')
         return { error: { message: 'El servidor tardó demasiado en responder. Verifica que Strapi esté corriendo.' } }
       }
-      if (error.message.includes('fetch failed') || error.message.includes('ECONNREFUSED') || error.message.includes('ENOTFOUND')) {
-        console.error('Error logging in user: No se pudo conectar con Strapi en', STRAPI_BASE_URL)
-        return { error: { message: `No se pudo conectar con el servidor. Verifica que Strapi esté corriendo en ${STRAPI_BASE_URL}` } }
+      if (error.message.includes('fetch failed') || error.message.includes('ECONNREFUSED') || error.message.includes('ENOTFOUND') || error.message.includes('Connection closed') || error.message.includes('NetworkError') || error.message.includes('net::ERR')) {
+        console.error('Error logging in user: No se pudo conectar con Strapi en', STRAPI_BASE_URL, error.message)
+        return { error: { message: 'No se pudo conectar con el servidor. Intenta nuevamente.' } }
       }
     }
     console.error('Error logging in user:', error)

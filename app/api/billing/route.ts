@@ -152,14 +152,23 @@ export async function POST(request: Request) {
         console.log(`[API Billing POST] ✓ Vinculando a cuota: ${closestParentId}`);
         data.parentRecord = closestParentId;
         
-        // Si el pago cubre más que el monto de la cuota, el excedente queda disponible
-        // y el status debe ser 'adelanto' para reflejar que tiene saldo disponible
-        if (paymentInfo.advanceCredit > 0) {
+        // Si el pago cubre al menos 1 cuota completa Y tiene excedente,
+        // el excedente queda disponible como crédito para futuras cuotas
+        // y el status debe ser 'adelanto' para reflejar que tiene saldo disponible.
+        // NOTA: Un pago parcial (quotasCovered === 0) NO es adelanto,
+        // es un abono sobre la cuota actual.
+        if (paymentInfo.quotasCovered >= 1 && paymentInfo.advanceCredit > 0) {
           console.log(`[API Billing POST] Pago con excedente ($${paymentInfo.advanceCredit}), marcando como adelanto`);
           data.status = "adelanto";
         }
       } else {
         console.log(`[API Billing POST] ⚠ No hay cuota pendiente, creando como raíz`);
+        // FIX: Si no hay cuota pendiente, cualquier pago parcial es ADELANTO, no abonado.
+        // Un abono requiere una cuota existente. Sin cuota, es crédito libre para futuro.
+        data.status = "adelanto";
+        data.quotaNumber = 0;
+        data.parentRecord = null;
+        console.log(`[API Billing POST] Forzando status=adelanto, quotaNumber=0, parentRecord=null`);
       }
     } else if (isMultiQuotaPayment) {
       console.log(`[API Billing POST] Pago multi-cuota sin quotaNumber específico (${quotasCovered} cuotas), será padre de las cuotas`);

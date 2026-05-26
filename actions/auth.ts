@@ -2,12 +2,27 @@
 import { z } from "zod"
 
 import { cookies, headers } from "next/headers"
-import { redirect } from "next/navigation"
 import { STRAPI_BASE_URL_HOSTNAME } from "@/lib/config"
 import { STRAPI_BASE_URL_PORT, STRAPI_BASE_URL_PROTOCOL } from "@/lib/config"
 
 import { SignUpFormSchema, SignInFormSchema, type FormState } from "@/validations/auth"
 import { registerUserService, loginUserService, createUserProfile } from "@/lib/strapi"
+
+const AUTH_INITIAL_STATE: FormState = {
+  data: {
+    identifier: "",
+    password: "",
+    fullName: "",
+    username: "",
+    email: "",
+  },
+  zodErrors: null,
+  strapiErrors: undefined,
+  success: false,
+  isLoading: false,
+  message: undefined,
+  redirectTo: undefined,
+}
 
 const buildCookieConfig = async () => {
   const headerList = await headers();
@@ -78,7 +93,7 @@ export async function registerUserAction(prevState: FormState, formData: FormDat
   const cookieStore = await cookies()
   const cookieConfig = await buildCookieConfig()
   cookieStore.set('jwt', response.jwt, cookieConfig)
-  redirect('/dashboard')
+  return { ...AUTH_INITIAL_STATE, success: true, redirectTo: '/dashboard' }
 }
 
 export async function loginUserAction(prevState: FormState, formData: FormData): Promise<FormState> {
@@ -117,7 +132,7 @@ export async function loginUserAction(prevState: FormState, formData: FormData):
   const cookieStore = await cookies()
   const cookieConfig = await buildCookieConfig()
   cookieStore.set('jwt', response.jwt, cookieConfig)
-  redirect('/dashboard')
+  return { ...AUTH_INITIAL_STATE, success: true, redirectTo: '/dashboard' }
 }
 
 export async function logoutAction() {
@@ -125,5 +140,5 @@ export async function logoutAction() {
   cookieStore.delete('jwt')
   // Limpiar la cookie del tema para que no persista después del logout
   cookieStore.delete('admin-theme')
-  redirect('/signin')
+  return { ...AUTH_INITIAL_STATE, redirectTo: '/signin' }
 }

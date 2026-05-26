@@ -1,0 +1,3156 @@
+
+> frontend@0.1.0 start
+> next start -H 127.0.0.1 -p 3000
+
+  ▲ Next.js 14.2.35
+  - Local:        http://127.0.0.1:3000
+  - Network:      http://127.0.0.1:3000
+
+ ✓ Starting...
+ ✓ Ready in 372ms
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[API Billing POST] Monto: 200, quotaAmount: 386.36, quotasCovered: 0
+[API Billing POST] Monto: $200, quotaAmount: $386.36, quotasCovered: 0, advanceCredit: $200
+[API Billing POST] Buscando cuota pendiente para vincular pago de $200
+[findClosestParentRecord] Candidates sorted: [
+  {
+    documentId: 'xw7xnk7a5c9lrjsdr72y4czm',
+    status: 'abonado',
+    dueDate: '2026-05-01',
+    balanceReal: 50
+  },
+  {
+    documentId: 'c2vz872v3j6p39aipfvri9ju',
+    status: 'pendiente',
+    dueDate: '2026-05-08',
+    balanceReal: 386.36
+  }
+]
+[findClosestParentRecord] Selected quota: {
+  documentId: 'xw7xnk7a5c9lrjsdr72y4czm',
+  status: 'abonado',
+  dueDate: '2026-05-01',
+  balanceReal: 50
+}
+[API Billing POST] ✓ Vinculando a cuota: xw7xnk7a5c9lrjsdr72y4czm
+[API Billing POST] Checking if parent xw7xnk7a5c9lrjsdr72y4czm should be marked as paid after auto-association
+[checkAndUpdateParentIfPaid] Parent xw7xnk7a5c9lrjsdr72y4czm: {
+  parentAmount: 386.36,
+  positiveChildrenTotal: 536.36,
+  balanceDueParent: 0,
+  excess: 150,
+  childrenCount: 2
+}
+[checkAndUpdateParentIfPaid] Parent xw7xnk7a5c9lrjsdr72y4czm is fully covered by children (balance: 0), updating status to 'pagado'
+[checkAndUpdateParentIfPaid] ✓ Parent xw7xnk7a5c9lrjsdr72y4czm updated to 'pagado'
+[checkAndUpdateParentIfPaid] Excess detected: $150.00. Creating automatic advance.
+[checkAndUpdateParentIfPaid] ✓ Automatic advance created: ffeeiai4iitabt4jelaronyh for $150.00
+[API Billing POST] Ejecutando auto-cover para financing mhfjzcme77f3xd3r98ny2fg2
+[autoCoverPendingQuotas] Iniciando auto-cover para financing mhfjzcme77f3xd3r98ny2fg2
+[autoCoverPendingQuotas] Adelantos con saldo: 1 [ { docId: 'ffeeiai4iitabt4jelaronyh', available: 150 } ]
+[autoCoverPendingQuotas] Cuotas con balance pendiente: 1 [ '#6=$386.36 balance=$386.36' ]
+[autoCoverPendingQuotas] Procesando cuota #6, balance pendiente: $386.36
+[autoCoverPendingQuotas] Aplicando $150 de adelanto ffeeiai4iitabt4jelaronyh a cuota #6
+[applyAdvanceAmountToQuota] Adelanto ffeeiai4iitabt4jelaronyh → Cuota #6: aplicando $150
+[applyAdvanceAmountToQuota] ✓ Abono creado: o92g9uwbep77e43h4zxl7hu3 por $150
+[applyAdvanceAmountToQuota] ✓ Adelanto ffeeiai4iitabt4jelaronyh reducido a $0
+[autoCoverPendingQuotas] ✓ Aplicados $150. Balance restante cuota: $236.36, adelanto: $0
+[autoCoverPendingQuotas] ✓ Cuota #6 abonada parcialmente. Balance pendiente: $236.36
+[autoCoverPendingQuotas] Total cuotas cubiertas/abonadas: 1
+[API Billing POST] Auto-cover cubrió 1 cuota(s): [ 'c2vz872v3j6p39aipfvri9ju' ]
+[API Billing POST] Recalculando métricas de financing mhfjzcme77f3xd3r98ny2fg2
+[recalculateFinancingMetrics] Recalculando métricas para financing mhfjzcme77f3xd3r98ny2fg2
+[recalculateFinancingMetrics] Resultados: {
+  paidQuotas: 2,
+  totalPaid: 386.36,
+  currentBalance: 84613.64,
+  totalLateFees: 0,
+  partialPaymentCredit: 0,
+  status: 'activo'
+}
+[API Billing POST] ✓ Métricas recalculadas
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+Error obteniendo user-profile actual: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14976:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async p (C:\Users\Bernardo\trememdo\c4y_nextjs\.next-prod-deploy\server\app\api\reminders\route.js:1:957)
+    at async m (C:\Users\Bernardo\trememdo\c4y_nextjs\.next-prod-deploy\server\app\api\reminders\route.js:1:2024)
+    at async C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38411
+    at async e_.execute (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:27880)
+    at async e_.handle (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:39943)
+    at async doRender (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1588:28)
+    at async NextNodeServer.renderToResponseWithComponentsImpl (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1496:28) {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.car4youpanama.com:443, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2746:28)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2712:35)
+      at process.processImmediate (node:internal/timers:483:21)
+      at process.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'UND_ERR_CONNECT_TIMEOUT',
+    [Symbol(undici.error.UND_ERR)]: true,
+    [Symbol(undici.error.UND_ERR_CONNECT_TIMEOUT)]: true
+  }
+}
+Error obteniendo user-profile actual: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14976:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async p (C:\Users\Bernardo\trememdo\c4y_nextjs\.next-prod-deploy\server\app\api\notifications\route.js:1:982)
+    at async m (C:\Users\Bernardo\trememdo\c4y_nextjs\.next-prod-deploy\server\app\api\notifications\route.js:1:1728)
+    at async C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38411
+    at async e_.execute (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:27880)
+    at async e_.handle (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:39943)
+    at async doRender (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1588:28)
+    at async NextNodeServer.renderToResponseWithComponentsImpl (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1496:28) {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.car4youpanama.com:443, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2746:28)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2712:35)
+      at process.processImmediate (node:internal/timers:483:21)
+      at process.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'UND_ERR_CONNECT_TIMEOUT',
+    [Symbol(undici.error.UND_ERR)]: true,
+    [Symbol(undici.error.UND_ERR_CONNECT_TIMEOUT)]: true
+  }
+}
+Error obteniendo user-profile actual: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14976:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async p (C:\Users\Bernardo\trememdo\c4y_nextjs\.next-prod-deploy\server\app\api\reminders\route.js:1:957)
+    at async m (C:\Users\Bernardo\trememdo\c4y_nextjs\.next-prod-deploy\server\app\api\reminders\route.js:1:2024)
+    at async C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38411
+    at async e_.execute (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:27880)
+    at async e_.handle (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:39943)
+    at async doRender (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1588:28)
+    at async NextNodeServer.renderToResponseWithComponentsImpl (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1496:28) {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.car4youpanama.com:443, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2746:28)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2712:35)
+      at process.processImmediate (node:internal/timers:483:21)
+      at process.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'UND_ERR_CONNECT_TIMEOUT',
+    [Symbol(undici.error.UND_ERR)]: true,
+    [Symbol(undici.error.UND_ERR_CONNECT_TIMEOUT)]: true
+  }
+}
+Error obteniendo user-profile actual: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14976:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async p (C:\Users\Bernardo\trememdo\c4y_nextjs\.next-prod-deploy\server\app\api\notifications\route.js:1:982)
+    at async m (C:\Users\Bernardo\trememdo\c4y_nextjs\.next-prod-deploy\server\app\api\notifications\route.js:1:1728)
+    at async C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38411
+    at async e_.execute (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:27880)
+    at async e_.handle (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:39943)
+    at async doRender (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1588:28)
+    at async NextNodeServer.renderToResponseWithComponentsImpl (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1496:28) {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.car4youpanama.com:443, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2746:28)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2712:35)
+      at process.processImmediate (node:internal/timers:483:21)
+      at process.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'UND_ERR_CONNECT_TIMEOUT',
+    [Symbol(undici.error.UND_ERR)]: true,
+    [Symbol(undici.error.UND_ERR_CONNECT_TIMEOUT)]: true
+  }
+}
+Error obteniendo user-profile actual: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14976:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async p (C:\Users\Bernardo\trememdo\c4y_nextjs\.next-prod-deploy\server\app\api\reminders\route.js:1:957)
+    at async m (C:\Users\Bernardo\trememdo\c4y_nextjs\.next-prod-deploy\server\app\api\reminders\route.js:1:2024)
+    at async C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38411
+    at async e_.execute (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:27880)
+    at async e_.handle (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:39943)
+    at async doRender (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1588:28)
+    at async NextNodeServer.renderToResponseWithComponentsImpl (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1496:28) {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.car4youpanama.com:443, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2746:28)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2712:35)
+      at process.processImmediate (node:internal/timers:483:21)
+      at process.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'UND_ERR_CONNECT_TIMEOUT',
+    [Symbol(undici.error.UND_ERR)]: true,
+    [Symbol(undici.error.UND_ERR_CONNECT_TIMEOUT)]: true
+  }
+}
+Error obteniendo user-profile actual: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14976:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async p (C:\Users\Bernardo\trememdo\c4y_nextjs\.next-prod-deploy\server\app\api\notifications\route.js:1:982)
+    at async m (C:\Users\Bernardo\trememdo\c4y_nextjs\.next-prod-deploy\server\app\api\notifications\route.js:1:1728)
+    at async C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38411
+    at async e_.execute (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:27880)
+    at async e_.handle (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:39943)
+    at async doRender (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1588:28)
+    at async NextNodeServer.renderToResponseWithComponentsImpl (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1496:28) {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.car4youpanama.com:443, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2746:28)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2712:35)
+      at process.processImmediate (node:internal/timers:483:21)
+      at process.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'UND_ERR_CONNECT_TIMEOUT',
+    [Symbol(undici.error.UND_ERR)]: true,
+    [Symbol(undici.error.UND_ERR_CONNECT_TIMEOUT)]: true
+  }
+}
+Error obteniendo user-profile actual: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14976:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async p (C:\Users\Bernardo\trememdo\c4y_nextjs\.next-prod-deploy\server\app\api\reminders\route.js:1:957)
+    at async m (C:\Users\Bernardo\trememdo\c4y_nextjs\.next-prod-deploy\server\app\api\reminders\route.js:1:2024)
+    at async C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38411
+    at async e_.execute (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:27880)
+    at async e_.handle (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:39943)
+    at async doRender (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1588:28)
+    at async NextNodeServer.renderToResponseWithComponentsImpl (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1496:28) {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.car4youpanama.com:443, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2746:28)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2712:35)
+      at process.processImmediate (node:internal/timers:483:21)
+      at process.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'UND_ERR_CONNECT_TIMEOUT',
+    [Symbol(undici.error.UND_ERR)]: true,
+    [Symbol(undici.error.UND_ERR_CONNECT_TIMEOUT)]: true
+  }
+}
+Error obteniendo user-profile actual: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14976:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async p (C:\Users\Bernardo\trememdo\c4y_nextjs\.next-prod-deploy\server\app\api\notifications\route.js:1:982)
+    at async m (C:\Users\Bernardo\trememdo\c4y_nextjs\.next-prod-deploy\server\app\api\notifications\route.js:1:1728)
+    at async C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38411
+    at async e_.execute (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:27880)
+    at async e_.handle (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:39943)
+    at async doRender (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1588:28)
+    at async NextNodeServer.renderToResponseWithComponentsImpl (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1496:28) {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.car4youpanama.com:443, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2746:28)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2712:35)
+      at process.processImmediate (node:internal/timers:483:21)
+      at process.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'UND_ERR_CONNECT_TIMEOUT',
+    [Symbol(undici.error.UND_ERR)]: true,
+    [Symbol(undici.error.UND_ERR_CONNECT_TIMEOUT)]: true
+  }
+}
+Error obteniendo user-profile actual: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14976:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async p (C:\Users\Bernardo\trememdo\c4y_nextjs\.next-prod-deploy\server\app\api\reminders\route.js:1:957)
+    at async m (C:\Users\Bernardo\trememdo\c4y_nextjs\.next-prod-deploy\server\app\api\reminders\route.js:1:2024)
+    at async C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38411
+    at async e_.execute (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:27880)
+    at async e_.handle (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:39943)
+    at async doRender (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1588:28)
+    at async NextNodeServer.renderToResponseWithComponentsImpl (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1496:28) {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.car4youpanama.com:443, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2746:28)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2712:35)
+      at process.processImmediate (node:internal/timers:483:21)
+      at process.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'UND_ERR_CONNECT_TIMEOUT',
+    [Symbol(undici.error.UND_ERR)]: true,
+    [Symbol(undici.error.UND_ERR_CONNECT_TIMEOUT)]: true
+  }
+}
+Error obteniendo user-profile actual: TypeError: fetch failed
+    at node:internal/deps/undici/undici:14976:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async p (C:\Users\Bernardo\trememdo\c4y_nextjs\.next-prod-deploy\server\app\api\notifications\route.js:1:982)
+    at async m (C:\Users\Bernardo\trememdo\c4y_nextjs\.next-prod-deploy\server\app\api\notifications\route.js:1:1728)
+    at async C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:38411
+    at async e_.execute (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:27880)
+    at async e_.handle (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\compiled\next-server\app-route.runtime.prod.js:6:39943)
+    at async doRender (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1366:42)
+    at async cacheEntry.responseCache.get.routeKind (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1588:28)
+    at async NextNodeServer.renderToResponseWithComponentsImpl (C:\Users\Bernardo\trememdo\c4y_nextjs\node_modules\.pnpm\next@14.2.35_@babel+core@7._95ebaecc2475824ac3b6e85c0682411a\node_modules\next\dist\server\base-server.js:1496:28) {
+  [cause]: ConnectTimeoutError: Connect Timeout Error (attempted address: api.car4youpanama.com:443, timeout: 10000ms)
+      at onConnectTimeout (node:internal/deps/undici/undici:2746:28)
+      at Immediate._onImmediate (node:internal/deps/undici/undici:2712:35)
+      at process.processImmediate (node:internal/timers:483:21)
+      at process.callbackTrampoline (node:internal/async_hooks:130:17) {
+    code: 'UND_ERR_CONNECT_TIMEOUT',
+    [Symbol(undici.error.UND_ERR)]: true,
+    [Symbol(undici.error.UND_ERR_CONNECT_TIMEOUT)]: true
+  }
+}
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+userResponese {
+  id: 30,
+  documentId: 'e60f6349800483b0a585a348',
+  createdAt: '2026-04-20T18:08:28.363Z',
+  updatedAt: '2026-05-18T21:09:26.569Z',
+  publishedAt: '2026-04-20T18:08:28.363Z',
+  isValidated: null,
+  validatedAt: null,
+  validationMethod: null,
+  username: 'Antonio',
+  email: 'berantloarod07@gmail.com',
+  provider: 'local',
+  confirmed: true,
+  blocked: false
+}
+all is ok, continue to the requested page
+userResponese {
+  id: 30,
+  documentId: 'e60f6349800483b0a585a348',
+  createdAt: '2026-04-20T18:08:28.363Z',
+  updatedAt: '2026-05-18T21:09:26.569Z',
+  publishedAt: '2026-04-20T18:08:28.363Z',
+  isValidated: null,
+  validatedAt: null,
+  validationMethod: null,
+  username: 'Antonio',
+  email: 'berantloarod07@gmail.com',
+  provider: 'local',
+  confirmed: true,
+  blocked: false
+}
+all is ok, continue to the requested page
+userResponese {
+  id: 30,
+  documentId: 'e60f6349800483b0a585a348',
+  createdAt: '2026-04-20T18:08:28.363Z',
+  updatedAt: '2026-05-18T21:09:26.569Z',
+  publishedAt: '2026-04-20T18:08:28.363Z',
+  isValidated: null,
+  validatedAt: null,
+  validationMethod: null,
+  username: 'Antonio',
+  email: 'berantloarod07@gmail.com',
+  provider: 'local',
+  confirmed: true,
+  blocked: false
+}
+all is ok, continue to the requested page
+userResponese {
+  id: 30,
+  documentId: 'e60f6349800483b0a585a348',
+  createdAt: '2026-04-20T18:08:28.363Z',
+  updatedAt: '2026-05-18T21:09:26.569Z',
+  publishedAt: '2026-04-20T18:08:28.363Z',
+  isValidated: null,
+  validatedAt: null,
+  validationMethod: null,
+  username: 'Antonio',
+  email: 'berantloarod07@gmail.com',
+  provider: 'local',
+  confirmed: true,
+  blocked: false
+}
+all is ok, continue to the requested page
+userResponese {
+  id: 30,
+  documentId: 'e60f6349800483b0a585a348',
+  createdAt: '2026-04-20T18:08:28.363Z',
+  updatedAt: '2026-05-18T21:09:26.569Z',
+  publishedAt: '2026-04-20T18:08:28.363Z',
+  isValidated: null,
+  validatedAt: null,
+  validationMethod: null,
+  username: 'Antonio',
+  email: 'berantloarod07@gmail.com',
+  provider: 'local',
+  confirmed: true,
+  blocked: false
+}
+userResponese {
+  id: 30,
+  documentId: 'e60f6349800483b0a585a348',
+  createdAt: '2026-04-20T18:08:28.363Z',
+  updatedAt: '2026-05-18T21:09:26.569Z',
+  publishedAt: '2026-04-20T18:08:28.363Z',
+  isValidated: null,
+  validatedAt: null,
+  validationMethod: null,
+  username: 'Antonio',
+  email: 'berantloarod07@gmail.com',
+  provider: 'local',
+  confirmed: true,
+  blocked: false
+}
+all is ok, continue to the requested page
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+all is ok, continue to the requested page
+userResponese {
+  id: 30,
+  documentId: 'e60f6349800483b0a585a348',
+  createdAt: '2026-04-20T18:08:28.363Z',
+  updatedAt: '2026-05-18T21:09:26.569Z',
+  publishedAt: '2026-04-20T18:08:28.363Z',
+  isValidated: null,
+  validatedAt: null,
+  validationMethod: null,
+  username: 'Antonio',
+  email: 'berantloarod07@gmail.com',
+  provider: 'local',
+  confirmed: true,
+  blocked: false
+}
+all is ok, continue to the requested page
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[API Billing] Fetching records for financing: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 1: Fetching financing with records: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 2 (Fallback): Fetching for financing rezpzdz1br6vosbe6bhg1pwn
+[Billing] Trying format 1 (documentId filter)
+[Billing] Format 1 result: { count: 0 }
+[Billing] Trying format 2 (id filter)
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[Billing] Format 2 result: { count: 0 }
+[Billing] All methods failed for financing rezpzdz1br6vosbe6bhg1pwn
+[API Billing] Found 0 records []
+[API AutoCover] Ejecutando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Iniciando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[autoCoverPendingQuotas] Adelantos con saldo: 0 []
+[autoCoverPendingQuotas] No hay adelantos con saldo disponible
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[API Billing POST] Monto: 200, quotaAmount: 386.36, quotasCovered: 0
+[API Billing POST] Monto: $200, quotaAmount: $386.36, quotasCovered: 0, advanceCredit: $200
+[API Billing POST] Buscando cuota pendiente para vincular pago de $200
+[findClosestParentRecord] No pending candidates needing coverage found
+[API Billing POST] ⚠ No hay cuota pendiente, creando como raíz
+[API Billing POST] Forzando status=adelanto, quotaNumber=0, parentRecord=null
+[API Billing POST] Adelanto detectado, forzando parentRecord = null y modo multi-cuota
+[API Billing POST] Ejecutando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Iniciando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Adelantos con saldo: 1 [ { docId: 'mct1bxckh1kyley4hqwzj4iy', available: 200 } ]
+[autoCoverPendingQuotas] Cuotas con balance pendiente: 0 []
+[autoCoverPendingQuotas] No hay cuotas con saldo pendiente
+[API Billing POST] Recalculando métricas de financing rezpzdz1br6vosbe6bhg1pwn
+[recalculateFinancingMetrics] Recalculando métricas para financing rezpzdz1br6vosbe6bhg1pwn
+[recalculateFinancingMetrics] Resultados: {
+  paidQuotas: 0,
+  totalPaid: 200,
+  currentBalance: 84800,
+  totalLateFees: 0,
+  partialPaymentCredit: 200,
+  status: 'activo'
+}
+[API Billing POST] ✓ Métricas recalculadas
+[API Billing] Fetching records for financing: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 1: Fetching financing with records: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 2 (Fallback): Fetching for financing rezpzdz1br6vosbe6bhg1pwn
+[Billing] Trying format 1 (documentId filter)
+[Billing] Format 1 result: { count: 1 }
+[API Billing] Found 1 records [
+  {
+    documentId: 'mct1bxckh1kyley4hqwzj4iy',
+    status: 'adelanto',
+    parentRecordId: undefined,
+    childCount: 0
+  }
+]
+[API Billing POST] Monto: 300, quotaAmount: 386.36, quotasCovered: 0
+[API Billing POST] Monto: $300, quotaAmount: $386.36, quotasCovered: 0, advanceCredit: $300
+[API Billing POST] Buscando cuota pendiente para vincular pago de $300
+[findClosestParentRecord] No pending candidates needing coverage found
+[API Billing POST] ⚠ No hay cuota pendiente, creando como raíz
+[API Billing POST] Forzando status=adelanto, quotaNumber=0, parentRecord=null
+[API Billing POST] Adelanto detectado, forzando parentRecord = null y modo multi-cuota
+[API Billing POST] Ejecutando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Iniciando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Adelantos con saldo: 2 [
+  { docId: 'mct1bxckh1kyley4hqwzj4iy', available: 200 },
+  { docId: 'u1ej7ksgn5pf9s2ynbw2w3uk', available: 300 }
+]
+[autoCoverPendingQuotas] Cuotas con balance pendiente: 0 []
+[autoCoverPendingQuotas] No hay cuotas con saldo pendiente
+[API Billing POST] Recalculando métricas de financing rezpzdz1br6vosbe6bhg1pwn
+[recalculateFinancingMetrics] Recalculando métricas para financing rezpzdz1br6vosbe6bhg1pwn
+[recalculateFinancingMetrics] Resultados: {
+  paidQuotas: 0,
+  totalPaid: 500,
+  currentBalance: 84500,
+  totalLateFees: 0,
+  partialPaymentCredit: 500,
+  status: 'activo'
+}
+[API Billing POST] ✓ Métricas recalculadas
+[API Billing] Fetching records for financing: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 1: Fetching financing with records: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 2 (Fallback): Fetching for financing rezpzdz1br6vosbe6bhg1pwn
+[Billing] Trying format 1 (documentId filter)
+[Billing] Format 1 result: { count: 2 }
+[API Billing] Found 2 records [
+  {
+    documentId: 'mct1bxckh1kyley4hqwzj4iy',
+    status: 'adelanto',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'u1ej7ksgn5pf9s2ynbw2w3uk',
+    status: 'adelanto',
+    parentRecordId: undefined,
+    childCount: 0
+  }
+]
+[API Billing POST] Monto: 500, quotaAmount: 386.36, quotasCovered: 1
+[API Billing POST] Monto: $500, quotaAmount: $386.36, quotasCovered: 1, advanceCredit: $113.64
+[API Billing POST] Buscando cuota pendiente para vincular pago de $500
+[findClosestParentRecord] No pending candidates needing coverage found
+[API Billing POST] ⚠ No hay cuota pendiente, creando como raíz
+[API Billing POST] Forzando status=adelanto, quotaNumber=0, parentRecord=null
+[API Billing POST] Adelanto detectado, forzando parentRecord = null y modo multi-cuota
+[API Billing POST] Ejecutando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Iniciando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Adelantos con saldo: 3 [
+  { docId: 'mct1bxckh1kyley4hqwzj4iy', available: 200 },
+  { docId: 'u1ej7ksgn5pf9s2ynbw2w3uk', available: 300 },
+  { docId: 'urtm3us5o2tf9ou44eiy82rd', available: 500 }
+]
+[autoCoverPendingQuotas] Cuotas con balance pendiente: 0 []
+[autoCoverPendingQuotas] No hay cuotas con saldo pendiente
+[API Billing POST] Recalculando métricas de financing rezpzdz1br6vosbe6bhg1pwn
+[recalculateFinancingMetrics] Recalculando métricas para financing rezpzdz1br6vosbe6bhg1pwn
+[recalculateFinancingMetrics] Resultados: {
+  paidQuotas: 0,
+  totalPaid: 1000,
+  currentBalance: 84000,
+  totalLateFees: 0,
+  partialPaymentCredit: 1000,
+  status: 'activo'
+}
+[API Billing POST] ✓ Métricas recalculadas
+[API Billing] Fetching records for financing: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 1: Fetching financing with records: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 2 (Fallback): Fetching for financing rezpzdz1br6vosbe6bhg1pwn
+[Billing] Trying format 1 (documentId filter)
+[Billing] Format 1 result: { count: 3 }
+[API Billing] Found 3 records [
+  {
+    documentId: 'mct1bxckh1kyley4hqwzj4iy',
+    status: 'adelanto',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'u1ej7ksgn5pf9s2ynbw2w3uk',
+    status: 'adelanto',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'urtm3us5o2tf9ou44eiy82rd',
+    status: 'adelanto',
+    parentRecordId: undefined,
+    childCount: 0
+  }
+]
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Financing l39m443olgheszh1wqk8zkwq: Total records: 9
+[SimulateGeneration] Cuota #1 ya existe con status: retrasado, saltando.
+[SimulateGeneration] Financing au9r2vng76kzd26xtog09ukt: Total records: 9
+[SimulateGeneration] Cuota #1 ya existe con status: retrasado, saltando.
+[SimulateGeneration] Financing rezpzdz1br6vosbe6bhg1pwn: Total records: 3
+[SimulateGeneration] Creando cuota #1
+[SimulateGeneration] Cuota creada: mv6ioq5l6de6fh3lku06dm3g
+[SimulateGeneration] Ejecutando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Iniciando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Adelantos con saldo: 3 [
+  { docId: 'mct1bxckh1kyley4hqwzj4iy', available: 200 },
+  { docId: 'u1ej7ksgn5pf9s2ynbw2w3uk', available: 300 },
+  { docId: 'urtm3us5o2tf9ou44eiy82rd', available: 500 }
+]
+[autoCoverPendingQuotas] Cuotas con balance pendiente: 1 [ '#1=$386.36 balance=$386.36' ]
+[autoCoverPendingQuotas] Procesando cuota #1, balance pendiente: $386.36
+[autoCoverPendingQuotas] Vinculando cuota #1 ($386.36) a adelanto urtm3us5o2tf9ou44eiy82rd (saldo: $500)
+[autoCoverPendingQuotas] ✓ Cuota #1 cubierta. Saldo restante adelanto: $113.63999999999999
+[autoCoverPendingQuotas] Total cuotas cubiertas/abonadas: 1
+[SimulateGeneration] Auto-cover cubrió 1 cuota(s): [ 'mv6ioq5l6de6fh3lku06dm3g' ]
+[SimulateOverdue] Retrasadas encontradas: 2
+[SimulateOverdue] Primera retrasada: {
+  "id": 1067,
+  "documentId": "h8iqffm7e43kddezjfmo0zpt",
+  "receiptNumber": "SIM-20260520-l39m443olgheszh1wqk8zkwq-1",
+  "amount": 225,
+  "currency": "PAB",
+  "status": "retrasado",
+  "quotaNumber": 1,
+  "quotasCovered": 1,
+  "quotaAmountCovered": null,
+  "advanceCredit": 0,
+  "remainingQuotaBalance": 0,
+  "lateFeeAmount": 600,
+  "daysLate": 48,
+  "dueDate": "2026-05-21",
+  "paymentDate": null,
+  "confirmationNumber": null,
+  "verifiedInBank": false,
+  "verifiedAt": null,
+  "comments": null,
+  "isSimulated": true,
+  "createdAt": "2026-05-17T17:18:51.998Z",
+  "updatedAt": "2026-05-25T21:07:41.552Z",
+  "publishedAt": "2026-05-25T21:07:41.546Z",
+  "financing": {
+    "id": 37,
+    "documentId": "l39m443olgheszh1wqk8zkwq",
+    "financingNumber": "FIN-20260517-91774",
+    "totalAmount": 49500,
+    "financingMonths": 51,
+    "paymentFrequency": "semanal",
+    "quotaAmount": 225,
+    "totalQuotas": 220,
+    "paidQuotas": 1,
+    "startDate": "2026-05-17",
+    "nextDueDate": "2026-05-24",
+    "status": "activo",
+    "maxLateQuotasAllowed": 4,
+    "lateFeePercentage": 10,
+    "currentBalance": 49400,
+    "totalPaid": 100,
+    "totalLateFees": 22.5,
+    "lateQuotasCount": 1,
+    "partialPaymentCredit": 0,
+    "notes": null,
+    "createdAt": "2026-05-17T17:16:31.894Z",
+    "updatedAt": "2026-05-21T23:59:00.076Z",
+    "publishedAt": "2026-05-21T23:59:00.070Z"
+  },
+  "childRecords": [
+    {
+      "id": 1069,
+      "documentId": "otvdehmp955ktvshuj1my5uq",
+      "receiptNumber": "REC-202605-00002",
+      "amount": 100,
+      "currency": "PAB",
+      "status": "abonado",
+      "quotaNumber": 1,
+      "quotasCovered": 1,
+      "quotaAmountCovered": 100,
+      "advanceCredit": 0,
+      "remainingQuotaBalance": 125,
+      "lateFeeAmount": 0,
+      "daysLate": 0,
+      "dueDate": "2026-05-21",
+      "paymentDate": "2026-05-17",
+      "confirmationNumber": null,
+      "verifiedInBank": false,
+      "verifiedAt": null,
+      "comments": "Abono parcial generado automáticamente desde adelanto cjx9ze950w60bzciziek1f6w (saldo restante)",
+      "isSimulated": false,
+      "createdAt": "2026-05-17T17:18:59.801Z",
+      "updatedAt": "2026-05-17T17:18:59.801Z",
+      "publishedAt": "2026-05-17T17:18:59.793Z"
+    }
+  ]
+}
+[SimulateOverdue] Total invoices a procesar: 2
+[SimulateOverdue] FinancingDocumentId extraído: l39m443olgheszh1wqk8zkwq
+[SimulateOverdue] FinancingDocumentId extraído: au9r2vng76kzd26xtog09ukt
+[SimulateOverdue] FinancingDocumentIds encontrados: [l39m443olgheszh1wqk8zkwq,au9r2vng76kzd26xtog09ukt]
+[getCoveredQuotasMap] Error fetching records: {"data":null,"error":{"status":400,"name":"ValidationError","message":"Invalid key financing","details":{"key":"financing","path":"financing","source":"query","param":"fields"}}}
+[SimulateOverdue] Mapa de cuotas cubiertas:
+[SimulateOverdue] Procesando record: quotaNumber=1, status=retrasado, financingDocumentId=l39m443olgheszh1wqk8zkwq
+[isQuotaCovered] No hay datos de cuotas cubiertas para Fl39m443olgheszh1wqk8zkwq
+[calculatePendingBalance] Cuota SIM-20260520-l39m443olgheszh1wqk8zkwq-1: Total=$225, Abonos=$100, Pendiente=$125
+[SimulateOverdue] Procesando record: quotaNumber=1, status=retrasado, financingDocumentId=au9r2vng76kzd26xtog09ukt
+[isQuotaCovered] No hay datos de cuotas cubiertas para Fau9r2vng76kzd26xtog09ukt
+[calculatePendingBalance] Cuota SIM-20260520-au9r2vng76kzd26xtog09ukt-1: Total=$225, Abonos=$120, Pendiente=$105
+[API Billing] Fetching records for financing: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 1: Fetching financing with records: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 2 (Fallback): Fetching for financing rezpzdz1br6vosbe6bhg1pwn
+[Billing] Trying format 1 (documentId filter)
+[Billing] Format 1 result: { count: 4 }
+[API Billing] Found 4 records [
+  {
+    documentId: 'mv6ioq5l6de6fh3lku06dm3g',
+    status: 'cubierta',
+    parentRecordId: 'urtm3us5o2tf9ou44eiy82rd',
+    childCount: 0
+  },
+  {
+    documentId: 'mct1bxckh1kyley4hqwzj4iy',
+    status: 'adelanto',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'u1ej7ksgn5pf9s2ynbw2w3uk',
+    status: 'adelanto',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'urtm3us5o2tf9ou44eiy82rd',
+    status: 'adelanto',
+    parentRecordId: undefined,
+    childCount: 1
+  }
+]
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Financing l39m443olgheszh1wqk8zkwq: Total records: 9
+[SimulateGeneration] Cuota #1 ya existe con status: retrasado, saltando.
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[SimulateGeneration] Financing au9r2vng76kzd26xtog09ukt: Total records: 9
+[SimulateGeneration] Cuota #1 ya existe con status: retrasado, saltando.
+[SimulateGeneration] Ya existe cuota para financing rezpzdz1br6vosbe6bhg1pwn en fecha 2026-05-29
+[SimulateOverdue] Retrasadas encontradas: 2
+[SimulateOverdue] Primera retrasada: {
+  "id": 1067,
+  "documentId": "h8iqffm7e43kddezjfmo0zpt",
+  "receiptNumber": "SIM-20260520-l39m443olgheszh1wqk8zkwq-1",
+  "amount": 225,
+  "currency": "PAB",
+  "status": "retrasado",
+  "quotaNumber": 1,
+  "quotasCovered": 1,
+  "quotaAmountCovered": null,
+  "advanceCredit": 0,
+  "remainingQuotaBalance": 0,
+  "lateFeeAmount": 75,
+  "daysLate": 6,
+  "dueDate": "2026-05-21",
+  "paymentDate": null,
+  "confirmationNumber": null,
+  "verifiedInBank": false,
+  "verifiedAt": null,
+  "comments": null,
+  "isSimulated": true,
+  "createdAt": "2026-05-17T17:18:51.998Z",
+  "updatedAt": "2026-05-25T22:20:38.422Z",
+  "publishedAt": "2026-05-25T22:20:38.414Z",
+  "financing": {
+    "id": 37,
+    "documentId": "l39m443olgheszh1wqk8zkwq",
+    "financingNumber": "FIN-20260517-91774",
+    "totalAmount": 49500,
+    "financingMonths": 51,
+    "paymentFrequency": "semanal",
+    "quotaAmount": 225,
+    "totalQuotas": 220,
+    "paidQuotas": 1,
+    "startDate": "2026-05-17",
+    "nextDueDate": "2026-05-24",
+    "status": "activo",
+    "maxLateQuotasAllowed": 4,
+    "lateFeePercentage": 10,
+    "currentBalance": 49400,
+    "totalPaid": 100,
+    "totalLateFees": 22.5,
+    "lateQuotasCount": 1,
+    "partialPaymentCredit": 0,
+    "notes": null,
+    "createdAt": "2026-05-17T17:16:31.894Z",
+    "updatedAt": "2026-05-21T23:59:00.076Z",
+    "publishedAt": "2026-05-21T23:59:00.070Z"
+  },
+  "childRecords": [
+    {
+      "id": 1069,
+      "documentId": "otvdehmp955ktvshuj1my5uq",
+      "receiptNumber": "REC-202605-00002",
+      "amount": 100,
+      "currency": "PAB",
+      "status": "abonado",
+      "quotaNumber": 1,
+      "quotasCovered": 1,
+      "quotaAmountCovered": 100,
+      "advanceCredit": 0,
+      "remainingQuotaBalance": 125,
+      "lateFeeAmount": 0,
+      "daysLate": 0,
+      "dueDate": "2026-05-21",
+      "paymentDate": "2026-05-17",
+      "confirmationNumber": null,
+      "verifiedInBank": false,
+      "verifiedAt": null,
+      "comments": "Abono parcial generado automáticamente desde adelanto cjx9ze950w60bzciziek1f6w (saldo restante)",
+      "isSimulated": false,
+      "createdAt": "2026-05-17T17:18:59.801Z",
+      "updatedAt": "2026-05-17T17:18:59.801Z",
+      "publishedAt": "2026-05-17T17:18:59.793Z"
+    }
+  ]
+}
+[SimulateOverdue] Total invoices a procesar: 2
+[SimulateOverdue] FinancingDocumentId extraído: l39m443olgheszh1wqk8zkwq
+[SimulateOverdue] FinancingDocumentId extraído: au9r2vng76kzd26xtog09ukt
+[SimulateOverdue] FinancingDocumentIds encontrados: [l39m443olgheszh1wqk8zkwq,au9r2vng76kzd26xtog09ukt]
+[getCoveredQuotasMap] Error fetching records: {"data":null,"error":{"status":400,"name":"ValidationError","message":"Invalid key financing","details":{"key":"financing","path":"financing","source":"query","param":"fields"}}}
+[SimulateOverdue] Mapa de cuotas cubiertas:
+[SimulateOverdue] Procesando record: quotaNumber=1, status=retrasado, financingDocumentId=l39m443olgheszh1wqk8zkwq
+[isQuotaCovered] No hay datos de cuotas cubiertas para Fl39m443olgheszh1wqk8zkwq
+[calculatePendingBalance] Cuota SIM-20260520-l39m443olgheszh1wqk8zkwq-1: Total=$225, Abonos=$100, Pendiente=$125
+[SimulateOverdue] Procesando record: quotaNumber=1, status=retrasado, financingDocumentId=au9r2vng76kzd26xtog09ukt
+[isQuotaCovered] No hay datos de cuotas cubiertas para Fau9r2vng76kzd26xtog09ukt
+[calculatePendingBalance] Cuota SIM-20260520-au9r2vng76kzd26xtog09ukt-1: Total=$225, Abonos=$120, Pendiente=$105
+[API Billing] Fetching records for financing: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 1: Fetching financing with records: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 2 (Fallback): Fetching for financing rezpzdz1br6vosbe6bhg1pwn
+[Billing] Trying format 1 (documentId filter)
+[Billing] Format 1 result: { count: 4 }
+[API Billing] Found 4 records [
+  {
+    documentId: 'mv6ioq5l6de6fh3lku06dm3g',
+    status: 'cubierta',
+    parentRecordId: 'urtm3us5o2tf9ou44eiy82rd',
+    childCount: 0
+  },
+  {
+    documentId: 'mct1bxckh1kyley4hqwzj4iy',
+    status: 'adelanto',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'u1ej7ksgn5pf9s2ynbw2w3uk',
+    status: 'adelanto',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'urtm3us5o2tf9ou44eiy82rd',
+    status: 'adelanto',
+    parentRecordId: undefined,
+    childCount: 1
+  }
+]
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Financing l39m443olgheszh1wqk8zkwq: Total records: 9
+[SimulateGeneration] Cuota #1 ya existe con status: retrasado, saltando.
+[SimulateGeneration] Financing au9r2vng76kzd26xtog09ukt: Total records: 9
+[SimulateGeneration] Cuota #1 ya existe con status: retrasado, saltando.
+[SimulateGeneration] Ya existe cuota para financing rezpzdz1br6vosbe6bhg1pwn en fecha 2026-05-29
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Ya existe cuota para financing l39m443olgheszh1wqk8zkwq en fecha 2026-06-05
+[SimulateGeneration] Ya existe cuota para financing au9r2vng76kzd26xtog09ukt en fecha 2026-06-05
+[SimulateGeneration] Financing rezpzdz1br6vosbe6bhg1pwn: Total records: 4
+[SimulateGeneration] Creando cuota #2
+[SimulateGeneration] Cuota creada: tv3eyn1gppghe65d5mykajua
+[SimulateGeneration] Ejecutando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Iniciando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Adelantos con saldo: 3 [
+  { docId: 'mct1bxckh1kyley4hqwzj4iy', available: 200 },
+  { docId: 'u1ej7ksgn5pf9s2ynbw2w3uk', available: 300 },
+  { docId: 'urtm3us5o2tf9ou44eiy82rd', available: 113.63999999999999 }
+]
+[autoCoverPendingQuotas] Cuotas con balance pendiente: 1 [ '#2=$386.36 balance=$386.36' ]
+[autoCoverPendingQuotas] Procesando cuota #2, balance pendiente: $386.36
+[autoCoverPendingQuotas] Aplicando $200 de adelanto mct1bxckh1kyley4hqwzj4iy a cuota #2
+[applyAdvanceAmountToQuota] Adelanto mct1bxckh1kyley4hqwzj4iy → Cuota #2: aplicando $200
+[applyAdvanceAmountToQuota] ✓ Abono creado: d8i4vk4mhme7ezfvbrzh69xp por $200
+[applyAdvanceAmountToQuota] ✓ Adelanto mct1bxckh1kyley4hqwzj4iy reducido a $0
+[autoCoverPendingQuotas] ✓ Aplicados $200. Balance restante cuota: $186.36, adelanto: $0
+[autoCoverPendingQuotas] Aplicando $186.36 de adelanto u1ej7ksgn5pf9s2ynbw2w3uk a cuota #2
+[applyAdvanceAmountToQuota] Adelanto u1ej7ksgn5pf9s2ynbw2w3uk → Cuota #2: aplicando $186.36
+[applyAdvanceAmountToQuota] ✓ Abono creado: hflvt9tgjpd2lgq05qumrwut por $186.36
+[applyAdvanceAmountToQuota] ✓ Adelanto u1ej7ksgn5pf9s2ynbw2w3uk reducido a $113.63999999999999
+[autoCoverPendingQuotas] ✓ Aplicados $186.36. Balance restante cuota: $0, adelanto: $113.63999999999999
+[autoCoverPendingQuotas] ✓ Cuota #2 cubierta completamente por múltiples adelantos. Status: pagado
+[autoCoverPendingQuotas] Total cuotas cubiertas/abonadas: 1
+[SimulateGeneration] Auto-cover cubrió 1 cuota(s): [ 'tv3eyn1gppghe65d5mykajua' ]
+[SimulateOverdue] Retrasadas encontradas: 4
+[SimulateOverdue] Primera retrasada: {
+  "id": 1067,
+  "documentId": "h8iqffm7e43kddezjfmo0zpt",
+  "receiptNumber": "SIM-20260520-l39m443olgheszh1wqk8zkwq-1",
+  "amount": 225,
+  "currency": "PAB",
+  "status": "retrasado",
+  "quotaNumber": 1,
+  "quotasCovered": 1,
+  "quotaAmountCovered": null,
+  "advanceCredit": 0,
+  "remainingQuotaBalance": 0,
+  "lateFeeAmount": 75,
+  "daysLate": 6,
+  "dueDate": "2026-05-21",
+  "paymentDate": null,
+  "confirmationNumber": null,
+  "verifiedInBank": false,
+  "verifiedAt": null,
+  "comments": null,
+  "isSimulated": true,
+  "createdAt": "2026-05-17T17:18:51.998Z",
+  "updatedAt": "2026-05-25T22:20:51.762Z",
+  "publishedAt": "2026-05-25T22:20:51.754Z",
+  "financing": {
+    "id": 37,
+    "documentId": "l39m443olgheszh1wqk8zkwq",
+    "financingNumber": "FIN-20260517-91774",
+    "totalAmount": 49500,
+    "financingMonths": 51,
+    "paymentFrequency": "semanal",
+    "quotaAmount": 225,
+    "totalQuotas": 220,
+    "paidQuotas": 1,
+    "startDate": "2026-05-17",
+    "nextDueDate": "2026-05-24",
+    "status": "activo",
+    "maxLateQuotasAllowed": 4,
+    "lateFeePercentage": 10,
+    "currentBalance": 49400,
+    "totalPaid": 100,
+    "totalLateFees": 22.5,
+    "lateQuotasCount": 1,
+    "partialPaymentCredit": 0,
+    "notes": null,
+    "createdAt": "2026-05-17T17:16:31.894Z",
+    "updatedAt": "2026-05-21T23:59:00.076Z",
+    "publishedAt": "2026-05-21T23:59:00.070Z"
+  },
+  "childRecords": [
+    {
+      "id": 1069,
+      "documentId": "otvdehmp955ktvshuj1my5uq",
+      "receiptNumber": "REC-202605-00002",
+      "amount": 100,
+      "currency": "PAB",
+      "status": "abonado",
+      "quotaNumber": 1,
+      "quotasCovered": 1,
+      "quotaAmountCovered": 100,
+      "advanceCredit": 0,
+      "remainingQuotaBalance": 125,
+      "lateFeeAmount": 0,
+      "daysLate": 0,
+      "dueDate": "2026-05-21",
+      "paymentDate": "2026-05-17",
+      "confirmationNumber": null,
+      "verifiedInBank": false,
+      "verifiedAt": null,
+      "comments": "Abono parcial generado automáticamente desde adelanto cjx9ze950w60bzciziek1f6w (saldo restante)",
+      "isSimulated": false,
+      "createdAt": "2026-05-17T17:18:59.801Z",
+      "updatedAt": "2026-05-17T17:18:59.801Z",
+      "publishedAt": "2026-05-17T17:18:59.793Z"
+    }
+  ]
+}
+[SimulateOverdue] Total invoices a procesar: 4
+[SimulateOverdue] FinancingDocumentId extraído: l39m443olgheszh1wqk8zkwq
+[SimulateOverdue] FinancingDocumentId extraído: au9r2vng76kzd26xtog09ukt
+[SimulateOverdue] FinancingDocumentId extraído: l39m443olgheszh1wqk8zkwq
+[SimulateOverdue] FinancingDocumentId extraído: au9r2vng76kzd26xtog09ukt
+[SimulateOverdue] FinancingDocumentIds encontrados: [l39m443olgheszh1wqk8zkwq,au9r2vng76kzd26xtog09ukt]
+[getCoveredQuotasMap] Error fetching records: {"data":null,"error":{"status":400,"name":"ValidationError","message":"Invalid key financing","details":{"key":"financing","path":"financing","source":"query","param":"fields"}}}
+[SimulateOverdue] Mapa de cuotas cubiertas:
+[SimulateOverdue] Procesando record: quotaNumber=1, status=retrasado, financingDocumentId=l39m443olgheszh1wqk8zkwq
+[isQuotaCovered] No hay datos de cuotas cubiertas para Fl39m443olgheszh1wqk8zkwq
+[calculatePendingBalance] Cuota SIM-20260520-l39m443olgheszh1wqk8zkwq-1: Total=$225, Abonos=$100, Pendiente=$125
+[SimulateOverdue] Procesando record: quotaNumber=1, status=retrasado, financingDocumentId=au9r2vng76kzd26xtog09ukt
+[isQuotaCovered] No hay datos de cuotas cubiertas para Fau9r2vng76kzd26xtog09ukt
+[calculatePendingBalance] Cuota SIM-20260520-au9r2vng76kzd26xtog09ukt-1: Total=$225, Abonos=$120, Pendiente=$105
+[SimulateOverdue] Procesando record: quotaNumber=2, status=retrasado, financingDocumentId=l39m443olgheszh1wqk8zkwq
+[isQuotaCovered] No hay datos de cuotas cubiertas para Fl39m443olgheszh1wqk8zkwq
+[SimulateOverdue] Procesando record: quotaNumber=2, status=retrasado, financingDocumentId=au9r2vng76kzd26xtog09ukt
+[isQuotaCovered] No hay datos de cuotas cubiertas para Fau9r2vng76kzd26xtog09ukt
+[API Billing] Fetching records for financing: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 1: Fetching financing with records: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 2 (Fallback): Fetching for financing rezpzdz1br6vosbe6bhg1pwn
+[Billing] Trying format 1 (documentId filter)
+[Billing] Format 1 result: { count: 7 }
+[API Billing] Found 7 records [
+  {
+    documentId: 'mv6ioq5l6de6fh3lku06dm3g',
+    status: 'cubierta',
+    parentRecordId: 'urtm3us5o2tf9ou44eiy82rd',
+    childCount: 0
+  },
+  {
+    documentId: 'mct1bxckh1kyley4hqwzj4iy',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'u1ej7ksgn5pf9s2ynbw2w3uk',
+    status: 'adelanto',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'tv3eyn1gppghe65d5mykajua',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 2
+  },
+  {
+    documentId: 'd8i4vk4mhme7ezfvbrzh69xp',
+    status: 'abonado',
+    parentRecordId: 'tv3eyn1gppghe65d5mykajua',
+    childCount: 0
+  },
+  {
+    documentId: 'hflvt9tgjpd2lgq05qumrwut',
+    status: 'abonado',
+    parentRecordId: 'tv3eyn1gppghe65d5mykajua',
+    childCount: 0
+  },
+  {
+    documentId: 'urtm3us5o2tf9ou44eiy82rd',
+    status: 'adelanto',
+    parentRecordId: undefined,
+    childCount: 1
+  }
+]
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Financing l39m443olgheszh1wqk8zkwq: Total records: 9
+[SimulateGeneration] Cuota #1 ya existe con status: retrasado, saltando.
+[SimulateGeneration] Financing au9r2vng76kzd26xtog09ukt: Total records: 9
+[SimulateGeneration] Cuota #1 ya existe con status: retrasado, saltando.
+[SimulateGeneration] Ya existe cuota para financing rezpzdz1br6vosbe6bhg1pwn en fecha 2026-05-29
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Ya existe cuota para financing l39m443olgheszh1wqk8zkwq en fecha 2026-06-05
+[SimulateGeneration] Ya existe cuota para financing au9r2vng76kzd26xtog09ukt en fecha 2026-06-05
+[SimulateGeneration] Ya existe cuota para financing rezpzdz1br6vosbe6bhg1pwn en fecha 2026-06-05
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Ya existe cuota para financing l39m443olgheszh1wqk8zkwq en fecha 2026-06-12
+[SimulateGeneration] Ya existe cuota para financing au9r2vng76kzd26xtog09ukt en fecha 2026-06-12
+[SimulateGeneration] Financing rezpzdz1br6vosbe6bhg1pwn: Total records: 7
+[SimulateGeneration] Creando cuota #3
+[SimulateGeneration] Cuota creada: h16uypxcufgl87zl5npkkkoa
+[SimulateGeneration] Ejecutando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Iniciando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Adelantos con saldo: 2 [
+  { docId: 'u1ej7ksgn5pf9s2ynbw2w3uk', available: 113.64 },
+  { docId: 'urtm3us5o2tf9ou44eiy82rd', available: 113.63999999999999 }
+]
+[autoCoverPendingQuotas] Cuotas con balance pendiente: 1 [ '#3=$386.36 balance=$386.36' ]
+[autoCoverPendingQuotas] Procesando cuota #3, balance pendiente: $386.36
+[autoCoverPendingQuotas] Aplicando $113.64 de adelanto u1ej7ksgn5pf9s2ynbw2w3uk a cuota #3
+[applyAdvanceAmountToQuota] Adelanto u1ej7ksgn5pf9s2ynbw2w3uk → Cuota #3: aplicando $113.64
+[applyAdvanceAmountToQuota] ✓ Abono creado: tz9nzp8oc5rrack0nbyqgz75 por $113.64
+[applyAdvanceAmountToQuota] ✓ Adelanto u1ej7ksgn5pf9s2ynbw2w3uk reducido a $0
+[autoCoverPendingQuotas] ✓ Aplicados $113.64. Balance restante cuota: $272.72, adelanto: $0
+[autoCoverPendingQuotas] Aplicando $113.63999999999999 de adelanto urtm3us5o2tf9ou44eiy82rd a cuota #3
+[applyAdvanceAmountToQuota] Adelanto urtm3us5o2tf9ou44eiy82rd → Cuota #3: aplicando $113.63999999999999
+[applyAdvanceAmountToQuota] ✓ Abono creado: bixxxtxkdbjpmnguao4yr7lc por $113.63999999999999
+[applyAdvanceAmountToQuota] ✓ Adelanto urtm3us5o2tf9ou44eiy82rd reducido a $386.36
+[autoCoverPendingQuotas] ✓ Aplicados $113.63999999999999. Balance restante cuota: $159.08000000000004, adelanto: $0
+[autoCoverPendingQuotas] ✓ Cuota #3 abonada parcialmente. Balance pendiente: $159.08000000000004
+[autoCoverPendingQuotas] Total cuotas cubiertas/abonadas: 1
+[SimulateGeneration] Auto-cover cubrió 1 cuota(s): [ 'h16uypxcufgl87zl5npkkkoa' ]
+[SimulateOverdue] Retrasadas encontradas: 4
+[SimulateOverdue] Primera retrasada: {
+  "id": 1067,
+  "documentId": "h8iqffm7e43kddezjfmo0zpt",
+  "receiptNumber": "SIM-20260520-l39m443olgheszh1wqk8zkwq-1",
+  "amount": 225,
+  "currency": "PAB",
+  "status": "retrasado",
+  "quotaNumber": 1,
+  "quotasCovered": 1,
+  "quotaAmountCovered": null,
+  "advanceCredit": 0,
+  "remainingQuotaBalance": 0,
+  "lateFeeAmount": 162.5,
+  "daysLate": 13,
+  "dueDate": "2026-05-21",
+  "paymentDate": null,
+  "confirmationNumber": null,
+  "verifiedInBank": false,
+  "verifiedAt": null,
+  "comments": null,
+  "isSimulated": true,
+  "createdAt": "2026-05-17T17:18:51.998Z",
+  "updatedAt": "2026-05-25T22:21:06.825Z",
+  "publishedAt": "2026-05-25T22:21:06.817Z",
+  "financing": {
+    "id": 37,
+    "documentId": "l39m443olgheszh1wqk8zkwq",
+    "financingNumber": "FIN-20260517-91774",
+    "totalAmount": 49500,
+    "financingMonths": 51,
+    "paymentFrequency": "semanal",
+    "quotaAmount": 225,
+    "totalQuotas": 220,
+    "paidQuotas": 1,
+    "startDate": "2026-05-17",
+    "nextDueDate": "2026-05-24",
+    "status": "activo",
+    "maxLateQuotasAllowed": 4,
+    "lateFeePercentage": 10,
+    "currentBalance": 49400,
+    "totalPaid": 100,
+    "totalLateFees": 22.5,
+    "lateQuotasCount": 1,
+    "partialPaymentCredit": 0,
+    "notes": null,
+    "createdAt": "2026-05-17T17:16:31.894Z",
+    "updatedAt": "2026-05-21T23:59:00.076Z",
+    "publishedAt": "2026-05-21T23:59:00.070Z"
+  },
+  "childRecords": [
+    {
+      "id": 1069,
+      "documentId": "otvdehmp955ktvshuj1my5uq",
+      "receiptNumber": "REC-202605-00002",
+      "amount": 100,
+      "currency": "PAB",
+      "status": "abonado",
+      "quotaNumber": 1,
+      "quotasCovered": 1,
+      "quotaAmountCovered": 100,
+      "advanceCredit": 0,
+      "remainingQuotaBalance": 125,
+      "lateFeeAmount": 0,
+      "daysLate": 0,
+      "dueDate": "2026-05-21",
+      "paymentDate": "2026-05-17",
+      "confirmationNumber": null,
+      "verifiedInBank": false,
+      "verifiedAt": null,
+      "comments": "Abono parcial generado automáticamente desde adelanto cjx9ze950w60bzciziek1f6w (saldo restante)",
+      "isSimulated": false,
+      "createdAt": "2026-05-17T17:18:59.801Z",
+      "updatedAt": "2026-05-17T17:18:59.801Z",
+      "publishedAt": "2026-05-17T17:18:59.793Z"
+    }
+  ]
+}
+[SimulateOverdue] Total invoices a procesar: 4
+[SimulateOverdue] FinancingDocumentId extraído: l39m443olgheszh1wqk8zkwq
+[SimulateOverdue] FinancingDocumentId extraído: au9r2vng76kzd26xtog09ukt
+[SimulateOverdue] FinancingDocumentId extraído: l39m443olgheszh1wqk8zkwq
+[SimulateOverdue] FinancingDocumentId extraído: au9r2vng76kzd26xtog09ukt
+[SimulateOverdue] FinancingDocumentIds encontrados: [l39m443olgheszh1wqk8zkwq,au9r2vng76kzd26xtog09ukt]
+[getCoveredQuotasMap] Error fetching records: {"data":null,"error":{"status":400,"name":"ValidationError","message":"Invalid key financing","details":{"key":"financing","path":"financing","source":"query","param":"fields"}}}
+[SimulateOverdue] Mapa de cuotas cubiertas:
+[SimulateOverdue] Procesando record: quotaNumber=1, status=retrasado, financingDocumentId=l39m443olgheszh1wqk8zkwq
+[isQuotaCovered] No hay datos de cuotas cubiertas para Fl39m443olgheszh1wqk8zkwq
+[calculatePendingBalance] Cuota SIM-20260520-l39m443olgheszh1wqk8zkwq-1: Total=$225, Abonos=$100, Pendiente=$125
+[SimulateOverdue] Procesando record: quotaNumber=1, status=retrasado, financingDocumentId=au9r2vng76kzd26xtog09ukt
+[isQuotaCovered] No hay datos de cuotas cubiertas para Fau9r2vng76kzd26xtog09ukt
+[calculatePendingBalance] Cuota SIM-20260520-au9r2vng76kzd26xtog09ukt-1: Total=$225, Abonos=$120, Pendiente=$105
+[SimulateOverdue] Procesando record: quotaNumber=2, status=retrasado, financingDocumentId=l39m443olgheszh1wqk8zkwq
+[isQuotaCovered] No hay datos de cuotas cubiertas para Fl39m443olgheszh1wqk8zkwq
+[SimulateOverdue] Procesando record: quotaNumber=2, status=retrasado, financingDocumentId=au9r2vng76kzd26xtog09ukt
+[isQuotaCovered] No hay datos de cuotas cubiertas para Fau9r2vng76kzd26xtog09ukt
+[API Billing] Fetching records for financing: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 1: Fetching financing with records: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 2 (Fallback): Fetching for financing rezpzdz1br6vosbe6bhg1pwn
+[Billing] Trying format 1 (documentId filter)
+[Billing] Format 1 result: { count: 10 }
+[API Billing] Found 10 records [
+  {
+    documentId: 'mv6ioq5l6de6fh3lku06dm3g',
+    status: 'cubierta',
+    parentRecordId: 'urtm3us5o2tf9ou44eiy82rd',
+    childCount: 0
+  },
+  {
+    documentId: 'mct1bxckh1kyley4hqwzj4iy',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'u1ej7ksgn5pf9s2ynbw2w3uk',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'tv3eyn1gppghe65d5mykajua',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 2
+  },
+  {
+    documentId: 'd8i4vk4mhme7ezfvbrzh69xp',
+    status: 'abonado',
+    parentRecordId: 'tv3eyn1gppghe65d5mykajua',
+    childCount: 0
+  },
+  {
+    documentId: 'hflvt9tgjpd2lgq05qumrwut',
+    status: 'abonado',
+    parentRecordId: 'tv3eyn1gppghe65d5mykajua',
+    childCount: 0
+  },
+  {
+    documentId: 'urtm3us5o2tf9ou44eiy82rd',
+    status: 'adelanto',
+    parentRecordId: undefined,
+    childCount: 1
+  },
+  {
+    documentId: 'h16uypxcufgl87zl5npkkkoa',
+    status: 'abonado',
+    parentRecordId: undefined,
+    childCount: 2
+  },
+  {
+    documentId: 'tz9nzp8oc5rrack0nbyqgz75',
+    status: 'abonado',
+    parentRecordId: 'h16uypxcufgl87zl5npkkkoa',
+    childCount: 0
+  },
+  {
+    documentId: 'bixxxtxkdbjpmnguao4yr7lc',
+    status: 'abonado',
+    parentRecordId: 'h16uypxcufgl87zl5npkkkoa',
+    childCount: 0
+  }
+]
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[API Billing POST] Monto: 500, quotaAmount: 386.36, quotasCovered: 1
+[API Billing POST] Monto: $500, quotaAmount: $386.36, quotasCovered: 1, advanceCredit: $113.64
+[API Billing POST] Buscando cuota pendiente para vincular pago de $500
+[findClosestParentRecord] Candidates sorted: [
+  {
+    documentId: 'h16uypxcufgl87zl5npkkkoa',
+    status: 'abonado',
+    dueDate: '2026-06-12',
+    balanceReal: 159.08
+  }
+]
+[findClosestParentRecord] Selected quota: {
+  documentId: 'h16uypxcufgl87zl5npkkkoa',
+  status: 'abonado',
+  dueDate: '2026-06-12',
+  balanceReal: 159.08
+}
+[API Billing POST] ✓ Vinculando a cuota: h16uypxcufgl87zl5npkkkoa
+[API Billing POST] Pago con excedente ($113.64), marcando como adelanto
+[API Billing POST] Adelanto detectado, forzando parentRecord = null y modo multi-cuota
+[API Billing POST] Ejecutando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Iniciando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Adelantos con saldo: 1 [ { docId: 'q0fhd38btx1da8zpaf7dbqos', available: 500 } ]
+[autoCoverPendingQuotas] Cuotas con balance pendiente: 1 [ '#3=$386.36 balance=$159.08' ]
+[autoCoverPendingQuotas] Procesando cuota #3, balance pendiente: $159.08
+[autoCoverPendingQuotas] Aplicando $159.08 de adelanto q0fhd38btx1da8zpaf7dbqos a cuota #3
+[applyAdvanceAmountToQuota] Adelanto q0fhd38btx1da8zpaf7dbqos → Cuota #3: aplicando $159.08
+[applyAdvanceAmountToQuota] ✓ Abono creado: gjddyaavo272ww7emnsgefhq por $159.08
+[applyAdvanceAmountToQuota] ✓ Adelanto q0fhd38btx1da8zpaf7dbqos reducido a $340.91999999999996
+[autoCoverPendingQuotas] ✓ Aplicados $159.08. Balance restante cuota: $0, adelanto: $340.91999999999996
+[autoCoverPendingQuotas] ✓ Cuota #3 cubierta completamente por múltiples adelantos. Status: pagado
+[autoCoverPendingQuotas] Total cuotas cubiertas/abonadas: 1
+[API Billing POST] Auto-cover cubrió 1 cuota(s): [ 'h16uypxcufgl87zl5npkkkoa' ]
+[API Billing POST] Recalculando métricas de financing rezpzdz1br6vosbe6bhg1pwn
+[recalculateFinancingMetrics] Recalculando métricas para financing rezpzdz1br6vosbe6bhg1pwn
+[recalculateFinancingMetrics] Resultados: {
+  paidQuotas: 5,
+  totalPaid: 1886.3600000000001,
+  currentBalance: 83113.64,
+  totalLateFees: 0,
+  partialPaymentCredit: 340.92,
+  status: 'activo'
+}
+[API Billing POST] ✓ Métricas recalculadas
+[API Billing] Fetching records for financing: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 1: Fetching financing with records: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 2 (Fallback): Fetching for financing rezpzdz1br6vosbe6bhg1pwn
+[Billing] Trying format 1 (documentId filter)
+[Billing] Format 1 result: { count: 12 }
+[API Billing] Found 12 records [
+  {
+    documentId: 'mv6ioq5l6de6fh3lku06dm3g',
+    status: 'cubierta',
+    parentRecordId: 'urtm3us5o2tf9ou44eiy82rd',
+    childCount: 0
+  },
+  {
+    documentId: 'mct1bxckh1kyley4hqwzj4iy',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'u1ej7ksgn5pf9s2ynbw2w3uk',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'tv3eyn1gppghe65d5mykajua',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 2
+  },
+  {
+    documentId: 'd8i4vk4mhme7ezfvbrzh69xp',
+    status: 'abonado',
+    parentRecordId: 'tv3eyn1gppghe65d5mykajua',
+    childCount: 0
+  },
+  {
+    documentId: 'hflvt9tgjpd2lgq05qumrwut',
+    status: 'abonado',
+    parentRecordId: 'tv3eyn1gppghe65d5mykajua',
+    childCount: 0
+  },
+  {
+    documentId: 'urtm3us5o2tf9ou44eiy82rd',
+    status: 'adelanto',
+    parentRecordId: undefined,
+    childCount: 1
+  },
+  {
+    documentId: 'h16uypxcufgl87zl5npkkkoa',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 3
+  },
+  {
+    documentId: 'tz9nzp8oc5rrack0nbyqgz75',
+    status: 'abonado',
+    parentRecordId: 'h16uypxcufgl87zl5npkkkoa',
+    childCount: 0
+  },
+  {
+    documentId: 'bixxxtxkdbjpmnguao4yr7lc',
+    status: 'abonado',
+    parentRecordId: 'h16uypxcufgl87zl5npkkkoa',
+    childCount: 0
+  },
+  {
+    documentId: 'gjddyaavo272ww7emnsgefhq',
+    status: 'abonado',
+    parentRecordId: 'h16uypxcufgl87zl5npkkkoa',
+    childCount: 0
+  },
+  {
+    documentId: 'q0fhd38btx1da8zpaf7dbqos',
+    status: 'adelanto',
+    parentRecordId: undefined,
+    childCount: 0
+  }
+]
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Financing l39m443olgheszh1wqk8zkwq: Total records: 9
+[SimulateGeneration] Cuota #1 ya existe con status: retrasado, saltando.
+[SimulateGeneration] Financing au9r2vng76kzd26xtog09ukt: Total records: 9
+[SimulateGeneration] Cuota #1 ya existe con status: retrasado, saltando.
+[SimulateGeneration] Ya existe cuota para financing rezpzdz1br6vosbe6bhg1pwn en fecha 2026-05-29
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Ya existe cuota para financing l39m443olgheszh1wqk8zkwq en fecha 2026-06-05
+[SimulateGeneration] Ya existe cuota para financing au9r2vng76kzd26xtog09ukt en fecha 2026-06-05
+[SimulateGeneration] Ya existe cuota para financing rezpzdz1br6vosbe6bhg1pwn en fecha 2026-06-05
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Ya existe cuota para financing l39m443olgheszh1wqk8zkwq en fecha 2026-06-12
+[SimulateGeneration] Ya existe cuota para financing au9r2vng76kzd26xtog09ukt en fecha 2026-06-12
+[SimulateGeneration] Ya existe cuota para financing rezpzdz1br6vosbe6bhg1pwn en fecha 2026-06-12
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Ya existe cuota para financing l39m443olgheszh1wqk8zkwq en fecha 2026-06-19
+[SimulateGeneration] Ya existe cuota para financing au9r2vng76kzd26xtog09ukt en fecha 2026-06-19
+[SimulateGeneration] Financing rezpzdz1br6vosbe6bhg1pwn: Total records: 12
+[SimulateGeneration] Creando cuota #4
+[SimulateGeneration] Cuota creada: jziz91f6kkypesf595mlc0go
+[SimulateGeneration] Ejecutando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Iniciando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Adelantos con saldo: 1 [ { docId: 'q0fhd38btx1da8zpaf7dbqos', available: 340.92 } ]
+[autoCoverPendingQuotas] Cuotas con balance pendiente: 1 [ '#4=$386.36 balance=$386.36' ]
+[autoCoverPendingQuotas] Procesando cuota #4, balance pendiente: $386.36
+[autoCoverPendingQuotas] Aplicando $340.92 de adelanto q0fhd38btx1da8zpaf7dbqos a cuota #4
+[applyAdvanceAmountToQuota] Adelanto q0fhd38btx1da8zpaf7dbqos → Cuota #4: aplicando $340.92
+[applyAdvanceAmountToQuota] ✓ Abono creado: zz62hoddvev8uipto6bis8wq por $340.92
+[applyAdvanceAmountToQuota] ✓ Adelanto q0fhd38btx1da8zpaf7dbqos reducido a $0
+[autoCoverPendingQuotas] ✓ Aplicados $340.92. Balance restante cuota: $45.44, adelanto: $0
+[autoCoverPendingQuotas] ✓ Cuota #4 abonada parcialmente. Balance pendiente: $45.44
+[autoCoverPendingQuotas] Total cuotas cubiertas/abonadas: 1
+[SimulateGeneration] Auto-cover cubrió 1 cuota(s): [ 'jziz91f6kkypesf595mlc0go' ]
+[SimulateOverdue] Retrasadas encontradas: 4
+[SimulateOverdue] Primera retrasada: {
+  "id": 1067,
+  "documentId": "h8iqffm7e43kddezjfmo0zpt",
+  "receiptNumber": "SIM-20260520-l39m443olgheszh1wqk8zkwq-1",
+  "amount": 225,
+  "currency": "PAB",
+  "status": "retrasado",
+  "quotaNumber": 1,
+  "quotasCovered": 1,
+  "quotaAmountCovered": null,
+  "advanceCredit": 0,
+  "remainingQuotaBalance": 0,
+  "lateFeeAmount": 250,
+  "daysLate": 20,
+  "dueDate": "2026-05-21",
+  "paymentDate": null,
+  "confirmationNumber": null,
+  "verifiedInBank": false,
+  "verifiedAt": null,
+  "comments": null,
+  "isSimulated": true,
+  "createdAt": "2026-05-17T17:18:51.998Z",
+  "updatedAt": "2026-05-25T22:22:16.771Z",
+  "publishedAt": "2026-05-25T22:22:16.765Z",
+  "financing": {
+    "id": 37,
+    "documentId": "l39m443olgheszh1wqk8zkwq",
+    "financingNumber": "FIN-20260517-91774",
+    "totalAmount": 49500,
+    "financingMonths": 51,
+    "paymentFrequency": "semanal",
+    "quotaAmount": 225,
+    "totalQuotas": 220,
+    "paidQuotas": 1,
+    "startDate": "2026-05-17",
+    "nextDueDate": "2026-05-24",
+    "status": "activo",
+    "maxLateQuotasAllowed": 4,
+    "lateFeePercentage": 10,
+    "currentBalance": 49400,
+    "totalPaid": 100,
+    "totalLateFees": 22.5,
+    "lateQuotasCount": 1,
+    "partialPaymentCredit": 0,
+    "notes": null,
+    "createdAt": "2026-05-17T17:16:31.894Z",
+    "updatedAt": "2026-05-21T23:59:00.076Z",
+    "publishedAt": "2026-05-21T23:59:00.070Z"
+  },
+  "childRecords": [
+    {
+      "id": 1069,
+      "documentId": "otvdehmp955ktvshuj1my5uq",
+      "receiptNumber": "REC-202605-00002",
+      "amount": 100,
+      "currency": "PAB",
+      "status": "abonado",
+      "quotaNumber": 1,
+      "quotasCovered": 1,
+      "quotaAmountCovered": 100,
+      "advanceCredit": 0,
+      "remainingQuotaBalance": 125,
+      "lateFeeAmount": 0,
+      "daysLate": 0,
+      "dueDate": "2026-05-21",
+      "paymentDate": "2026-05-17",
+      "confirmationNumber": null,
+      "verifiedInBank": false,
+      "verifiedAt": null,
+      "comments": "Abono parcial generado automáticamente desde adelanto cjx9ze950w60bzciziek1f6w (saldo restante)",
+      "isSimulated": false,
+      "createdAt": "2026-05-17T17:18:59.801Z",
+      "updatedAt": "2026-05-17T17:18:59.801Z",
+      "publishedAt": "2026-05-17T17:18:59.793Z"
+    }
+  ]
+}
+[SimulateOverdue] Total invoices a procesar: 4
+[SimulateOverdue] FinancingDocumentId extraído: l39m443olgheszh1wqk8zkwq
+[SimulateOverdue] FinancingDocumentId extraído: au9r2vng76kzd26xtog09ukt
+[SimulateOverdue] FinancingDocumentId extraído: l39m443olgheszh1wqk8zkwq
+[SimulateOverdue] FinancingDocumentId extraído: au9r2vng76kzd26xtog09ukt
+[SimulateOverdue] FinancingDocumentIds encontrados: [l39m443olgheszh1wqk8zkwq,au9r2vng76kzd26xtog09ukt]
+[getCoveredQuotasMap] Error fetching records: {"data":null,"error":{"status":400,"name":"ValidationError","message":"Invalid key financing","details":{"key":"financing","path":"financing","source":"query","param":"fields"}}}
+[SimulateOverdue] Mapa de cuotas cubiertas:
+[SimulateOverdue] Procesando record: quotaNumber=1, status=retrasado, financingDocumentId=l39m443olgheszh1wqk8zkwq
+[isQuotaCovered] No hay datos de cuotas cubiertas para Fl39m443olgheszh1wqk8zkwq
+[calculatePendingBalance] Cuota SIM-20260520-l39m443olgheszh1wqk8zkwq-1: Total=$225, Abonos=$100, Pendiente=$125
+[SimulateOverdue] Procesando record: quotaNumber=1, status=retrasado, financingDocumentId=au9r2vng76kzd26xtog09ukt
+[isQuotaCovered] No hay datos de cuotas cubiertas para Fau9r2vng76kzd26xtog09ukt
+[calculatePendingBalance] Cuota SIM-20260520-au9r2vng76kzd26xtog09ukt-1: Total=$225, Abonos=$120, Pendiente=$105
+[SimulateOverdue] Procesando record: quotaNumber=2, status=retrasado, financingDocumentId=l39m443olgheszh1wqk8zkwq
+[isQuotaCovered] No hay datos de cuotas cubiertas para Fl39m443olgheszh1wqk8zkwq
+[SimulateOverdue] Procesando record: quotaNumber=2, status=retrasado, financingDocumentId=au9r2vng76kzd26xtog09ukt
+[isQuotaCovered] No hay datos de cuotas cubiertas para Fau9r2vng76kzd26xtog09ukt
+[API Billing] Fetching records for financing: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 1: Fetching financing with records: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 2 (Fallback): Fetching for financing rezpzdz1br6vosbe6bhg1pwn
+[Billing] Trying format 1 (documentId filter)
+[Billing] Format 1 result: { count: 14 }
+[API Billing] Found 14 records [
+  {
+    documentId: 'mv6ioq5l6de6fh3lku06dm3g',
+    status: 'cubierta',
+    parentRecordId: 'urtm3us5o2tf9ou44eiy82rd',
+    childCount: 0
+  },
+  {
+    documentId: 'mct1bxckh1kyley4hqwzj4iy',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'u1ej7ksgn5pf9s2ynbw2w3uk',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'tv3eyn1gppghe65d5mykajua',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 2
+  },
+  {
+    documentId: 'd8i4vk4mhme7ezfvbrzh69xp',
+    status: 'abonado',
+    parentRecordId: 'tv3eyn1gppghe65d5mykajua',
+    childCount: 0
+  },
+  {
+    documentId: 'hflvt9tgjpd2lgq05qumrwut',
+    status: 'abonado',
+    parentRecordId: 'tv3eyn1gppghe65d5mykajua',
+    childCount: 0
+  },
+  {
+    documentId: 'urtm3us5o2tf9ou44eiy82rd',
+    status: 'adelanto',
+    parentRecordId: undefined,
+    childCount: 1
+  },
+  {
+    documentId: 'h16uypxcufgl87zl5npkkkoa',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 3
+  },
+  {
+    documentId: 'tz9nzp8oc5rrack0nbyqgz75',
+    status: 'abonado',
+    parentRecordId: 'h16uypxcufgl87zl5npkkkoa',
+    childCount: 0
+  },
+  {
+    documentId: 'bixxxtxkdbjpmnguao4yr7lc',
+    status: 'abonado',
+    parentRecordId: 'h16uypxcufgl87zl5npkkkoa',
+    childCount: 0
+  },
+  {
+    documentId: 'gjddyaavo272ww7emnsgefhq',
+    status: 'abonado',
+    parentRecordId: 'h16uypxcufgl87zl5npkkkoa',
+    childCount: 0
+  },
+  {
+    documentId: 'jziz91f6kkypesf595mlc0go',
+    status: 'abonado',
+    parentRecordId: undefined,
+    childCount: 1
+  },
+  {
+    documentId: 'zz62hoddvev8uipto6bis8wq',
+    status: 'abonado',
+    parentRecordId: 'jziz91f6kkypesf595mlc0go',
+    childCount: 0
+  },
+  {
+    documentId: 'q0fhd38btx1da8zpaf7dbqos',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  }
+]
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Financing l39m443olgheszh1wqk8zkwq: Total records: 9
+[SimulateGeneration] Cuota #1 ya existe con status: retrasado, saltando.
+[SimulateGeneration] Financing au9r2vng76kzd26xtog09ukt: Total records: 9
+[SimulateGeneration] Cuota #1 ya existe con status: retrasado, saltando.
+[SimulateGeneration] Ya existe cuota para financing rezpzdz1br6vosbe6bhg1pwn en fecha 2026-05-29
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Ya existe cuota para financing l39m443olgheszh1wqk8zkwq en fecha 2026-06-05
+[SimulateGeneration] Ya existe cuota para financing au9r2vng76kzd26xtog09ukt en fecha 2026-06-05
+[SimulateGeneration] Ya existe cuota para financing rezpzdz1br6vosbe6bhg1pwn en fecha 2026-06-05
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Ya existe cuota para financing l39m443olgheszh1wqk8zkwq en fecha 2026-06-12
+[SimulateGeneration] Ya existe cuota para financing au9r2vng76kzd26xtog09ukt en fecha 2026-06-12
+[SimulateGeneration] Ya existe cuota para financing rezpzdz1br6vosbe6bhg1pwn en fecha 2026-06-12
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Ya existe cuota para financing l39m443olgheszh1wqk8zkwq en fecha 2026-06-19
+[SimulateGeneration] Ya existe cuota para financing au9r2vng76kzd26xtog09ukt en fecha 2026-06-19
+[SimulateGeneration] Ya existe cuota para financing rezpzdz1br6vosbe6bhg1pwn en fecha 2026-06-19
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Ya existe cuota para financing l39m443olgheszh1wqk8zkwq en fecha 2026-06-26
+[SimulateGeneration] Ya existe cuota para financing au9r2vng76kzd26xtog09ukt en fecha 2026-06-26
+[SimulateGeneration] Financing rezpzdz1br6vosbe6bhg1pwn: Total records: 14
+[SimulateGeneration] Creando cuota #5
+[SimulateGeneration] Cuota creada: th4k1wigvtb07x6vv12rwxus
+[SimulateGeneration] Ejecutando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Iniciando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Adelantos con saldo: 0 []
+[autoCoverPendingQuotas] No hay adelantos con saldo disponible
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Ya existe cuota para financing l39m443olgheszh1wqk8zkwq en fecha 2026-07-03
+[SimulateGeneration] Ya existe cuota para financing au9r2vng76kzd26xtog09ukt en fecha 2026-07-03
+[SimulateGeneration] Financing rezpzdz1br6vosbe6bhg1pwn: Total records: 15
+[SimulateGeneration] Creando cuota #6
+[SimulateGeneration] Cuota creada: qh526sg4gsiwj7zmh41b1ydp
+[SimulateGeneration] Ejecutando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Iniciando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Adelantos con saldo: 0 []
+[autoCoverPendingQuotas] No hay adelantos con saldo disponible
+[SimulateOverdue] Retrasadas encontradas: 4
+[SimulateOverdue] Primera retrasada: {
+  "id": 1067,
+  "documentId": "h8iqffm7e43kddezjfmo0zpt",
+  "receiptNumber": "SIM-20260520-l39m443olgheszh1wqk8zkwq-1",
+  "amount": 225,
+  "currency": "PAB",
+  "status": "retrasado",
+  "quotaNumber": 1,
+  "quotasCovered": 1,
+  "quotaAmountCovered": null,
+  "advanceCredit": 0,
+  "remainingQuotaBalance": 0,
+  "lateFeeAmount": 337.5,
+  "daysLate": 27,
+  "dueDate": "2026-05-21",
+  "paymentDate": null,
+  "confirmationNumber": null,
+  "verifiedInBank": false,
+  "verifiedAt": null,
+  "comments": null,
+  "isSimulated": true,
+  "createdAt": "2026-05-17T17:18:51.998Z",
+  "updatedAt": "2026-05-25T22:22:46.899Z",
+  "publishedAt": "2026-05-25T22:22:46.894Z",
+  "financing": {
+    "id": 37,
+    "documentId": "l39m443olgheszh1wqk8zkwq",
+    "financingNumber": "FIN-20260517-91774",
+    "totalAmount": 49500,
+    "financingMonths": 51,
+    "paymentFrequency": "semanal",
+    "quotaAmount": 225,
+    "totalQuotas": 220,
+    "paidQuotas": 1,
+    "startDate": "2026-05-17",
+    "nextDueDate": "2026-05-24",
+    "status": "activo",
+    "maxLateQuotasAllowed": 4,
+    "lateFeePercentage": 10,
+    "currentBalance": 49400,
+    "totalPaid": 100,
+    "totalLateFees": 22.5,
+    "lateQuotasCount": 1,
+    "partialPaymentCredit": 0,
+    "notes": null,
+    "createdAt": "2026-05-17T17:16:31.894Z",
+    "updatedAt": "2026-05-21T23:59:00.076Z",
+    "publishedAt": "2026-05-21T23:59:00.070Z"
+  },
+  "childRecords": [
+    {
+      "id": 1069,
+      "documentId": "otvdehmp955ktvshuj1my5uq",
+      "receiptNumber": "REC-202605-00002",
+      "amount": 100,
+      "currency": "PAB",
+      "status": "abonado",
+      "quotaNumber": 1,
+      "quotasCovered": 1,
+      "quotaAmountCovered": 100,
+      "advanceCredit": 0,
+      "remainingQuotaBalance": 125,
+      "lateFeeAmount": 0,
+      "daysLate": 0,
+      "dueDate": "2026-05-21",
+      "paymentDate": "2026-05-17",
+      "confirmationNumber": null,
+      "verifiedInBank": false,
+      "verifiedAt": null,
+      "comments": "Abono parcial generado automáticamente desde adelanto cjx9ze950w60bzciziek1f6w (saldo restante)",
+      "isSimulated": false,
+      "createdAt": "2026-05-17T17:18:59.801Z",
+      "updatedAt": "2026-05-17T17:18:59.801Z",
+      "publishedAt": "2026-05-17T17:18:59.793Z"
+    }
+  ]
+}
+[SimulateOverdue] Total invoices a procesar: 4
+[SimulateOverdue] FinancingDocumentId extraído: l39m443olgheszh1wqk8zkwq
+[SimulateOverdue] FinancingDocumentId extraído: au9r2vng76kzd26xtog09ukt
+[SimulateOverdue] FinancingDocumentId extraído: l39m443olgheszh1wqk8zkwq
+[SimulateOverdue] FinancingDocumentId extraído: au9r2vng76kzd26xtog09ukt
+[SimulateOverdue] FinancingDocumentIds encontrados: [l39m443olgheszh1wqk8zkwq,au9r2vng76kzd26xtog09ukt]
+[getCoveredQuotasMap] Error fetching records: {"data":null,"error":{"status":400,"name":"ValidationError","message":"Invalid key financing","details":{"key":"financing","path":"financing","source":"query","param":"fields"}}}
+[SimulateOverdue] Mapa de cuotas cubiertas:
+[SimulateOverdue] Procesando record: quotaNumber=1, status=retrasado, financingDocumentId=l39m443olgheszh1wqk8zkwq
+[isQuotaCovered] No hay datos de cuotas cubiertas para Fl39m443olgheszh1wqk8zkwq
+[calculatePendingBalance] Cuota SIM-20260520-l39m443olgheszh1wqk8zkwq-1: Total=$225, Abonos=$100, Pendiente=$125
+[SimulateOverdue] Procesando record: quotaNumber=1, status=retrasado, financingDocumentId=au9r2vng76kzd26xtog09ukt
+[isQuotaCovered] No hay datos de cuotas cubiertas para Fau9r2vng76kzd26xtog09ukt
+[calculatePendingBalance] Cuota SIM-20260520-au9r2vng76kzd26xtog09ukt-1: Total=$225, Abonos=$120, Pendiente=$105
+[SimulateOverdue] Procesando record: quotaNumber=2, status=retrasado, financingDocumentId=l39m443olgheszh1wqk8zkwq
+[isQuotaCovered] No hay datos de cuotas cubiertas para Fl39m443olgheszh1wqk8zkwq
+[SimulateOverdue] Procesando record: quotaNumber=2, status=retrasado, financingDocumentId=au9r2vng76kzd26xtog09ukt
+[isQuotaCovered] No hay datos de cuotas cubiertas para Fau9r2vng76kzd26xtog09ukt
+[API Billing] Fetching records for financing: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 1: Fetching financing with records: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 2 (Fallback): Fetching for financing rezpzdz1br6vosbe6bhg1pwn
+[Billing] Trying format 1 (documentId filter)
+[Billing] Format 1 result: { count: 16 }
+[API Billing] Found 16 records [
+  {
+    documentId: 'mv6ioq5l6de6fh3lku06dm3g',
+    status: 'cubierta',
+    parentRecordId: 'urtm3us5o2tf9ou44eiy82rd',
+    childCount: 0
+  },
+  {
+    documentId: 'mct1bxckh1kyley4hqwzj4iy',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'u1ej7ksgn5pf9s2ynbw2w3uk',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'tv3eyn1gppghe65d5mykajua',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 2
+  },
+  {
+    documentId: 'd8i4vk4mhme7ezfvbrzh69xp',
+    status: 'abonado',
+    parentRecordId: 'tv3eyn1gppghe65d5mykajua',
+    childCount: 0
+  },
+  {
+    documentId: 'hflvt9tgjpd2lgq05qumrwut',
+    status: 'abonado',
+    parentRecordId: 'tv3eyn1gppghe65d5mykajua',
+    childCount: 0
+  },
+  {
+    documentId: 'urtm3us5o2tf9ou44eiy82rd',
+    status: 'adelanto',
+    parentRecordId: undefined,
+    childCount: 1
+  },
+  {
+    documentId: 'h16uypxcufgl87zl5npkkkoa',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 3
+  },
+  {
+    documentId: 'tz9nzp8oc5rrack0nbyqgz75',
+    status: 'abonado',
+    parentRecordId: 'h16uypxcufgl87zl5npkkkoa',
+    childCount: 0
+  },
+  {
+    documentId: 'bixxxtxkdbjpmnguao4yr7lc',
+    status: 'abonado',
+    parentRecordId: 'h16uypxcufgl87zl5npkkkoa',
+    childCount: 0
+  },
+  {
+    documentId: 'gjddyaavo272ww7emnsgefhq',
+    status: 'abonado',
+    parentRecordId: 'h16uypxcufgl87zl5npkkkoa',
+    childCount: 0
+  },
+  {
+    documentId: 'jziz91f6kkypesf595mlc0go',
+    status: 'abonado',
+    parentRecordId: undefined,
+    childCount: 1
+  },
+  {
+    documentId: 'zz62hoddvev8uipto6bis8wq',
+    status: 'abonado',
+    parentRecordId: 'jziz91f6kkypesf595mlc0go',
+    childCount: 0
+  },
+  {
+    documentId: 'q0fhd38btx1da8zpaf7dbqos',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'th4k1wigvtb07x6vv12rwxus',
+    status: 'pendiente',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'qh526sg4gsiwj7zmh41b1ydp',
+    status: 'pendiente',
+    parentRecordId: undefined,
+    childCount: 0
+  }
+]
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[API Billing POST] Monto: 30, quotaAmount: 386.36, quotasCovered: 0
+[API Billing POST] Monto: $30, quotaAmount: $386.36, quotasCovered: 0, advanceCredit: $30
+[API Billing POST] Buscando cuota pendiente para vincular pago de $30
+[findClosestParentRecord] Candidates sorted: [
+  {
+    documentId: 'jziz91f6kkypesf595mlc0go',
+    status: 'abonado',
+    dueDate: '2026-06-19',
+    balanceReal: 45.44
+  },
+  {
+    documentId: 'th4k1wigvtb07x6vv12rwxus',
+    status: 'pendiente',
+    dueDate: '2026-06-26',
+    balanceReal: 386.36
+  },
+  {
+    documentId: 'qh526sg4gsiwj7zmh41b1ydp',
+    status: 'pendiente',
+    dueDate: '2026-07-03',
+    balanceReal: 386.36
+  }
+]
+[findClosestParentRecord] Selected quota: {
+  documentId: 'jziz91f6kkypesf595mlc0go',
+  status: 'abonado',
+  dueDate: '2026-06-19',
+  balanceReal: 45.44
+}
+[API Billing POST] ✓ Vinculando a cuota: jziz91f6kkypesf595mlc0go
+[API Billing POST] Checking if parent jziz91f6kkypesf595mlc0go should be marked as paid after auto-association
+[checkAndUpdateParentIfPaid] Parent jziz91f6kkypesf595mlc0go: {
+  parentAmount: 386.36,
+  positiveChildrenTotal: 370.92,
+  balanceDueParent: 15.439999999999998,
+  excess: -15.439999999999998,
+  childrenCount: 2
+}
+[checkAndUpdateParentIfPaid] Parent jziz91f6kkypesf595mlc0go is not fully paid yet (balance: 15.439999999999998)
+[API Billing POST] Ejecutando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Iniciando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Adelantos con saldo: 0 []
+[autoCoverPendingQuotas] No hay adelantos con saldo disponible
+[API Billing POST] Recalculando métricas de financing rezpzdz1br6vosbe6bhg1pwn
+[recalculateFinancingMetrics] Recalculando métricas para financing rezpzdz1br6vosbe6bhg1pwn
+[recalculateFinancingMetrics] Resultados: {
+  paidQuotas: 8,
+  totalPaid: 1545.44,
+  currentBalance: 83454.56,
+  totalLateFees: 0,
+  partialPaymentCredit: 0,
+  status: 'activo'
+}
+[API Billing POST] ✓ Métricas recalculadas
+[API Billing] Fetching records for financing: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 1: Fetching financing with records: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 2 (Fallback): Fetching for financing rezpzdz1br6vosbe6bhg1pwn
+[Billing] Trying format 1 (documentId filter)
+[Billing] Format 1 result: { count: 17 }
+[API Billing] Found 17 records [
+  {
+    documentId: 'mv6ioq5l6de6fh3lku06dm3g',
+    status: 'cubierta',
+    parentRecordId: 'urtm3us5o2tf9ou44eiy82rd',
+    childCount: 0
+  },
+  {
+    documentId: 'mct1bxckh1kyley4hqwzj4iy',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'u1ej7ksgn5pf9s2ynbw2w3uk',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'tv3eyn1gppghe65d5mykajua',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 2
+  },
+  {
+    documentId: 'd8i4vk4mhme7ezfvbrzh69xp',
+    status: 'abonado',
+    parentRecordId: 'tv3eyn1gppghe65d5mykajua',
+    childCount: 0
+  },
+  {
+    documentId: 'hflvt9tgjpd2lgq05qumrwut',
+    status: 'abonado',
+    parentRecordId: 'tv3eyn1gppghe65d5mykajua',
+    childCount: 0
+  },
+  {
+    documentId: 'urtm3us5o2tf9ou44eiy82rd',
+    status: 'adelanto',
+    parentRecordId: undefined,
+    childCount: 1
+  },
+  {
+    documentId: 'h16uypxcufgl87zl5npkkkoa',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 3
+  },
+  {
+    documentId: 'tz9nzp8oc5rrack0nbyqgz75',
+    status: 'abonado',
+    parentRecordId: 'h16uypxcufgl87zl5npkkkoa',
+    childCount: 0
+  },
+  {
+    documentId: 'bixxxtxkdbjpmnguao4yr7lc',
+    status: 'abonado',
+    parentRecordId: 'h16uypxcufgl87zl5npkkkoa',
+    childCount: 0
+  },
+  {
+    documentId: 'gjddyaavo272ww7emnsgefhq',
+    status: 'abonado',
+    parentRecordId: 'h16uypxcufgl87zl5npkkkoa',
+    childCount: 0
+  },
+  {
+    documentId: 'jziz91f6kkypesf595mlc0go',
+    status: 'abonado',
+    parentRecordId: undefined,
+    childCount: 2
+  },
+  {
+    documentId: 'zz62hoddvev8uipto6bis8wq',
+    status: 'abonado',
+    parentRecordId: 'jziz91f6kkypesf595mlc0go',
+    childCount: 0
+  },
+  {
+    documentId: 'q0fhd38btx1da8zpaf7dbqos',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'th4k1wigvtb07x6vv12rwxus',
+    status: 'pendiente',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'qh526sg4gsiwj7zmh41b1ydp',
+    status: 'pendiente',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'ud6h9z8gzzait6qxtaqf1klu',
+    status: 'abonado',
+    parentRecordId: 'jziz91f6kkypesf595mlc0go',
+    childCount: 0
+  }
+]
+[API Billing POST] Monto: 50, quotaAmount: 386.36, quotasCovered: 0
+[API Billing POST] Monto: $50, quotaAmount: $386.36, quotasCovered: 0, advanceCredit: $50
+[API Billing POST] Buscando cuota pendiente para vincular pago de $50
+[findClosestParentRecord] Candidates sorted: [
+  {
+    documentId: 'jziz91f6kkypesf595mlc0go',
+    status: 'abonado',
+    dueDate: '2026-06-19',
+    balanceReal: 15.439999999999998
+  },
+  {
+    documentId: 'th4k1wigvtb07x6vv12rwxus',
+    status: 'pendiente',
+    dueDate: '2026-06-26',
+    balanceReal: 386.36
+  },
+  {
+    documentId: 'qh526sg4gsiwj7zmh41b1ydp',
+    status: 'pendiente',
+    dueDate: '2026-07-03',
+    balanceReal: 386.36
+  }
+]
+[findClosestParentRecord] Selected quota: {
+  documentId: 'jziz91f6kkypesf595mlc0go',
+  status: 'abonado',
+  dueDate: '2026-06-19',
+  balanceReal: 15.439999999999998
+}
+[API Billing POST] ✓ Vinculando a cuota: jziz91f6kkypesf595mlc0go
+[API Billing POST] Checking if parent jziz91f6kkypesf595mlc0go should be marked as paid after auto-association
+[checkAndUpdateParentIfPaid] Parent jziz91f6kkypesf595mlc0go: {
+  parentAmount: 386.36,
+  positiveChildrenTotal: 420.92,
+  balanceDueParent: 0,
+  excess: 34.56,
+  childrenCount: 3
+}
+[checkAndUpdateParentIfPaid] Parent jziz91f6kkypesf595mlc0go is fully covered by children (balance: 0), updating status to 'pagado'
+[checkAndUpdateParentIfPaid] ✓ Parent jziz91f6kkypesf595mlc0go updated to 'pagado'
+[checkAndUpdateParentIfPaid] Excess detected: $34.56. Creating automatic advance.
+[checkAndUpdateParentIfPaid] ✓ Automatic advance created: n6vok9ga7vse5smv34j7obu5 for $34.56
+[API Billing POST] Ejecutando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Iniciando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Adelantos con saldo: 1 [ { docId: 'n6vok9ga7vse5smv34j7obu5', available: 34.56 } ]
+[autoCoverPendingQuotas] Cuotas con balance pendiente: 2 [ '#5=$386.36 balance=$386.36', '#6=$386.36 balance=$386.36' ]
+[autoCoverPendingQuotas] Procesando cuota #5, balance pendiente: $386.36
+[autoCoverPendingQuotas] Aplicando $34.56 de adelanto n6vok9ga7vse5smv34j7obu5 a cuota #5
+[applyAdvanceAmountToQuota] Adelanto n6vok9ga7vse5smv34j7obu5 → Cuota #5: aplicando $34.56
+[applyAdvanceAmountToQuota] ✓ Abono creado: ujshnyu2g9j6oc2nwsz5wxo7 por $34.56
+[applyAdvanceAmountToQuota] ✓ Adelanto n6vok9ga7vse5smv34j7obu5 reducido a $0
+[autoCoverPendingQuotas] ✓ Aplicados $34.56. Balance restante cuota: $351.8, adelanto: $0
+[autoCoverPendingQuotas] ✓ Cuota #5 abonada parcialmente. Balance pendiente: $351.8
+[autoCoverPendingQuotas] Procesando cuota #6, balance pendiente: $386.36
+[autoCoverPendingQuotas] Cuota #6 no recibió adelantos (balance: $386.36)
+[autoCoverPendingQuotas] Total cuotas cubiertas/abonadas: 1
+[API Billing POST] Auto-cover cubrió 1 cuota(s): [ 'th4k1wigvtb07x6vv12rwxus' ]
+[API Billing POST] Recalculando métricas de financing rezpzdz1br6vosbe6bhg1pwn
+[recalculateFinancingMetrics] Recalculando métricas para financing rezpzdz1br6vosbe6bhg1pwn
+[recalculateFinancingMetrics] Resultados: {
+  paidQuotas: 10,
+  totalPaid: 1931.8000000000002,
+  currentBalance: 83068.2,
+  totalLateFees: 0,
+  partialPaymentCredit: 0,
+  status: 'activo'
+}
+[API Billing POST] ✓ Métricas recalculadas
+[API Billing] Fetching records for financing: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 1: Fetching financing with records: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 2 (Fallback): Fetching for financing rezpzdz1br6vosbe6bhg1pwn
+[Billing] Trying format 1 (documentId filter)
+[Billing] Format 1 result: { count: 20 }
+[API Billing] Found 20 records [
+  {
+    documentId: 'n6vok9ga7vse5smv34j7obu5',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'mv6ioq5l6de6fh3lku06dm3g',
+    status: 'cubierta',
+    parentRecordId: 'urtm3us5o2tf9ou44eiy82rd',
+    childCount: 0
+  },
+  {
+    documentId: 'mct1bxckh1kyley4hqwzj4iy',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'u1ej7ksgn5pf9s2ynbw2w3uk',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'tv3eyn1gppghe65d5mykajua',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 2
+  },
+  {
+    documentId: 'd8i4vk4mhme7ezfvbrzh69xp',
+    status: 'abonado',
+    parentRecordId: 'tv3eyn1gppghe65d5mykajua',
+    childCount: 0
+  },
+  {
+    documentId: 'hflvt9tgjpd2lgq05qumrwut',
+    status: 'abonado',
+    parentRecordId: 'tv3eyn1gppghe65d5mykajua',
+    childCount: 0
+  },
+  {
+    documentId: 'urtm3us5o2tf9ou44eiy82rd',
+    status: 'adelanto',
+    parentRecordId: undefined,
+    childCount: 1
+  },
+  {
+    documentId: 'h16uypxcufgl87zl5npkkkoa',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 3
+  },
+  {
+    documentId: 'tz9nzp8oc5rrack0nbyqgz75',
+    status: 'abonado',
+    parentRecordId: 'h16uypxcufgl87zl5npkkkoa',
+    childCount: 0
+  },
+  {
+    documentId: 'bixxxtxkdbjpmnguao4yr7lc',
+    status: 'abonado',
+    parentRecordId: 'h16uypxcufgl87zl5npkkkoa',
+    childCount: 0
+  },
+  {
+    documentId: 'gjddyaavo272ww7emnsgefhq',
+    status: 'abonado',
+    parentRecordId: 'h16uypxcufgl87zl5npkkkoa',
+    childCount: 0
+  },
+  {
+    documentId: 'jziz91f6kkypesf595mlc0go',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 3
+  },
+  {
+    documentId: 'zz62hoddvev8uipto6bis8wq',
+    status: 'abonado',
+    parentRecordId: 'jziz91f6kkypesf595mlc0go',
+    childCount: 0
+  },
+  {
+    documentId: 'q0fhd38btx1da8zpaf7dbqos',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'th4k1wigvtb07x6vv12rwxus',
+    status: 'abonado',
+    parentRecordId: undefined,
+    childCount: 1
+  },
+  {
+    documentId: 'ujshnyu2g9j6oc2nwsz5wxo7',
+    status: 'abonado',
+    parentRecordId: 'th4k1wigvtb07x6vv12rwxus',
+    childCount: 0
+  },
+  {
+    documentId: 'qh526sg4gsiwj7zmh41b1ydp',
+    status: 'pendiente',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'ud6h9z8gzzait6qxtaqf1klu',
+    status: 'abonado',
+    parentRecordId: 'jziz91f6kkypesf595mlc0go',
+    childCount: 0
+  },
+  {
+    documentId: 'txf24pzywq1ffbueb4phbrci',
+    status: 'abonado',
+    parentRecordId: 'jziz91f6kkypesf595mlc0go',
+    childCount: 0
+  }
+]
+[API Billing POST] Monto: 700, quotaAmount: 386.36, quotasCovered: 1
+[API Billing POST] Monto: $700, quotaAmount: $386.36, quotasCovered: 1, advanceCredit: $313.64
+[API Billing POST] Buscando cuota pendiente para vincular pago de $700
+[findClosestParentRecord] Candidates sorted: [
+  {
+    documentId: 'th4k1wigvtb07x6vv12rwxus',
+    status: 'abonado',
+    dueDate: '2026-06-26',
+    balanceReal: 351.8
+  },
+  {
+    documentId: 'qh526sg4gsiwj7zmh41b1ydp',
+    status: 'pendiente',
+    dueDate: '2026-07-03',
+    balanceReal: 386.36
+  }
+]
+[findClosestParentRecord] Selected quota: {
+  documentId: 'th4k1wigvtb07x6vv12rwxus',
+  status: 'abonado',
+  dueDate: '2026-06-26',
+  balanceReal: 351.8
+}
+[API Billing POST] ✓ Vinculando a cuota: th4k1wigvtb07x6vv12rwxus
+[API Billing POST] Pago con excedente ($313.64), marcando como adelanto
+[API Billing POST] Adelanto detectado, forzando parentRecord = null y modo multi-cuota
+[API Billing POST] Ejecutando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Iniciando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Adelantos con saldo: 1 [ { docId: 'vbnxjr8jag288dznih3pucjb', available: 700 } ]
+[autoCoverPendingQuotas] Cuotas con balance pendiente: 2 [ '#5=$386.36 balance=$351.8', '#6=$386.36 balance=$386.36' ]
+[autoCoverPendingQuotas] Procesando cuota #5, balance pendiente: $351.8
+[autoCoverPendingQuotas] Aplicando $351.8 de adelanto vbnxjr8jag288dznih3pucjb a cuota #5
+[applyAdvanceAmountToQuota] Adelanto vbnxjr8jag288dznih3pucjb → Cuota #5: aplicando $351.8
+[applyAdvanceAmountToQuota] ✓ Abono creado: qkn24equjijjcasgyayyub94 por $351.8
+[applyAdvanceAmountToQuota] ✓ Adelanto vbnxjr8jag288dznih3pucjb reducido a $348.2
+[autoCoverPendingQuotas] ✓ Aplicados $351.8. Balance restante cuota: $0, adelanto: $348.2
+[autoCoverPendingQuotas] ✓ Cuota #5 cubierta completamente por múltiples adelantos. Status: pagado
+[autoCoverPendingQuotas] Procesando cuota #6, balance pendiente: $386.36
+[autoCoverPendingQuotas] Aplicando $348.2 de adelanto vbnxjr8jag288dznih3pucjb a cuota #6
+[applyAdvanceAmountToQuota] Adelanto vbnxjr8jag288dznih3pucjb → Cuota #6: aplicando $348.2
+[applyAdvanceAmountToQuota] ✓ Abono creado: cj3in8f4rytd40qoikjlk51c por $348.2
+[applyAdvanceAmountToQuota] ✓ Adelanto vbnxjr8jag288dznih3pucjb reducido a $0
+[autoCoverPendingQuotas] ✓ Aplicados $348.2. Balance restante cuota: $38.160000000000025, adelanto: $0
+[autoCoverPendingQuotas] ✓ Cuota #6 abonada parcialmente. Balance pendiente: $38.160000000000025
+[autoCoverPendingQuotas] Total cuotas cubiertas/abonadas: 2
+[API Billing POST] Auto-cover cubrió 2 cuota(s): [ 'th4k1wigvtb07x6vv12rwxus', 'qh526sg4gsiwj7zmh41b1ydp' ]
+[API Billing POST] Recalculando métricas de financing rezpzdz1br6vosbe6bhg1pwn
+[recalculateFinancingMetrics] Recalculando métricas para financing rezpzdz1br6vosbe6bhg1pwn
+[recalculateFinancingMetrics] Resultados: {
+  paidQuotas: 12,
+  totalPaid: 2318.1600000000003,
+  currentBalance: 82681.84,
+  totalLateFees: 0,
+  partialPaymentCredit: 0,
+  status: 'activo'
+}
+[API Billing POST] ✓ Métricas recalculadas
+[API Billing] Fetching records for financing: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 1: Fetching financing with records: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 2 (Fallback): Fetching for financing rezpzdz1br6vosbe6bhg1pwn
+[Billing] Trying format 1 (documentId filter)
+[Billing] Format 1 result: { count: 23 }
+[API Billing] Found 23 records [
+  {
+    documentId: 'n6vok9ga7vse5smv34j7obu5',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'mv6ioq5l6de6fh3lku06dm3g',
+    status: 'cubierta',
+    parentRecordId: 'urtm3us5o2tf9ou44eiy82rd',
+    childCount: 0
+  },
+  {
+    documentId: 'mct1bxckh1kyley4hqwzj4iy',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'u1ej7ksgn5pf9s2ynbw2w3uk',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'tv3eyn1gppghe65d5mykajua',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 2
+  },
+  {
+    documentId: 'd8i4vk4mhme7ezfvbrzh69xp',
+    status: 'abonado',
+    parentRecordId: 'tv3eyn1gppghe65d5mykajua',
+    childCount: 0
+  },
+  {
+    documentId: 'hflvt9tgjpd2lgq05qumrwut',
+    status: 'abonado',
+    parentRecordId: 'tv3eyn1gppghe65d5mykajua',
+    childCount: 0
+  },
+  {
+    documentId: 'urtm3us5o2tf9ou44eiy82rd',
+    status: 'adelanto',
+    parentRecordId: undefined,
+    childCount: 1
+  },
+  {
+    documentId: 'h16uypxcufgl87zl5npkkkoa',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 3
+  },
+  {
+    documentId: 'tz9nzp8oc5rrack0nbyqgz75',
+    status: 'abonado',
+    parentRecordId: 'h16uypxcufgl87zl5npkkkoa',
+    childCount: 0
+  },
+  {
+    documentId: 'bixxxtxkdbjpmnguao4yr7lc',
+    status: 'abonado',
+    parentRecordId: 'h16uypxcufgl87zl5npkkkoa',
+    childCount: 0
+  },
+  {
+    documentId: 'gjddyaavo272ww7emnsgefhq',
+    status: 'abonado',
+    parentRecordId: 'h16uypxcufgl87zl5npkkkoa',
+    childCount: 0
+  },
+  {
+    documentId: 'jziz91f6kkypesf595mlc0go',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 3
+  },
+  {
+    documentId: 'zz62hoddvev8uipto6bis8wq',
+    status: 'abonado',
+    parentRecordId: 'jziz91f6kkypesf595mlc0go',
+    childCount: 0
+  },
+  {
+    documentId: 'q0fhd38btx1da8zpaf7dbqos',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'th4k1wigvtb07x6vv12rwxus',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 2
+  },
+  {
+    documentId: 'ujshnyu2g9j6oc2nwsz5wxo7',
+    status: 'abonado',
+    parentRecordId: 'th4k1wigvtb07x6vv12rwxus',
+    childCount: 0
+  },
+  {
+    documentId: 'qkn24equjijjcasgyayyub94',
+    status: 'abonado',
+    parentRecordId: 'th4k1wigvtb07x6vv12rwxus',
+    childCount: 0
+  },
+  {
+    documentId: 'qh526sg4gsiwj7zmh41b1ydp',
+    status: 'abonado',
+    parentRecordId: undefined,
+    childCount: 1
+  },
+  {
+    documentId: 'cj3in8f4rytd40qoikjlk51c',
+    status: 'abonado',
+    parentRecordId: 'qh526sg4gsiwj7zmh41b1ydp',
+    childCount: 0
+  },
+  {
+    documentId: 'ud6h9z8gzzait6qxtaqf1klu',
+    status: 'abonado',
+    parentRecordId: 'jziz91f6kkypesf595mlc0go',
+    childCount: 0
+  },
+  {
+    documentId: 'txf24pzywq1ffbueb4phbrci',
+    status: 'abonado',
+    parentRecordId: 'jziz91f6kkypesf595mlc0go',
+    childCount: 0
+  },
+  {
+    documentId: 'vbnxjr8jag288dznih3pucjb',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  }
+]
+[API Billing POST] Monto: 1500, quotaAmount: 386.36, quotasCovered: 3
+[API Billing POST] Monto: $1500, quotaAmount: $386.36, quotasCovered: 3, advanceCredit: $340.92
+[API Billing POST] Buscando cuota pendiente para vincular pago de $1500
+[findClosestParentRecord] Candidates sorted: [
+  {
+    documentId: 'qh526sg4gsiwj7zmh41b1ydp',
+    status: 'abonado',
+    dueDate: '2026-07-03',
+    balanceReal: 38.160000000000025
+  }
+]
+[findClosestParentRecord] Selected quota: {
+  documentId: 'qh526sg4gsiwj7zmh41b1ydp',
+  status: 'abonado',
+  dueDate: '2026-07-03',
+  balanceReal: 38.160000000000025
+}
+[API Billing POST] ✓ Vinculando a cuota: qh526sg4gsiwj7zmh41b1ydp
+[API Billing POST] Pago con excedente ($340.92), marcando como adelanto
+[API Billing POST] Adelanto detectado, forzando parentRecord = null y modo multi-cuota
+[API Billing POST] Pago multi-cuota (3 cuotas), marcando cuotas como cubiertas
+[markQuotasAsCovered] Marcando 3 cuota(s) como cubiertas por adelanto eov5u87tc4gny4mp0ucaq2e9
+[markQuotasAsCovered] ID numérico del adelanto: 1262
+[markQuotasAsCovered] Encontradas 0 cuotas para marcar como cubiertas
+[markQuotasAsCovered] Marcadas 0 cuotas como cubiertas: []
+[API Billing POST] Marcadas 0 cuotas como cubiertas por adelanto eov5u87tc4gny4mp0ucaq2e9
+[API Billing POST] Ejecutando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Iniciando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Adelantos con saldo: 1 [ { docId: 'eov5u87tc4gny4mp0ucaq2e9', available: 1500 } ]
+[autoCoverPendingQuotas] Cuotas con balance pendiente: 1 [ '#6=$386.36 balance=$38.160000000000025' ]
+[autoCoverPendingQuotas] Procesando cuota #6, balance pendiente: $38.160000000000025
+[autoCoverPendingQuotas] Aplicando $38.160000000000025 de adelanto eov5u87tc4gny4mp0ucaq2e9 a cuota #6
+[applyAdvanceAmountToQuota] Adelanto eov5u87tc4gny4mp0ucaq2e9 → Cuota #6: aplicando $38.160000000000025
+[applyAdvanceAmountToQuota] ✓ Abono creado: kk32qz6ssdz7ko6odl89pykv por $38.160000000000025
+[applyAdvanceAmountToQuota] ✓ Adelanto eov5u87tc4gny4mp0ucaq2e9 reducido a $1461.84
+[autoCoverPendingQuotas] ✓ Aplicados $38.160000000000025. Balance restante cuota: $0, adelanto: $1461.84
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[autoCoverPendingQuotas] ✓ Cuota #6 cubierta completamente por múltiples adelantos. Status: pagado
+[autoCoverPendingQuotas] Total cuotas cubiertas/abonadas: 1
+[API Billing POST] Auto-cover cubrió 1 cuota(s): [ 'qh526sg4gsiwj7zmh41b1ydp' ]
+[API Billing POST] Recalculando métricas de financing rezpzdz1br6vosbe6bhg1pwn
+[recalculateFinancingMetrics] Recalculando métricas para financing rezpzdz1br6vosbe6bhg1pwn
+[recalculateFinancingMetrics] Resultados: {
+  paidQuotas: 13,
+  totalPaid: 4166.360000000001,
+  currentBalance: 80833.64,
+  totalLateFees: 0,
+  partialPaymentCredit: 1461.84,
+  status: 'activo'
+}
+[API Billing POST] ✓ Métricas recalculadas
+[API Billing] Fetching records for financing: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 1: Fetching financing with records: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 2 (Fallback): Fetching for financing rezpzdz1br6vosbe6bhg1pwn
+[Billing] Trying format 1 (documentId filter)
+[Billing] Format 1 result: { count: 25 }
+[API Billing] Found 25 records [
+  {
+    documentId: 'n6vok9ga7vse5smv34j7obu5',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'mv6ioq5l6de6fh3lku06dm3g',
+    status: 'cubierta',
+    parentRecordId: 'urtm3us5o2tf9ou44eiy82rd',
+    childCount: 0
+  },
+  {
+    documentId: 'mct1bxckh1kyley4hqwzj4iy',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'u1ej7ksgn5pf9s2ynbw2w3uk',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'tv3eyn1gppghe65d5mykajua',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 2
+  },
+  {
+    documentId: 'd8i4vk4mhme7ezfvbrzh69xp',
+    status: 'abonado',
+    parentRecordId: 'tv3eyn1gppghe65d5mykajua',
+    childCount: 0
+  },
+  {
+    documentId: 'hflvt9tgjpd2lgq05qumrwut',
+    status: 'abonado',
+    parentRecordId: 'tv3eyn1gppghe65d5mykajua',
+    childCount: 0
+  },
+  {
+    documentId: 'urtm3us5o2tf9ou44eiy82rd',
+    status: 'adelanto',
+    parentRecordId: undefined,
+    childCount: 1
+  },
+  {
+    documentId: 'h16uypxcufgl87zl5npkkkoa',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 3
+  },
+  {
+    documentId: 'tz9nzp8oc5rrack0nbyqgz75',
+    status: 'abonado',
+    parentRecordId: 'h16uypxcufgl87zl5npkkkoa',
+    childCount: 0
+  },
+  {
+    documentId: 'bixxxtxkdbjpmnguao4yr7lc',
+    status: 'abonado',
+    parentRecordId: 'h16uypxcufgl87zl5npkkkoa',
+    childCount: 0
+  },
+  {
+    documentId: 'gjddyaavo272ww7emnsgefhq',
+    status: 'abonado',
+    parentRecordId: 'h16uypxcufgl87zl5npkkkoa',
+    childCount: 0
+  },
+  {
+    documentId: 'jziz91f6kkypesf595mlc0go',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 3
+  },
+  {
+    documentId: 'zz62hoddvev8uipto6bis8wq',
+    status: 'abonado',
+    parentRecordId: 'jziz91f6kkypesf595mlc0go',
+    childCount: 0
+  },
+  {
+    documentId: 'q0fhd38btx1da8zpaf7dbqos',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'th4k1wigvtb07x6vv12rwxus',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 2
+  },
+  {
+    documentId: 'ujshnyu2g9j6oc2nwsz5wxo7',
+    status: 'abonado',
+    parentRecordId: 'th4k1wigvtb07x6vv12rwxus',
+    childCount: 0
+  },
+  {
+    documentId: 'qkn24equjijjcasgyayyub94',
+    status: 'abonado',
+    parentRecordId: 'th4k1wigvtb07x6vv12rwxus',
+    childCount: 0
+  },
+  {
+    documentId: 'qh526sg4gsiwj7zmh41b1ydp',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 2
+  },
+  {
+    documentId: 'cj3in8f4rytd40qoikjlk51c',
+    status: 'abonado',
+    parentRecordId: 'qh526sg4gsiwj7zmh41b1ydp',
+    childCount: 0
+  },
+  {
+    documentId: 'kk32qz6ssdz7ko6odl89pykv',
+    status: 'abonado',
+    parentRecordId: 'qh526sg4gsiwj7zmh41b1ydp',
+    childCount: 0
+  },
+  {
+    documentId: 'ud6h9z8gzzait6qxtaqf1klu',
+    status: 'abonado',
+    parentRecordId: 'jziz91f6kkypesf595mlc0go',
+    childCount: 0
+  },
+  {
+    documentId: 'txf24pzywq1ffbueb4phbrci',
+    status: 'abonado',
+    parentRecordId: 'jziz91f6kkypesf595mlc0go',
+    childCount: 0
+  },
+  {
+    documentId: 'vbnxjr8jag288dznih3pucjb',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'eov5u87tc4gny4mp0ucaq2e9',
+    status: 'adelanto',
+    parentRecordId: undefined,
+    childCount: 0
+  }
+]
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Financing l39m443olgheszh1wqk8zkwq: Total records: 9
+[SimulateGeneration] Cuota #1 ya existe con status: retrasado, saltando.
+[SimulateGeneration] Financing au9r2vng76kzd26xtog09ukt: Total records: 9
+[SimulateGeneration] Cuota #1 ya existe con status: retrasado, saltando.
+[SimulateGeneration] Ya existe cuota para financing rezpzdz1br6vosbe6bhg1pwn en fecha 2026-05-29
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Ya existe cuota para financing l39m443olgheszh1wqk8zkwq en fecha 2026-06-05
+[SimulateGeneration] Ya existe cuota para financing au9r2vng76kzd26xtog09ukt en fecha 2026-06-05
+[SimulateGeneration] Ya existe cuota para financing rezpzdz1br6vosbe6bhg1pwn en fecha 2026-06-05
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Ya existe cuota para financing l39m443olgheszh1wqk8zkwq en fecha 2026-06-12
+[SimulateGeneration] Ya existe cuota para financing au9r2vng76kzd26xtog09ukt en fecha 2026-06-12
+[SimulateGeneration] Ya existe cuota para financing rezpzdz1br6vosbe6bhg1pwn en fecha 2026-06-12
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Ya existe cuota para financing l39m443olgheszh1wqk8zkwq en fecha 2026-06-19
+[SimulateGeneration] Ya existe cuota para financing au9r2vng76kzd26xtog09ukt en fecha 2026-06-19
+[SimulateGeneration] Ya existe cuota para financing rezpzdz1br6vosbe6bhg1pwn en fecha 2026-06-19
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Ya existe cuota para financing l39m443olgheszh1wqk8zkwq en fecha 2026-06-26
+[SimulateGeneration] Ya existe cuota para financing au9r2vng76kzd26xtog09ukt en fecha 2026-06-26
+[SimulateGeneration] Ya existe cuota para financing rezpzdz1br6vosbe6bhg1pwn en fecha 2026-06-26
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Ya existe cuota para financing l39m443olgheszh1wqk8zkwq en fecha 2026-07-03
+[SimulateGeneration] Ya existe cuota para financing au9r2vng76kzd26xtog09ukt en fecha 2026-07-03
+[SimulateGeneration] Ya existe cuota para financing rezpzdz1br6vosbe6bhg1pwn en fecha 2026-07-03
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Financing l39m443olgheszh1wqk8zkwq: Total records: 9
+[SimulateGeneration] Cuota #7 ya existe con status: pendiente, saltando.
+[SimulateGeneration] Financing au9r2vng76kzd26xtog09ukt: Total records: 9
+[SimulateGeneration] Cuota #7 ya existe con status: pendiente, saltando.
+[SimulateGeneration] Financing rezpzdz1br6vosbe6bhg1pwn: Total records: 25
+[SimulateGeneration] Creando cuota #7
+[SimulateGeneration] Cuota creada: kcqcajfo7fxrk10ral31ak2p
+[SimulateGeneration] Ejecutando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Iniciando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Adelantos con saldo: 1 [ { docId: 'eov5u87tc4gny4mp0ucaq2e9', available: 1461.84 } ]
+[autoCoverPendingQuotas] Cuotas con balance pendiente: 1 [ '#7=$386.36 balance=$386.36' ]
+[autoCoverPendingQuotas] Procesando cuota #7, balance pendiente: $386.36
+[autoCoverPendingQuotas] Vinculando cuota #7 ($386.36) a adelanto eov5u87tc4gny4mp0ucaq2e9 (saldo: $1461.84)
+[autoCoverPendingQuotas] ✓ Cuota #7 cubierta. Saldo restante adelanto: $1075.48
+[autoCoverPendingQuotas] Total cuotas cubiertas/abonadas: 1
+[SimulateGeneration] Auto-cover cubrió 1 cuota(s): [ 'kcqcajfo7fxrk10ral31ak2p' ]
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Financing l39m443olgheszh1wqk8zkwq: Total records: 9
+[SimulateGeneration] Creando cuota #8
+[SimulateGeneration] Cuota creada: t7ju32hv34z3j70hptahal2z
+[SimulateGeneration] Ejecutando auto-cover para financing l39m443olgheszh1wqk8zkwq
+[autoCoverPendingQuotas] Iniciando auto-cover para financing l39m443olgheszh1wqk8zkwq
+[autoCoverPendingQuotas] Adelantos con saldo: 0 []
+[autoCoverPendingQuotas] No hay adelantos con saldo disponible
+[SimulateGeneration] Financing au9r2vng76kzd26xtog09ukt: Total records: 9
+[SimulateGeneration] Creando cuota #8
+[SimulateGeneration] Cuota creada: p8h0qb5281gkd1q855lbvl50
+[SimulateGeneration] Ejecutando auto-cover para financing au9r2vng76kzd26xtog09ukt
+[autoCoverPendingQuotas] Iniciando auto-cover para financing au9r2vng76kzd26xtog09ukt
+[autoCoverPendingQuotas] Adelantos con saldo: 0 []
+[autoCoverPendingQuotas] No hay adelantos con saldo disponible
+[SimulateGeneration] Financing rezpzdz1br6vosbe6bhg1pwn: Total records: 26
+[SimulateGeneration] Creando cuota #8
+[SimulateGeneration] Cuota creada: seh7z9i8eyubqgjbirdy6yci
+[SimulateGeneration] Ejecutando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Iniciando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Adelantos con saldo: 1 [ { docId: 'eov5u87tc4gny4mp0ucaq2e9', available: 1075.48 } ]
+[autoCoverPendingQuotas] Cuotas con balance pendiente: 1 [ '#8=$386.36 balance=$386.36' ]
+[autoCoverPendingQuotas] Procesando cuota #8, balance pendiente: $386.36
+[autoCoverPendingQuotas] Vinculando cuota #8 ($386.36) a adelanto eov5u87tc4gny4mp0ucaq2e9 (saldo: $1075.48)
+[autoCoverPendingQuotas] ✓ Cuota #8 cubierta. Saldo restante adelanto: $689.12
+[autoCoverPendingQuotas] Total cuotas cubiertas/abonadas: 1
+[SimulateGeneration] Auto-cover cubrió 1 cuota(s): [ 'seh7z9i8eyubqgjbirdy6yci' ]
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Financing l39m443olgheszh1wqk8zkwq: Total records: 10
+[SimulateGeneration] Creando cuota #9
+[SimulateGeneration] Cuota creada: lsndz4tcnpz60okr91hl62lg
+[SimulateGeneration] Ejecutando auto-cover para financing l39m443olgheszh1wqk8zkwq
+[autoCoverPendingQuotas] Iniciando auto-cover para financing l39m443olgheszh1wqk8zkwq
+[autoCoverPendingQuotas] Adelantos con saldo: 0 []
+[autoCoverPendingQuotas] No hay adelantos con saldo disponible
+[SimulateGeneration] Financing au9r2vng76kzd26xtog09ukt: Total records: 10
+[SimulateGeneration] Creando cuota #9
+[SimulateGeneration] Cuota creada: b0w756r29d8sursuabqg4fb2
+[SimulateGeneration] Ejecutando auto-cover para financing au9r2vng76kzd26xtog09ukt
+[autoCoverPendingQuotas] Iniciando auto-cover para financing au9r2vng76kzd26xtog09ukt
+[autoCoverPendingQuotas] Adelantos con saldo: 0 []
+[autoCoverPendingQuotas] No hay adelantos con saldo disponible
+[SimulateGeneration] Financing rezpzdz1br6vosbe6bhg1pwn: Total records: 27
+[SimulateGeneration] Cuota #9 ya existe con status: abonado, saltando.
+[SimulateGeneration] Total financiamientos: 3, Filtrados (activo/en_mora): 3
+[SimulateGeneration] Financing l39m443olgheszh1wqk8zkwq: Total records: 11
+[SimulateGeneration] Creando cuota #10
+[SimulateGeneration] Cuota creada: n1v6phleizfw28v5urfr6c3z
+[SimulateGeneration] Ejecutando auto-cover para financing l39m443olgheszh1wqk8zkwq
+[autoCoverPendingQuotas] Iniciando auto-cover para financing l39m443olgheszh1wqk8zkwq
+[autoCoverPendingQuotas] Adelantos con saldo: 0 []
+[autoCoverPendingQuotas] No hay adelantos con saldo disponible
+[SimulateGeneration] Financing au9r2vng76kzd26xtog09ukt: Total records: 11
+[SimulateGeneration] Creando cuota #10
+[SimulateGeneration] Cuota creada: ofv3w02g6joq0ea6oxoib4d3
+[SimulateGeneration] Ejecutando auto-cover para financing au9r2vng76kzd26xtog09ukt
+[autoCoverPendingQuotas] Iniciando auto-cover para financing au9r2vng76kzd26xtog09ukt
+[autoCoverPendingQuotas] Adelantos con saldo: 0 []
+[autoCoverPendingQuotas] No hay adelantos con saldo disponible
+[SimulateGeneration] Financing rezpzdz1br6vosbe6bhg1pwn: Total records: 27
+[SimulateGeneration] Creando cuota #10
+[SimulateGeneration] Cuota creada: ej1qvugpb1oeufiow3rejwov
+[SimulateGeneration] Ejecutando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Iniciando auto-cover para financing rezpzdz1br6vosbe6bhg1pwn
+[autoCoverPendingQuotas] Adelantos con saldo: 1 [ { docId: 'eov5u87tc4gny4mp0ucaq2e9', available: 689.1199999999999 } ]
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[autoCoverPendingQuotas] Cuotas con balance pendiente: 1 [ '#10=$386.36 balance=$386.36' ]
+[autoCoverPendingQuotas] Procesando cuota #10, balance pendiente: $386.36
+[autoCoverPendingQuotas] Vinculando cuota #10 ($386.36) a adelanto eov5u87tc4gny4mp0ucaq2e9 (saldo: $689.1199999999999)
+[autoCoverPendingQuotas] ✓ Cuota #10 cubierta. Saldo restante adelanto: $302.7599999999999
+[autoCoverPendingQuotas] Total cuotas cubiertas/abonadas: 1
+[SimulateGeneration] Auto-cover cubrió 1 cuota(s): [ 'ej1qvugpb1oeufiow3rejwov' ]
+[SimulateOverdue] Retrasadas encontradas: 4
+[SimulateOverdue] Primera retrasada: {
+  "id": 1067,
+  "documentId": "h8iqffm7e43kddezjfmo0zpt",
+  "receiptNumber": "SIM-20260520-l39m443olgheszh1wqk8zkwq-1",
+  "amount": 225,
+  "currency": "PAB",
+  "status": "retrasado",
+  "quotaNumber": 1,
+  "quotasCovered": 1,
+  "quotaAmountCovered": null,
+  "advanceCredit": 0,
+  "remainingQuotaBalance": 0,
+  "lateFeeAmount": 512.5,
+  "daysLate": 41,
+  "dueDate": "2026-05-21",
+  "paymentDate": null,
+  "confirmationNumber": null,
+  "verifiedInBank": false,
+  "verifiedAt": null,
+  "comments": null,
+  "isSimulated": true,
+  "createdAt": "2026-05-17T17:18:51.998Z",
+  "updatedAt": "2026-05-25T22:23:19.598Z",
+  "publishedAt": "2026-05-25T22:23:19.588Z",
+  "financing": {
+    "id": 37,
+    "documentId": "l39m443olgheszh1wqk8zkwq",
+    "financingNumber": "FIN-20260517-91774",
+    "totalAmount": 49500,
+    "financingMonths": 51,
+    "paymentFrequency": "semanal",
+    "quotaAmount": 225,
+    "totalQuotas": 220,
+    "paidQuotas": 1,
+    "startDate": "2026-05-17",
+    "nextDueDate": "2026-05-24",
+    "status": "activo",
+    "maxLateQuotasAllowed": 4,
+    "lateFeePercentage": 10,
+    "currentBalance": 49400,
+    "totalPaid": 100,
+    "totalLateFees": 22.5,
+    "lateQuotasCount": 1,
+    "partialPaymentCredit": 0,
+    "notes": null,
+    "createdAt": "2026-05-17T17:16:31.894Z",
+    "updatedAt": "2026-05-21T23:59:00.076Z",
+    "publishedAt": "2026-05-21T23:59:00.070Z"
+  },
+  "childRecords": [
+    {
+      "id": 1069,
+      "documentId": "otvdehmp955ktvshuj1my5uq",
+      "receiptNumber": "REC-202605-00002",
+      "amount": 100,
+      "currency": "PAB",
+      "status": "abonado",
+      "quotaNumber": 1,
+      "quotasCovered": 1,
+      "quotaAmountCovered": 100,
+      "advanceCredit": 0,
+      "remainingQuotaBalance": 125,
+      "lateFeeAmount": 0,
+      "daysLate": 0,
+      "dueDate": "2026-05-21",
+      "paymentDate": "2026-05-17",
+      "confirmationNumber": null,
+      "verifiedInBank": false,
+      "verifiedAt": null,
+      "comments": "Abono parcial generado automáticamente desde adelanto cjx9ze950w60bzciziek1f6w (saldo restante)",
+      "isSimulated": false,
+      "createdAt": "2026-05-17T17:18:59.801Z",
+      "updatedAt": "2026-05-17T17:18:59.801Z",
+      "publishedAt": "2026-05-17T17:18:59.793Z"
+    }
+  ]
+}
+[SimulateOverdue] Total invoices a procesar: 4
+[SimulateOverdue] FinancingDocumentId extraído: l39m443olgheszh1wqk8zkwq
+[SimulateOverdue] FinancingDocumentId extraído: au9r2vng76kzd26xtog09ukt
+[SimulateOverdue] FinancingDocumentId extraído: l39m443olgheszh1wqk8zkwq
+[SimulateOverdue] FinancingDocumentId extraído: au9r2vng76kzd26xtog09ukt
+[SimulateOverdue] FinancingDocumentIds encontrados: [l39m443olgheszh1wqk8zkwq,au9r2vng76kzd26xtog09ukt]
+[getCoveredQuotasMap] Error fetching records: {"data":null,"error":{"status":400,"name":"ValidationError","message":"Invalid key financing","details":{"key":"financing","path":"financing","source":"query","param":"fields"}}}
+[SimulateOverdue] Mapa de cuotas cubiertas:
+[SimulateOverdue] Procesando record: quotaNumber=1, status=retrasado, financingDocumentId=l39m443olgheszh1wqk8zkwq
+[isQuotaCovered] No hay datos de cuotas cubiertas para Fl39m443olgheszh1wqk8zkwq
+[calculatePendingBalance] Cuota SIM-20260520-l39m443olgheszh1wqk8zkwq-1: Total=$225, Abonos=$100, Pendiente=$125
+[SimulateOverdue] Procesando record: quotaNumber=1, status=retrasado, financingDocumentId=au9r2vng76kzd26xtog09ukt
+[isQuotaCovered] No hay datos de cuotas cubiertas para Fau9r2vng76kzd26xtog09ukt
+[calculatePendingBalance] Cuota SIM-20260520-au9r2vng76kzd26xtog09ukt-1: Total=$225, Abonos=$120, Pendiente=$105
+[SimulateOverdue] Procesando record: quotaNumber=2, status=retrasado, financingDocumentId=l39m443olgheszh1wqk8zkwq
+[isQuotaCovered] No hay datos de cuotas cubiertas para Fl39m443olgheszh1wqk8zkwq
+[SimulateOverdue] Procesando record: quotaNumber=2, status=retrasado, financingDocumentId=au9r2vng76kzd26xtog09ukt
+[isQuotaCovered] No hay datos de cuotas cubiertas para Fau9r2vng76kzd26xtog09ukt
+[API Billing] Fetching records for financing: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 1: Fetching financing with records: rezpzdz1br6vosbe6bhg1pwn
+[Billing] Method 2 (Fallback): Fetching for financing rezpzdz1br6vosbe6bhg1pwn
+[Billing] Trying format 1 (documentId filter)
+[Billing] Format 1 result: { count: 28 }
+[API Billing] Found 28 records [
+  {
+    documentId: 'n6vok9ga7vse5smv34j7obu5',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'mv6ioq5l6de6fh3lku06dm3g',
+    status: 'cubierta',
+    parentRecordId: 'urtm3us5o2tf9ou44eiy82rd',
+    childCount: 0
+  },
+  {
+    documentId: 'mct1bxckh1kyley4hqwzj4iy',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'u1ej7ksgn5pf9s2ynbw2w3uk',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'tv3eyn1gppghe65d5mykajua',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 2
+  },
+  {
+    documentId: 'd8i4vk4mhme7ezfvbrzh69xp',
+    status: 'abonado',
+    parentRecordId: 'tv3eyn1gppghe65d5mykajua',
+    childCount: 0
+  },
+  {
+    documentId: 'hflvt9tgjpd2lgq05qumrwut',
+    status: 'abonado',
+    parentRecordId: 'tv3eyn1gppghe65d5mykajua',
+    childCount: 0
+  },
+  {
+    documentId: 'urtm3us5o2tf9ou44eiy82rd',
+    status: 'adelanto',
+    parentRecordId: undefined,
+    childCount: 1
+  },
+  {
+    documentId: 'h16uypxcufgl87zl5npkkkoa',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 3
+  },
+  {
+    documentId: 'tz9nzp8oc5rrack0nbyqgz75',
+    status: 'abonado',
+    parentRecordId: 'h16uypxcufgl87zl5npkkkoa',
+    childCount: 0
+  },
+  {
+    documentId: 'bixxxtxkdbjpmnguao4yr7lc',
+    status: 'abonado',
+    parentRecordId: 'h16uypxcufgl87zl5npkkkoa',
+    childCount: 0
+  },
+  {
+    documentId: 'gjddyaavo272ww7emnsgefhq',
+    status: 'abonado',
+    parentRecordId: 'h16uypxcufgl87zl5npkkkoa',
+    childCount: 0
+  },
+  {
+    documentId: 'jziz91f6kkypesf595mlc0go',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 3
+  },
+  {
+    documentId: 'zz62hoddvev8uipto6bis8wq',
+    status: 'abonado',
+    parentRecordId: 'jziz91f6kkypesf595mlc0go',
+    childCount: 0
+  },
+  {
+    documentId: 'q0fhd38btx1da8zpaf7dbqos',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'th4k1wigvtb07x6vv12rwxus',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 2
+  },
+  {
+    documentId: 'ujshnyu2g9j6oc2nwsz5wxo7',
+    status: 'abonado',
+    parentRecordId: 'th4k1wigvtb07x6vv12rwxus',
+    childCount: 0
+  },
+  {
+    documentId: 'qkn24equjijjcasgyayyub94',
+    status: 'abonado',
+    parentRecordId: 'th4k1wigvtb07x6vv12rwxus',
+    childCount: 0
+  },
+  {
+    documentId: 'qh526sg4gsiwj7zmh41b1ydp',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 2
+  },
+  {
+    documentId: 'cj3in8f4rytd40qoikjlk51c',
+    status: 'abonado',
+    parentRecordId: 'qh526sg4gsiwj7zmh41b1ydp',
+    childCount: 0
+  },
+  {
+    documentId: 'kk32qz6ssdz7ko6odl89pykv',
+    status: 'abonado',
+    parentRecordId: 'qh526sg4gsiwj7zmh41b1ydp',
+    childCount: 0
+  },
+  {
+    documentId: 'kcqcajfo7fxrk10ral31ak2p',
+    status: 'cubierta',
+    parentRecordId: 'eov5u87tc4gny4mp0ucaq2e9',
+    childCount: 0
+  },
+  {
+    documentId: 'ud6h9z8gzzait6qxtaqf1klu',
+    status: 'abonado',
+    parentRecordId: 'jziz91f6kkypesf595mlc0go',
+    childCount: 0
+  },
+  {
+    documentId: 'txf24pzywq1ffbueb4phbrci',
+    status: 'abonado',
+    parentRecordId: 'jziz91f6kkypesf595mlc0go',
+    childCount: 0
+  },
+  {
+    documentId: 'vbnxjr8jag288dznih3pucjb',
+    status: 'pagado',
+    parentRecordId: undefined,
+    childCount: 0
+  },
+  {
+    documentId: 'seh7z9i8eyubqgjbirdy6yci',
+    status: 'cubierta',
+    parentRecordId: 'eov5u87tc4gny4mp0ucaq2e9',
+    childCount: 0
+  },
+  {
+    documentId: 'eov5u87tc4gny4mp0ucaq2e9',
+    status: 'adelanto',
+    parentRecordId: undefined,
+    childCount: 3
+  },
+  {
+    documentId: 'ej1qvugpb1oeufiow3rejwov',
+    status: 'cubierta',
+    parentRecordId: 'eov5u87tc4gny4mp0ucaq2e9',
+    childCount: 0
+  }
+]
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }
+[notifications] Usuario autenticado: { id: 30, documentId: 'uwhuprf218vdc1mup3esrvfz', role: 'admin' }

@@ -7,9 +7,11 @@ import { clearThemeCookie } from "@/lib/theme-provider";
 
 export function LogoutButton() {
   const handleLogout = async () => {
-    // Limpiar la cookie del tema en el cliente también
     clearThemeCookie();
-    await actions.auth.logoutAction();
+    const result = await actions.auth.logoutAction();
+    if (result?.redirectTo) {
+      window.location.href = result.redirectTo;
+    }
   };
 
   return (

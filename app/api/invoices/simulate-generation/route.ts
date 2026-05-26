@@ -150,36 +150,8 @@ export async function POST(request: Request) {
         }
       }
       
-      // Buscar adelantos con saldo disponible
-      // BUGFIX: Calcular saldo SIEMPRE dinámicamente: amount - sum(children.amount)
-      // NUNCA confiar en advanceCredit persistido en BD.
-      const availableAdvances: Array<{id: number; documentId: string; amount: number; consumed: number; available: number}> = [];
-      
-      for (const record of allRecords) {
-        // Incluir TODOS los adelantos con parentRecord null (raíz)
-        // Un adelanto es un PADRE, nunca un hijo.
-        if (record.status === "adelanto") {
-          const consumedAmount = (record.childRecords || []).reduce(
-            (sum: number, child: any) => sum + (child.amount || 0), 
-            0
-          );
-          const availableAmount = record.amount - consumedAmount;
-          
-          if (availableAmount > 0.01) {
-            availableAdvances.push({
-              id: record.id,
-              documentId: record.documentId,
-              amount: record.amount,
-              consumed: consumedAmount,
-              available: availableAmount
-            });
-            console.log(`[SimulateGeneration] Adelanto disponible: ${record.documentId} (id=${record.id}), total=$${record.amount}, consumido=$${consumedAmount}, disponible=$${availableAmount}`);
-          }
-        }
-      }
-      
-      // Ordenar adelantos por fecha de creación (FIFO)
-      availableAdvances.sort((a, b) => a.documentId.localeCompare(b.documentId));
+      // Los adelantos disponibles se detectan dinámicamente en autoCoverPendingQuotas
+      // No es necesario calcularlos aquí para evitar lógica duplicada
       
       // La cuota a generar corresponde a la semana actual de simulación
       const quotaNumberToGenerate = currentWeek;
@@ -262,89 +234,6 @@ export async function POST(request: Request) {
       });
       generatedCount++;
       
-      // ================================================================
-      // VINCULAR CUOTA A ADELANTO DISPONIBLE (SI HAY)
-      // ================================================================
-      if (availableAdvances.length > 0) {
-        // Tomar el primer adelanto disponible (FIFO)
-        const advance = availableAdvances[0];
-        
-        if (advance.available >= financing.quotaAmount) {
-          console.log(`[SimulateGeneration] Vinculando cuota ${newQuotaDocumentId} a adelanto ${advance.documentId}`);
-          
-          // Calcular nuevo saldo disponible
-          const newAvailable = advance.available - financing.quotaAmount;
-          
-          // Actualizar la cuota: vincularla al adelanto como hija
-          // BUGFIX: Usar ID numérico (advance.id) para parentRecord, NO documentId
-          const updateQuotaResponse = await fetch(
-            `${STRAPI_BASE_URL}/api/billing-records/${newQuotaDocumentId}`,
-            {
-              method: "PUT",
-              headers: {
-                Authorization: `Bearer ${strapiToken}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                data: {
-                  status: "cubierta",
-                  parentRecord: advance.id,
-                  comments: `Cubierta por adelanto: ${advance.documentId}`,
-                },
-              }),
-              cache: "no-store",
-            }
-          );
-          
-          if (updateQuotaResponse.ok) {
-            console.log(`[SimulateGeneration] ✓ Cuota vinculada como hija de adelanto ${advance.documentId}`);
-            // BUGFIX: NO actualizar advanceCredit ni status del adelanto.
-            // El saldo se calcula dinámicamente: amount - sum(childRecords.amount)
-            // Un adelanto nace adelanto y muere adelanto (o pagado), NUNCA abonado.
-          } else {
-            const errorText = await updateQuotaResponse.text();
-            console.error(`[SimulateGeneration] ERROR vinculando cuota: ${updateQuotaResponse.status} - ${errorText}`);
-          }
-        } else if (advance.available > 0) {
-          // CASO PARCIAL: El adelanto no cubre la cuota completa
-          console.log(`[SimulateGeneration] Adelanto parcial: aplicando $${advance.available} de $${financing.quotaAmount} a cuota ${newQuotaDocumentId}`);
-          
-          // Calcular saldo pendiente de la cuota
-          const remainingBalance = financing.quotaAmount - advance.available;
-          
-          // Vincular la cuota al adelanto como hija (abonada parcialmente)
-          // BUGFIX: Usar ID numérico (advance.id) para parentRecord
-          const updateQuotaResponse = await fetch(
-            `${STRAPI_BASE_URL}/api/billing-records/${newQuotaDocumentId}`,
-            {
-              method: "PUT",
-              headers: {
-                Authorization: `Bearer ${strapiToken}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                data: {
-                  status: "abonado", // Cuota parcialmente pagada
-                  parentRecord: advance.id,
-                  remainingQuotaBalance: remainingBalance,
-                  comments: `Abonado parcialmente por adelanto: ${advance.documentId}. Saldo pendiente: $${remainingBalance}`,
-                },
-              }),
-              cache: "no-store",
-            }
-          );
-          
-          if (updateQuotaResponse.ok) {
-            console.log(`[SimulateGeneration] ✓ Cuota abonada parcialmente, saldo pendiente: $${remainingBalance}`);
-            // BUGFIX: NO actualizar advanceCredit ni mutar el status del adelanto.
-            // El saldo se calcula dinámicamente. El adelanto sigue siendo adelanto.
-          } else {
-            const errorText = await updateQuotaResponse.text();
-            console.error(`[SimulateGeneration] ERROR abonando cuota: ${updateQuotaResponse.status} - ${errorText}`);
-          }
-        }
-      }
-
       // Auto-cover: cubrir cualquier cuota pendiente con adelantos disponibles
       // Se ejecuta al final de cada financing para cubrir cuotas existentes + nuevas
       console.log(`[SimulateGeneration] Ejecutando auto-cover para financing ${financingDocumentId}`);

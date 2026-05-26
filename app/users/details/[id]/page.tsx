@@ -556,14 +556,26 @@ export default function UserDetailsPage() {
         body: JSON.stringify({ data: updateData }),
       });
       if (!response.ok) {
-        throw new Error("Error al guardar");
+        let errorMessage = "Error al guardar contacto";
+        try {
+          const errorData = await response.json();
+          if (errorData?.error) {
+            errorMessage = typeof errorData.error === 'string' 
+              ? errorData.error 
+              : JSON.stringify(errorData.error);
+          }
+        } catch {
+          errorMessage = `Error al guardar contacto (HTTP ${response.status})`;
+        }
+        throw new Error(errorMessage);
       }
       await loadUser();
       setIsEditing(false);
       toast.success("Contacto actualizado correctamente");
     } catch (err) {
       console.error("Error guardando contacto:", err);
-      toast.error("Error al guardar contacto");
+      const errorMessage = err instanceof Error ? err.message : "Error al guardar contacto";
+      toast.error(errorMessage);
     } finally {
       setIsSaving(false);
     }

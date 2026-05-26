@@ -26,6 +26,9 @@ export async function GET(request: Request) {
         },
       },
       sort: ["displayName:asc"],
+      pagination: {
+        pageSize: 1000,
+      },
     });
 
     const jwt = await getCurrentUserJwt();
