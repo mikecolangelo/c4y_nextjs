@@ -744,18 +744,20 @@ export default function BillingPage() {
         {/* Timeline Tab */}
         <TabsContent value="timeline" className="mt-4">
           <PaymentTimeline
-            payments={payments.map((p): PaymentRecord => ({
-              id: p.documentId, // Usar documentId para operaciones CRUD
-              invoiceNumber: p.receiptNumber || "",
-              amount: p.amount,
-              status: p.status as "pagado" | "pendiente" | "adelanto" | "retrasado",
-              dueDate: p.dueDate || new Date().toISOString(),
-              paymentDate: p.paymentDate,
-              quotaNumber: p.quotaNumber,
-              lateFeeAmount: p.lateFeeAmount,
-              currency: p.currency,
-              clientName: p.clientName,
-            }))}
+            payments={payments
+              .filter((p) => p.amount >= 0)
+              .map((p): PaymentRecord => ({
+                id: p.documentId, // Usar documentId para operaciones CRUD
+                invoiceNumber: p.receiptNumber || "",
+                amount: p.amount,
+                status: p.status as "pagado" | "pendiente" | "adelanto" | "retrasado",
+                dueDate: p.dueDate || new Date().toISOString(),
+                paymentDate: p.paymentDate,
+                quotaNumber: p.quotaNumber,
+                lateFeeAmount: p.lateFeeAmount,
+                currency: p.currency,
+                clientName: p.clientName,
+              }))}
             isLoading={isLoadingPayments}
             maxHeight="500px"
             showSummary={true}

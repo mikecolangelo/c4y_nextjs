@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { STRAPI_BASE_URL, STRAPI_API_TOKEN } from "@/lib/config";
 import { getCurrentUserJwt } from "@/lib/auth";
+import { accruePenaltiesForFinancing } from "@/lib/unified-allocator";
 
 // Función auxiliar: Calcula el mapa de cuotas cubiertas por financing
 async function getCoveredQuotasMap(financingDocumentIds: string[], token: string): Promise<Map<string, Set<number>>> {
@@ -310,6 +311,19 @@ export async function POST(request: Request) {
       
       if (!updateResponse.ok) {
         continue;
+      }
+
+      // HOTFIX: Auto-generar penalty-debt cuando una cuota se marca como retrasada
+      if (financingDocumentId) {
+        try {
+          const penaltiesCount = await accruePenaltiesForFinancing(financingDocumentId, 10);
+          if (penaltiesCount > 0) {
+            console.log(`[SimulateOverdue] ✓ Generated ${penaltiesCount} penalty debt(s) for financing ${financingDocumentId}`);
+          }
+        } catch (penaltyErr) {
+          console.error(`[SimulateOverdue] ⚠ Penalty accrual failed for financing ${financingDocumentId}:`, penaltyErr);
+          // No bloquear el flujo principal si el accrual falla
+        }
       }
 
       updatedInvoices.push({

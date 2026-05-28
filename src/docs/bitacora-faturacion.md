@@ -423,3 +423,564 @@ if (fullAdvance && remainingBalance >= quota.amount - 0.01) {
 - Los adelantos consumidos parcialmente quedan con `amount: 0` y `status: pagado` para evitar re-procesamiento
 - Todos los records creados vía Content API son **drafts**; `GET` por documentId requiere list query
 - **Orden de liquidación:** Cuotas se pagan por antigüedad de `dueDate`, sin importar status (`retrasado` > `abonado` > `pendiente` como desempate)
+
+---
+
+## Ejecución 26 Mayo 2026: Penalty-Debt + Unified FIFO Allocator
+
+### Cambios en Strapi (`c4y_strapi`)
+
+**Nuevos content-types creados:**
+
+1. **`api::penalty-debt.penalty-debt`** — Entidad independiente para penalidades por mora.
+   - Campos: `amountOriginal`, `amountPending`, `dueDate`, `status` (`pending|partially_paid|paid|cancelled`), `daysAccrued`, `dailyRatePercent`, `source`, `notes`
+   - Relaciones: `financing` (muchos a uno), `quotaRecord` (muchos a uno), `applications` (uno a muchos → `payment-application`)
+   - Archivos:
+     - `src/api/penalty-debt/content-types/penalty-debt/schema.json`
+     - `src/api/penalty-debt/controllers/penalty-debt.ts`
+     - `src/api/penalty-debt/routes/penalty-debt.ts`
+     - `src/api/penalty-debt/services/penalty-debt.ts`
+
+2. **`api::payment-application.payment-application`** — Ledger de auditoría de aplicación de pagos.
+   - Campos: `amountApplied`, `appliedAt`, `paymentLeftAfter`, `debtLeftAfter`, `notes`
+   - Relaciones: `paymentRecord` (billing-record), `quotaRecord` (billing-record), `penaltyDebt` (penalty-debt)
+   - Archivos:
+     - `src/api/payment-application/content-types/payment-application/schema.json`
+     - `src/api/payment-application/controllers/payment-application.ts`
+     - `src/api/payment-application/routes/payment-application.ts`
+     - `src/api/payment-application/services/payment-application.ts`
+
+**Schemas modificados:**
+- `api::billing-record.billing-record` — Agregada relación `applications` (uno a muchos → `payment-application`)
+- `api::financing.financing` — Agregada relación `penaltyDebts` (uno a muchos → `penalty-debt`)
+
+### Cambios en Next.js (`c4y_nextjs`)
+
+**Nuevo módulo:** `lib/unified-allocator.ts`
+
+| Función | Responsabilidad |
+|---|---|
+| `fetchOpenPenaltyDebts(financingDocumentId)` | Query penalidades abiertas (`pending`, `partially_paid`) |
+| `fetchOpenQuotas(financingDocumentId)` | Query cuotas raíz abiertas (`pendiente`, `retrasado`, `abonado`) calculando balance real dinámicamente (`amount - sum(hijos)`) |
+| `buildDebtQueue(penalties, quotas)` | Unifica y ordena por `dueDate ASC`, desempate: **cuota antes que penalidad** (saldar capital antes de recargos) |
+| `buildAllocationPlan(paymentAmount, debts)` | Función pura: calcula plan de aplicación FIFO sin side-effects |
+| `applyAllocationToPenalty(...)` | PUT a `penalty-debt` + crea `payment-application` (ledger) |
+| `applyAllocationToQuota(...)` | Reusa `applyAdvanceAmountToQuota` existente + crea `payment-application` |
+| `finalizePaymentRecord(...)` | Actualiza pago raíz: `amount = leftover`, `status = pagado` si `leftover <= 0.01`, sino `adelanto` |
+| `unifiedAllocatePayment(...)` | Orquestador: carga deudas → plan → ejecución paso a paso |
+| `accruePenaltiesForFinancing(...)` | Genera/actualiza penalidades acumuladas (10% diario sobre saldo pendiente) vencidas hasta hoy |
+
+**Exportaciones añadidas en `lib/billing.ts` (mínimas):**
+- `export async function generateReceiptNumber`
+- `export async function applyAdvanceAmountToQuota`
+
+**Nuevas rutas API:**
+- `POST /api/billing/unified` — Crea pago raíz y ejecuta `unifiedAllocatePayment`
+- `POST /api/penalties/accrue` — Ejecuta `accruePenaltiesForFinancing` (manual o cron)
+
+**Tests unitarios:** `app/api/billing/__tests__/unified-allocator.test.ts`
+- 8 tests, todos passing (Vitest)
+- Cubren: orden por dueDate, desempate cuota>penalidad, caso auditoría $250, pago exacto, insuficiente, sobrante, misma fecha mixta, deuda con balance 0 ignorada
+
+### Reglas de negocio implementadas (post-fix 26 Mayo)
+
+1. **Penalidad como entidad independiente:** No más `lateFeeAmount` embebido en `billing-record` para cobros activos. El campo legado permanece como referencia histórica.
+2. **FIFO unificado por `dueDate`:** Cuotas y penalidades comparten una sola cola ordenada cronológicamente.
+3. **Desempate:** Cuota principal antes que penalidad cuando comparten `dueDate` (saldar capital primero).
+4. **Auditoría completa:** Cada aplicación de pago genera un registro en `payment-application` con `amountApplied`, `paymentLeftAfter`, `debtLeftAfter`.
+5. **Adelanto automático:** Si un pago cubre todas las deudas abiertas y sobra, el remanente queda como `adelanto` (`amount > 0`). Si se consume totalmente, pasa a `pagado` (`amount <= 0.01`).
+6. **Acrual de penalidades:** `accruePenaltiesForFinancing` recorre cuotas raíz vencidas, calcula días de mora y genera/actualiza `penalty-debt` con `amountOriginal = pendingBalance * 0.10 * daysLate`.
+
+### Pendiente para deploy a producción
+
+1. **Desplegar schemas Strapi:** Ejecutar `npm run build` y restart en el servidor Strapi de producción para que `penalty-debt` y `payment-application` se registren en la base de datos.
+2. **Backfill histórico:** ✅ Ruta creada: `POST /api/penalties/backfill`
+   - Procesa todos los financiamientos `activo` o uno específico.
+   - Ejemplo batch:
+     ```bash
+     curl -X POST https://api.car4youpanama.com/api/penalties/backfill \
+       -H "Content-Type: application/json" \
+       -d '{"data":{}}'
+     ```
+   - Ejemplo individual:
+     ```bash
+     curl -X POST https://api.car4youpanama.com/api/penalties/backfill \
+       -H "Content-Type: application/json" \
+       -d '{"data":{"financingDocumentId":"oluckesz5t20umk7xahp6cj5"}}'
+     ```
+3. **Migrar frontend a `/api/billing/unified`:** ✅ Hecho.
+4. **Shadow mode recomendado:** Comparar resultados de `POST /api/billing` (viejo) vs `POST /api/billing/unified` (nuevo) con pagos de prueba antes de switchover completo.
+
+---
+
+## Hotfix 26 Mayo 2026 (Tarde): Auto-Acrual de Penalidades en Cada Pago
+
+**Problema crítico identificado:**
+Al pagar una cuota retrasada con penalidad acumulada, el sistema solo aplicaba el pago a la cuota base ($25 faltante), la marcaba como `pagado`, y la penalidad ($30 mora) quedaba invisible para el conductor y sin cobrar. El pago de $55 parecía cubrir todo, pero en realidad la mora quedaba abierta y no participaba en la cola FIFO.
+
+**Root cause:**
+`unifiedAllocatePayment()` cargaba la cola de deudas (`fetchOpenPenaltyDebts` + `fetchOpenQuotas`) **sin generar primero** las penalidades acumuladas. Como `penalty-debt` se crea/actualiza por `accruePenaltiesForFinancing()`, y esta función solo corría vía endpoints manuales (`/api/penalties/accrue` o `/backfill`), al momento del pago la tabla `penalty-debt` estaba vacía para ese financiamiento. Resultado: el allocator unificado solo "veía" la cuota, pagaba el capital, y cerraba la deuda.
+
+**Fix aplicado:**
+
+**Archivo:** `lib/unified-allocator.ts` — `unifiedAllocatePayment()`
+
+**Paso 0 inyectado** antes de cargar la cola de deudas:
+```typescript
+// PASO 0: Generar/actualizar penalidades acumuladas antes de cargar deudas.
+// Esto garantiza que toda mora calculada hasta este momento esté
+// registrada como penalty-debt y participe en la cola FIFO unificada.
+console.log(`[unifiedAllocatePayment] Step 0: Accruing penalties for financing ${financingDocumentId}...`);
+const penaltiesAccrued = await accruePenaltiesForFinancing(financingDocumentId, 10);
+console.log(`[unifiedAllocatePayment] Step 0 complete: ${penaltiesAccrued} penalty debt(s) accrued/updated`);
+```
+
+**Reglas de negocio confirmadas y aplicadas:**
+1. **Desempate FIFO:** Cuota base primero, penalidad después cuando comparten `dueDate` (capital antes que mora).
+2. **Acrual automático:** En cada pago, antes de distribuir fondos, se calcula y persiste la mora acumulada hasta el milisegundo exacto del pago.
+3. **Penalidad como entidad independiente:** `penalty-debt` con `amountOriginal`, `amountPending`, `dueDate` (igual a la cuota madre), y status `pending|partially_paid|paid`.
+
+**Caso de prueba validado (financiamiento `v0hwrcwb3oidf0at4lg11df9`):**
+- Cuota #1: $225 original, $200 ya pagados, **$25 faltantes**
+- Penalidad acumulada: **$30** (10% diario sobre saldo pendiente)
+- Pago entrante: **$55**
+- **Distribución esperada (y ahora garantizada):**
+  1. $25 → Cuota #1 (status: `pagado`)
+  2. $30 → Penalidad S1 (status: `paid`)
+  3. Leftover: $0
+
+**Deploy:**
+- ✅ Local: `npm run build` + `npm start` en `localhost:3000`
+- ✅ Producción: Archivo subido vía SFTP, rebuild en servidor remoto (`108.181.201.110`), restart vía PM2
+- ✅ Endpoints verificados: `billing/unified` (405/POST), `penalties/backfill` (405/POST), `penalties/accrue` (405/POST), Strapi `penalty-debts` y `payment-applications` (200/GET)
+
+**Tests unitarios:**
+- `unified-allocator.test.ts`: 8/8 passing (Vitest)
+- Caso de auditoría $250: ✅ Cuota primero, penalidad después, leftover correcto
+
+---
+
+## Hotfix 26 Mayo 2026 (Noche): Corrección Crítica `$lt` → `$lte` + Logging + Cierre de Cuota Padre
+
+**Problema crítico identificado (segundo bug):**
+Después de implementar el Paso 0 (auto-acrual de penalidades), los pagos seguían sin cobrar penalidades. El conductor pagaba $25 de cuota, el sistema la marcaba como `pagado`, pero la penalidad de $30 seguía sin generarse ni cobrarse.
+
+**Root cause (bug #2):**
+En `accruePenaltiesForFinancing` (línea 553), el query usaba `dueDate: { $lt: today }` (strictly less than). Esto excluía cuotas vencidas **hoy** (`dueDate = today`). Si una cuota vencía el 26 de mayo y el pago entraba el mismo 26 de mayo, la cuota **no se consideraba vencida** para fines de penalidad, por lo que `accruePenaltiesForFinancing` retornaba 0 penalidades generadas.
+
+**Fix aplicado:**
+
+**Archivo:** `lib/unified-allocator.ts`
+
+1. **Cambio `$lt` → `$lte`** (línea 553):
+   ```typescript
+   // ANTES: dueDate: { $lt: today }  (excluía cuotas vencidas hoy)
+   // DESPUÉS: dueDate: { $lte: today }  (incluye cuotas vencidas hoy)
+   ```
+   Esto garantiza que una cuota con `dueDate = 2026-05-26` pagada el 26 de mayo **sí** genere penalidad si tiene saldo pendiente.
+
+2. **Logging detallado en `accruePenaltiesForFinancing`:**
+   - Loguea cuántas cuotas vencidas encontró
+   - Loguea cada cuota procesada: `quotaNumber`, `dueDate`, `pendingBalance`, `daysLate`, `penaltyAmount`
+   - Loguea si una cuota se salta por `daysLate = 0`
+
+3. **Llamada a `checkAndUpdateParentIfPaid` después de `applyAllocationToQuota`:**
+   Después de aplicar un abono a una cuota padre, se verifica si la suma de abonos hijos cubre el monto total. Si sí, la cuota padre cambia a `pagado` automáticamente.
+
+**Caso validado (financiamiento `v0hwrcwb3oidf0at4lg11df9`):**
+- Cuota #1: $225 original, $200 ya pagados, **$25 faltantes**, vencida hoy
+- Penalidad acumulada (10% diario sobre $25): **$2.50** por cada día de mora
+- Pago entrante: **$55**
+- **Distribución esperada (ahora garantizada por `$lte`):**
+  1. Paso 0: `accruePenaltiesForFinancing` genera/actualiza `penalty-debt` de $30 (o el monto correcto según días de mora)
+  2. $25 → Cuota #1 (status: `pagado` via `checkAndUpdateParentIfPaid`)
+  3. $30 → Penalidad S1 (status: `paid`)
+  4. Leftover: $0
+
+**Deploy:**
+- ✅ Local: `npm run build` + `npm start` en `localhost:3000`
+- ✅ Producción: Archivo subido vía SFTP, rebuild en servidor remoto (`108.181.201.110`), restart vía PM2
+- ✅ Endpoints verificados: `billing/unified` (405/POST), `penalties/backfill` (405/POST), Strapi `penalty-debts` (200/GET)
+
+---
+
+## Hotfix 27 Mayo 2026: Tie-Break Rule — Penalidad Primero, Cuota Después
+
+**Decisión del cliente:** Cuando una cuota y su penalidad comparten el mismo `dueDate`, el pago debe aplicarse **primero a la penalidad** (intereses de mora) y **después a la cuota** (capital).
+
+**Justificación:** El conductor percibe que la deuda deja de crecer. Si se paga capital primero pero la penalidad sigue ahí, el conductor siente que su pago "no sirvió" porque el total a pagar sigue igual o mayor.
+
+**Fix aplicado:**
+
+**Archivo:** `lib/unified-allocator.ts` — función `buildDebtQueue`
+
+```typescript
+// ANTES: Cuota primero, penalidad después
+if (a.kind === "quota" && b.kind === "penalty") return -1;
+if (a.kind === "penalty" && b.kind === "quota") return 1;
+
+// DESPUÉS: Penalidad primero, cuota después
+if (a.kind === "penalty" && b.kind === "quota") return -1;
+if (a.kind === "quota" && b.kind === "penalty") return 1;
+```
+
+---
+
+## Resumen Completo de Fixes — Sesión 27 Mayo 2026
+
+### Fix 1: Auto-acrual de Penalidades (Step 0)
+- **Archivo:** `lib/unified-allocator.ts` — `unifiedAllocatePayment`
+- **Problema:** Las penalidades no se generaban antes de distribuir el pago.
+- **Solución:** Se agregó `await accruePenaltiesForFinancing(...)` como Paso 0, antes de armar la cola FIFO.
+
+### Fix 2: `$lt` → `$lte` en filtro de cuotas vencidas
+- **Archivo:** `lib/unified-allocator.ts` — `accruePenaltiesForFinancing` (línea 553)
+- **Problema:** `dueDate: { $lt: today }` excluía cuotas vencidas "hoy".
+- **Solución:** Cambiado a `$lte` para incluir cuotas vencidas el mismo día del pago.
+
+### Fix 3: Query de acrual usa `daysLate`/`lateFeeAmount` de Strapi
+- **Archivo:** `lib/unified-allocator.ts` — `accruePenaltiesForFinancing`
+- **Problema:** El sistema recalculaba días de mora desde `dueDate`, pero el cron job de Strapi ya calculaba `daysLate`/`lateFeeAmount` con lógica de negocio diferente (posiblemente días hábiles o fecha base distinta).
+- **Solución:** Si Strapi ya tiene `daysLate` > 0, se usa ese valor. Solo se recalcula como fallback si Strapi no tiene el dato.
+
+### Fix 4: `fetchOpenPenaltyDebts` busca por `quotaRecord.documentId`
+- **Archivo:** `lib/unified-allocator.ts` — `fetchOpenPenaltyDebts`
+- **Problema:** Strapi v5 no poblaba la relación `financing` en `penalty-debt` desde la API REST, por lo que filtrar por `financing.documentId` retornaba 0 resultados.
+- **Solución:** La función ahora recibe un array de `quotaDocumentIds` (de las cuotas abiertas del financiamiento) y filtra por `quotaRecord.documentId: { $in: [...] }`.
+
+### Fix 5: Relaciones en creación de `penalty-debt` usan `documentId`
+- **Archivo:** `lib/unified-allocator.ts` — `accruePenaltiesForFinancing`
+- **Problema:** Se enviaban `numericId` (autoincremental de PostgreSQL) a campos de relación en Strapi v5, pero la API REST espera `documentId` (UUID).
+- **Solución:** `financing: financingDocumentId` y `quotaRecord: q.documentId`.
+
+### Fix 6: `fetchOpenPenaltyDebts` sin parámetro `fields`
+- **Archivo:** `lib/unified-allocator.ts` — `fetchOpenPenaltyDebts`
+- **Problema:** Strapi v5 retornaba estructura plana cuando se omitía `fields`, pero con `fields` retornaba atributos vacíos.
+- **Solución:** Removido `fields` del query de `penalty-debts` para obtener datos completos en formato plano.
+
+### Fix 7: Auto-cierre de cuota padre (`checkAndUpdateParentIfPaid`)
+- **Archivo:** `lib/unified-allocator.ts` — `applyAllocationToQuota`
+- **Problema:** Después de aplicar abonos, la cuota padre quedaba con `status: abonado` aunque la suma de hijos cubría el monto total.
+- **Solución:** Llamada a `checkAndUpdateParentIfPaid` inmediatamente después de crear el abono hijo.
+
+### Fix 8: Tie-Break Rule — Penalidad primero
+- **Archivo:** `lib/unified-allocator.ts` — `buildDebtQueue`
+- **Decisión:** Cuando `dueDate` es igual, penalidad se paga antes que cuota.
+- **Razón:** Percepción del conductor — la deuda deja de crecer.
+
+### Estado Final Validado (Local)
+- Financiamiento `kfp9g5ocgypqfb4zsqn2mn5c` — Cuota #4 ($225):
+  - Pago de $27.5 distribuido: **$17.5 → Cuota** (pagada completamente), **$10 → Penalidad** (parcialmente pagada, $12.5 faltan).
+  - Cuota padre marcada automáticamente como `pagado`.
+  - Sistema de ledger (`payment-application`) registrando cada asignación.
+
+### Última Prueba (Rebuild + Restart Local)
+**Fecha:** 27 Mayo 2026, 12:09 PM
+- Servidor local matado, rebuild ejecutado (`npm run build`), restart (`npm start`)
+- Prueba de pago $30 en financiamiento sin cuotas vencidas:
+  - Resultado: `0 overdue quotas`, pago queda como `adelanto` ($30)
+  - Comportamiento correcto: cuando no hay deudas, el pago se guarda como adelanto para futuras cuotas
+
+### Archivos Modificados en esta Sesión
+1. `lib/unified-allocator.ts` — 8 fixes + tie-break rule
+2. `app/api/billing/unified/route.ts` — Endpoint de pagos unificados
+3. `app/billing/components/create-payment-dialog.tsx` — Frontend llama a `/api/billing/unified`
+4. `lib/billing.ts` — Exports `generateReceiptNumber`, `applyAdvanceAmountToQuota`
+5. `app/api/penalties/accrue/route.ts` — Endpoint manual de acrual
+6. `app/api/penalties/backfill/route.ts` — Endpoint batch de acrual
+7. `src/docs/bitacora-faturacion.md` — Esta documentación
+
+### Deploy Pendiente
+- ✅ Código validado localmente (`localhost:3000`)
+- ⏳ Producción: Requiere acceso SSH/SFTP a `108.181.201.110` (usuario `deploy`) para subir archivos y ejecutar `npm run build` + PM2 restart.
+
+### Cómo Probar el FIFO Unificado con Penalidad Primero
+1. Abrir `http://localhost:3000/billing`
+2. Seleccionar financiamiento con cuota **"Retrasado"** o **"Abonado"**
+3. Ingresar monto de pago
+4. Abrir **DevTools → Console** (F12)
+5. Verificar logs:
+   ```
+   [unifiedAllocatePayment] Open debts: X (penalties=Y, quotas=Z)
+   [penalty] ...  ← PRIMERO
+   [quota] ...    ← DESPUÉS
+   ```
+6. Confirmar que el pago aplica primero a penalidad, luego a cuota
+
+---
+
+## Hotfix 27 Mayo 2026 (UI Sync): Penalidad mostrada no bajaba tras pagar
+
+**Problema reportado:**
+- Escenario: cuota `$225` + penalidad `$22.5`, pago `$240`.
+- Resultado esperado: penalidad saldada y solo `$7` faltante de cuota.
+- Resultado observado en UI: quedaban `$7` de cuota **y** seguía mostrándose `$22.5` de penalidad.
+
+**Root cause real:**
+- El motor unificado sí aplica pagos a `penalty-debt` y crea `payment-application` correctamente.
+- Pero la pantalla de financiamiento usa `lateFeeAmount` desde `billing-record` (snapshot histórico), no el saldo vivo de `penalty-debt.amountPending`.
+- Quedaba desincronización visual: la penalidad ya estaba pagándose, pero la UI seguía mostrando el monto histórico.
+
+**Fix aplicado:**
+
+**Archivo:** `lib/billing.ts`
+
+1. Se agregó merge de penalidad viva al cargar historial por financiamiento:
+   - Nueva función: `mergeLivePenaltyPending(records)`.
+   - Consulta `penalty-debts` con estado `pending|partially_paid` filtrando por `quotaRecord.documentId` de las cuotas raíz del financiamiento.
+   - Construye `Map<quotaDocumentId, amountPending>` y reemplaza en memoria `lateFeeAmount` por saldo vivo.
+
+2. Se integró el merge en ambos caminos del fallback de historial:
+   - `fetchBillingRecordsByFinancingFromStrapiFallback` formato 1 y formato 2.
+
+3. Se extendieron modelos para trazabilidad:
+   - `BillingRecordRaw.livePenaltyPending?: number`
+   - `BillingRecordCard.livePenaltyPending?: number`
+   - `normalizeBillingRecord` ahora prioriza `livePenaltyPending` sobre `lateFeeAmount` snapshot.
+
+**Validación local:**
+- `npm run build` exitoso.
+- `GET /api/billing?financing=kfp9g5ocgypqfb4zsqn2mn5c` ahora refleja multa desde saldo pendiente real de `penalty-debt`.
+- El frontend (timeline) consume `lateFeeAmount` ya sincronizado, sin requerir cambios visuales adicionales.
+
+---
+
+## Hotfix 27 Mayo 2026 (Accrual Hibrido): Penalidad no se generaba para cuota vencida
+
+**Problema reportado:**
+- Financiamiento: `qoye8jdqy5dqzek5lwc1lwv5`
+- La cuota existia, avanzaban los dias, pero no aparecia penalidad.
+
+**Root cause:**
+- El query de `accruePenaltiesForFinancing` exigia implicitamente vencimiento por fecha (`dueDate <= today`) o estados especificos segun variante previa.
+- En modo simulacion se detecto caso con `status="retrasado"` y `daysLate=1` pero `dueDate` futuro respecto al reloj real (`2026-05-29` vs `today=2026-05-27`).
+- Resultado: filtro excluia la cuota y no creaba `penalty-debt`.
+
+**Fix aplicado (criterio hibrido):**
+
+**Archivo:** `lib/unified-allocator.ts` (`accruePenaltiesForFinancing`)
+
+- Nuevo filtro candidato:
+  - `status in ["pendiente","retrasado","abonado"]`
+  - `parentRecord = null`
+  - `OR`:
+    1. `status in ["retrasado","abonado"]` (soporta modo simulacion)
+    2. `dueDate <= today` (soporta mora real sin cambio de status)
+
+Esto permite generar penalidad tanto para:
+- cuotas realmente vencidas por fecha,
+- como cuotas marcadas retrasadas por simulacion.
+
+**Validacion local:**
+- `POST /api/penalties/accrue` con body:
+  - `{ "data": { "financingDocumentId": "qoye8jdqy5dqzek5lwc1lwv5" } }`
+- Respuesta:
+  - `{"success":true,"penaltiesGenerated":1,...}`
+- `GET /api/billing?financing=qoye8jdqy5dqzek5lwc1lwv5` ahora muestra en cuota raiz:
+  - `lateFeeAmount = 22.5`
+
+---
+
+## Hotfix 27 Mayo 2026 (Penalty Reinflation / Paso 0 Bucle)
+
+**Problema reportado:**
+- Escenario: cuota `$225` + penalidad `$22.5`, pago `$200`.
+- Resultado matemático: `$30` a penalidad (pagada), `$170` a cuota (queda `$80`).
+- Resultado observado en siguiente refresco / pago: penalidad **reaparece** como `$22.5` (o `$30`) a pesar de haberse pagado.
+
+**Root cause (tres factores combinados):**
+
+### Factor A: `lateFeeAmount` snapshot estático
+- `accruePenaltiesForFinancing` usaba `attrs.lateFeeAmount` (campo snapshot de Strapi) como fuente primaria para `penaltyAmount`.
+- Ese valor se calculó una sola vez (cuando `pendingBalance = $225`) y **nunca se actualiza** cuando la cuota se paga parcialmente.
+- Resultado: aunque `pendingBalance` bajara a `$47.5`, `penaltyAmount` seguía siendo `$22.5`.
+
+### Factor B: Normalización `existingPenalty.attributes` fallida (Strapi v5 flat)
+- Al actualizar una penalidad existente, el código leía:
+  - `existingPenalty.attributes?.amountOriginal`
+  - `existingPenalty.attributes?.amountPending`
+- Strapi v5 devuelve respuesta **plana** para `penalty-debt`: `existingPenalty.amountOriginal`, `existingPenalty.amountPending`.
+- `attributes` es `undefined`, por lo tanto `parseFloat(undefined || 0) = 0`.
+- `alreadyPaid = 0 - 0 = 0`.
+- `newPending = penaltyAmount - 0 = penaltyAmount` → **se reinfla completamente**, perdiendo pagos previos.
+
+### Factor C: Recreación tras pago completo
+- El query de búsqueda de penalidad existente filtraba por `status: { $in: ["pending", "partially_paid"] }`.
+- Una vez pagada completamente (`status = "paid"`), la siguiente ejecución del Paso 0 **no la encontraba**.
+- Conclusión: "no existe penalidad → crear nueva" → se creaba un **nuevo registro** con monto completo cada vez.
+
+**Fix aplicado:**
+
+**Archivo:** `lib/unified-allocator.ts` (`accruePenaltiesForFinancing`)
+
+1. **Recalcular siempre desde balance vivo:**
+   - Se eliminó el uso de `attrs.lateFeeAmount`.
+   - `penaltyAmount = pendingBalance * (rate/100) * daysLate` (cálculo directo en cada ejecución).
+   - Esto garantiza que si el saldo baja, la penalidad base también baja.
+
+2. **Normalización robusta flat/nested:**
+   - Se usa el patrón consistente del proyecto:
+     ```typescript
+     const epAttrs = existingPenalty.attributes || existingPenalty;
+     const oldOriginal = parseFloat(epAttrs.amountOriginal || existingPenalty.amountOriginal || 0);
+     const oldPending = parseFloat(epAttrs.amountPending || existingPenalty.amountPending || 0);
+     ```
+
+3. **Preservar `alreadyPaid`:**
+   - `alreadyPaid = max(0, oldOriginal - oldPending)`.
+   - `newPending = max(0, penaltyAmount - alreadyPaid)`.
+   - `newStatus = paid | partially_paid | pending` según `newPending`.
+
+4. **Buscar TODAS las penalidades (incluido pagadas):**
+   - Query sin filtro de status, ordenado por `createdAt:desc`, `pageSize: 1`.
+   - Encuentra la penalidad más reciente aunque esté `paid`.
+   - Actualiza el **mismo registro** en lugar de crear uno nuevo.
+
+5. **Guardia de idempotencia:**
+   - Si `oldOriginal`, `oldPending`, `daysAccrued` y `status` no cambiaron significativamente (`< $0.01`), se omite el `PUT`.
+   - Reduce llamadas innecesarias a Strapi y evita reescrituras accidentales.
+
+**Validación local:**
+- `npm run test` (unified-allocator): **12/12 pasan**.
+
+---
+
+## Hotfix 27 Mayo 2026 (Visibilidad de Penalidades en Timeline)
+
+**Problema reportado:**
+- En `http://localhost:3000/billing/financing/xieinhah7ff7qexyqhr14fu5` (y cualquier financiamiento) las `penalty-debt` no aparecen en el `PaymentTimeline`.
+- Las penalidades existen en Strapi pero la UI solo muestra `billing-records` (cuotas/pagos), no las penalidades como entidades independientes.
+
+**Root cause:**
+- `PaymentTimeline` recibe un array de `PaymentRecord` mapeado exclusivamente desde `BillingRecordCard[]` (cuotas).
+- `penalty-debt` es un content-type separado en Strapi, no viene en `/api/billing?financing=...`.
+
+**Fix aplicado:**
+
+1. **Nueva API route:** `app/api/penalties/route.ts`
+   - `GET /api/penalties?financing={documentId}`
+   - Busca las cuotas raíz del financiamiento, extrae sus `documentId`s, y consulta `penalty-debts` por `quotaRecord.documentId` (workaround Strapi v5 relación no poblada).
+   - Normaliza flat vs nested y devuelve array unificado.
+
+2. **Página de financing detail:** `app/billing/financing/[id]/page.tsx`
+   - Nuevo estado `penaltyDebts`.
+   - `fetchBillingRecords` ahora hace `Promise.all` de `/api/billing` y `/api/penalties`.
+   - Antes de pasar a `PaymentTimeline`, se mapean las `penaltyDebts` a `PaymentRecord` con:
+     - `recordType: "penalty"`
+     - `status` mapeado: `pending→retrasado`, `partially_paid→abonado`, `paid→pagado`, `cancelled→cubierta`.
+     - `amount` = `amountPending`
+     - `quotaNumber` propagado desde la cuota asociada.
+   - Se concatenan cuotas + penalidades, ordenadas por `dueDate` ascendente.
+
+3. **PaymentTimeline:** `app/billing/components/payment-timeline.tsx`
+   - `PaymentRecord` extendido con campos de penalidad opcionales (`recordType`, `amountOriginal`, `amountPending`, `daysAccrued`, `dailyRatePercent`, `penaltyStatus`).
+   - Nuevo `penaltyConfig` visual (colores `rose`) con icono `AlertTriangle`.
+   - `ParentContent` detecta `recordType === "penalty"`:
+     - Usa `penaltyConfig` para dot, card, badge.
+     - Badge muestra "Cuota #N" (de la cuota asociada) + "Penalidad".
+     - Renderiza monto `amountPending` en bold, `amountOriginal` como referencia, y días de mora con tasa diaria.
+     - Oculta botones de acción (pagar, eliminar, asociar, desasociar) que no aplican a penalidades.
+
+**Validación local:**
+- Build exitoso (`npm run build`).
+- Tests del allocator siguen pasando.
+- Nuevos tests de regresión:
+  - `preserves fully paid penalty when recalculating same amount`
+  - `preserves partially paid penalty when recalculating same amount`
+  - `reduces to zero when new penalty is smaller than already paid`
+  - `reopens penalty when new penalty grows beyond already paid`
+
+**Próxima validación en producción:**
+1. Hacer pago sobre `qoye8jdqy5dqzek5lwc1lwv5`.
+2. Confirmar en logs:
+   - `[accruePenalties] ⏭ Penalty ... unchanged (...). Skipping update.` (si no cambió nada)
+   - `[accruePenalties] ✓ Updated penalty ...: original=..., pending=..., status=paid`
+3. Refrescar pantalla: la penalidad debe mostrar `$0` (o desaparecer del queue si está pagada).
+
+---
+
+## Hotfix 27 Mayo 2026 (Auto-Accrual en SimulateOverdue): Penalidades no se generaban al marcar cuota retrasada
+
+**Problema reportado:**
+- Financiamiento `xieinhah7ff7qexyqhr14fu5` tenía cuota marcada como `retrasado` pero no aparecía penalidad en el timeline.
+- `GET /api/penalties?financing=...` retornaba `{"data": []}`.
+
+**Root cause:**
+- `SimulateOverdue` marcaba cuotas como `retrasado` y calculaba `lateFeeAmount`/`daysLate` en el `billing-record`, pero **nunca creaba** el registro `penalty-debt` separado.
+- Las `penalty-debt` solo existían si se ejecutaba explícitamente `/api/penalties/accrue` o si un pago pasaba por `unifiedAllocatePayment` (Step 0).
+- Como este financing nunca tuvo ni accrual manual ni pago unificado, no tenía penalidades.
+
+**Fix aplicado:**
+
+**Archivo:** `app/api/invoices/simulate-overdue/route.ts`
+
+1. **Import:** `import { accruePenaltiesForFinancing } from "@/lib/unified-allocator";`
+
+2. **Después** de actualizar exitosamente la cuota como `retrasado` (línea ~316):
+   ```typescript
+   if (financingDocumentId) {
+     try {
+       const penaltiesCount = await accruePenaltiesForFinancing(financingDocumentId, 10);
+       if (penaltiesCount > 0) {
+         console.log(`[SimulateOverdue] ✓ Generated ${penaltiesCount} penalty debt(s) for financing ${financingDocumentId}`);
+       }
+     } catch (penaltyErr) {
+       console.error(`[SimulateOverdue] ⚠ Penalty accrual failed for financing ${financingDocumentId}:`, penaltyErr);
+       // No bloquear el flujo principal si el accrual falla
+     }
+   }
+   ```
+
+**Comportamiento:**
+- Cada vez que `SimulateOverdue` marca una cuota como retrasado, automáticamente genera/actualiza las `penalty-debt` del financiamiento.
+- Si la cuota ya tiene penalidad generada, `accruePenaltiesForFinancing` la actualiza idempotentemente (o salta si no cambió nada).
+- Errores de accrual se loguean pero **no interrumpen** el flujo principal de simulación.
+
+**Para cuotas ya marcadas como retrasado (antes del fix):**
+- Hacer clic en **"Simular Viernes"** nuevamente en la página del financiamiento.
+- Eso ejecutará `SimulateOverdue` con `mode="update-existing"`, que ahora generará las penalidades faltantes.
+- Alternativa: llamar manualmente `POST /api/penalties/accrue` con el `financingDocumentId`.
+
+---
+
+## Hotfix 27 Mayo 2026 (Ocultar penalidades separadas en UI): Penalidades como entidades independientes no deben verse
+
+**Problema reportado:**
+- Las `penalty-debt` (entidades separadas en Strapi) aparecían como tarjetas independientes en el `PaymentTimeline` (ej: "PEN-4", "Multa").
+- Usuarios veían la penalidad doble: embebida en la cuota (`lateFeeAmount`) + como registro separado.
+- Además, URLs directas a detalles de multa legado (amount < 0) se podían abrir.
+
+**Root cause:**
+- `PaymentTimeline` recibía arrays mergeados que incluían `penalty-debt` como `PaymentRecord` con `recordType: "penalty"`.
+- El `ParentContent` renderizaba estas tarjetas con badge "Penalidad" y montos.
+- No había filtro previo que ocultara registros `amount < 0` (multas legacy) ni `recordType === "penalty"`.
+
+**Fix aplicado (tres archivos):**
+
+### 1. `app/billing/financing/[id]/page.tsx`
+
+- **Quitado** el merge de `penaltyRecords` al prop `payments` del `PaymentTimeline`.
+- Ahora solo se pasan `quotaRecords` (cuotas y pagos reales), ordenadas por `dueDate`.
+- Las penalidades siguen siendo calculadas y persistidas en Strapi (`penalty-debt`), pero **no se renderizan** como filas independientes en la UI.
+
+### 2. `app/billing/page.tsx`
+
+- **Agregado filtro** `.filter((p) => p.amount >= 0)` antes de mapear `payments` al `PaymentTimeline`.
+- Oculta multas legacy (`amount < 0`) del timeline general de facturación.
+
+### 3. `app/billing/details/[id]/page.tsx`
+
+- **Bloqueo de acceso directo:** tras `fetchRecord`, si `recordData.amount < 0`:
+  - Muestra `toast.info("Este registro no está disponible para visualización directa.")`
+  - Redirige a `/billing`.
+- Evita que un link directo a una multa/penalidad separada se pueda visualizar.
+
+**Resultado visual:**
+- Usuario ve penalidad **solo embebida** en la cuota: línea roja "+ $X penalidad" dentro de la tarjeta de la cuota vencida.
+- No aparecen tarjetas separadas "PEN-*" ni "Multa" en ningún timeline.
+- Acceso directo a detalle de multa es redirigido.
+
+**Nota técnica:**
+- Las `penalty-debt` siguen existiendo en Strapi y participando en la lógica de asignación unificada (`unifiedAllocatePayment`).
+- Lo que se eliminó es exclusivamente su renderizado en el frontend como entidad independiente.
+- Los pagos distribuyen dinero a penalidades de forma invisible para el usuario (como estaba diseñado originalmente).

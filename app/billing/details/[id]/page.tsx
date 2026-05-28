@@ -181,6 +181,14 @@ export default function BillingDetailsPage() {
       }
       const data = await response.json();
       const recordData = data.data as BillingRecordCard;
+
+      // Bloquear acceso directo a detalles de multas/penalidades separadas
+      if (recordData.amount < 0) {
+        toast.info("Este registro no está disponible para visualización directa.");
+        router.push("/billing");
+        return;
+      }
+
       setRecord(recordData);
       setStatus(recordData.status);
       setPaymentDate(recordData.paymentDate || "");

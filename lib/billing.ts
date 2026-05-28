@@ -90,6 +90,7 @@ export interface BillingRecordRaw {
     receiptNumber: string;
   } | null;
   childRecords?: BillingRecordRaw[];
+  livePenaltyPending?: number;
   // Relaciones para pago multi-cuota (coveredBy = adelanto que cubrió esta cuota)
   coveredBy?: {
     id: number;
@@ -157,6 +158,7 @@ export interface BillingRecordCard {
   parentRecordId?: string;
   parentRecordReceiptNumber?: string;
   childRecords?: BillingRecordCard[];
+  livePenaltyPending?: number;
   // Relaciones para pago multi-cuota
   coveredById?: string;
   coveredByReceiptNumber?: string;
@@ -310,8 +312,8 @@ const normalizeBillingRecord = (raw: BillingRecordRaw): BillingRecordCard => {
     quotaAmountCovered: raw.quotaAmountCovered,
     advanceCredit: raw.advanceCredit || 0,
     remainingQuotaBalance: raw.remainingQuotaBalance || 0,
-    lateFeeAmount: raw.lateFeeAmount || 0,
-    lateFeeAmountLabel: formatCurrency(raw.lateFeeAmount || 0, { currency }),
+    lateFeeAmount: (raw.livePenaltyPending ?? raw.lateFeeAmount) || 0,
+    lateFeeAmountLabel: formatCurrency((raw.livePenaltyPending ?? raw.lateFeeAmount) || 0, { currency }),
     daysLate: raw.daysLate || 0,
     dueDate: raw.dueDate,
     dueDateLabel: formatDate(raw.dueDate) || "",
@@ -353,6 +355,7 @@ const normalizeBillingRecord = (raw: BillingRecordRaw): BillingRecordCard => {
     parentRecordId: raw.parentRecord?.documentId,
     parentRecordReceiptNumber: raw.parentRecord?.receiptNumber,
     childRecords: raw.childRecords?.map(child => normalizeBillingRecord(child)),
+    livePenaltyPending: raw.livePenaltyPending,
     // Relaciones para pago multi-cuota
     coveredById: raw.coveredBy?.documentId,
     coveredByReceiptNumber: raw.coveredBy?.receiptNumber,
@@ -569,7 +572,7 @@ async function fetchBillingRecordsByFinancingFromStrapiFallback(financingDocumen
     console.log(`[Billing] Format 1 result:`, { count: data1.data?.length || 0 });
     
     if (data1.data?.length > 0) {
-      return data1.data.map(normalizeBillingRecord);
+      return mergeLivePenaltyPending(data1.data.map(normalizeBillingRecord));
     }
   } else {
     const errorText = await response1.text();
@@ -614,7 +617,7 @@ async function fetchBillingRecordsByFinancingFromStrapiFallback(financingDocumen
         console.log(`[Billing] Format 2 result:`, { count: data2.data?.length || 0 });
         
         if (data2.data?.length > 0) {
-          return data2.data.map(normalizeBillingRecord);
+          return mergeLivePenaltyPending(data2.data.map(normalizeBillingRecord));
         }
       } else {
         const errorText = await response2.text();
@@ -626,6 +629,72 @@ async function fetchBillingRecordsByFinancingFromStrapiFallback(financingDocumen
   // Si todo falla, devolver array vacío
   console.error(`[Billing] All methods failed for financing ${financingDocumentId}`);
   return [];
+}
+
+/**
+ * Reemplaza lateFeeAmount snapshot por saldo real pendiente en penalty-debt.
+ * Esto evita que la UI muestre multas ya pagadas.
+ */
+async function mergeLivePenaltyPending(records: BillingRecordCard[]): Promise<BillingRecordCard[]> {
+  const rootQuotaIds = records
+    .filter((r) => !r.parentRecordId)
+    .map((r) => r.documentId)
+    .filter(Boolean);
+
+  if (rootQuotaIds.length === 0) return records;
+
+  const quotaFilter =
+    rootQuotaIds.length === 1
+      ? { documentId: { $eq: rootQuotaIds[0] } }
+      : { documentId: { $in: rootQuotaIds } };
+
+  const query = qs.stringify(
+    {
+      filters: {
+        quotaRecord: quotaFilter,
+        status: { $in: ["pending", "partially_paid"] },
+        amountPending: { $gt: 0 },
+      },
+      populate: {
+        quotaRecord: { fields: ["documentId"] },
+      },
+      pagination: { pageSize: 500 },
+    },
+    { encodeValuesOnly: true }
+  );
+
+  const res = await fetch(`${STRAPI_BASE_URL}/api/penalty-debts?${query}`, {
+    headers: { Authorization: `Bearer ${STRAPI_API_TOKEN}` },
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    console.error("[Billing] mergeLivePenaltyPending error:", await res.text());
+    return records;
+  }
+
+  const json = await res.json();
+  const items = json.data || [];
+  const pendingByQuota = new Map<string, number>();
+
+  for (const item of items) {
+    const attrs = item.attributes || item;
+    const quotaDocId = attrs.quotaRecord?.documentId || attrs.quotaRecord?.data?.documentId;
+    const pending = parseFloat(attrs.amountPending || 0);
+    if (!quotaDocId || pending <= 0) continue;
+    pendingByQuota.set(quotaDocId, (pendingByQuota.get(quotaDocId) || 0) + pending);
+  }
+
+  return records.map((r) => {
+    if (r.parentRecordId) return r;
+    const livePenalty = parseFloat((pendingByQuota.get(r.documentId) || 0).toFixed(2));
+    return {
+      ...r,
+      livePenaltyPending: livePenalty,
+      lateFeeAmount: livePenalty,
+      lateFeeAmountLabel: formatCurrency(livePenalty, { currency: r.currency || "PAB" }),
+    };
+  });
 }
 
 /**
@@ -662,7 +731,7 @@ export async function fetchBillingRecordByIdFromStrapi(documentId: string): Prom
 /**
  * Generar número de recibo único
  */
-async function generateReceiptNumber(): Promise<string> {
+export async function generateReceiptNumber(): Promise<string> {
   const year = new Date().getFullYear();
   const month = String(new Date().getMonth() + 1).padStart(2, "0");
 
@@ -2369,7 +2438,7 @@ export async function applyAdvanceAsPartialPayment(
  *
  * @returns true si se aplicó exitosamente
  */
-async function applyAdvanceAmountToQuota(
+export async function applyAdvanceAmountToQuota(
   advance: { documentId: string; numericId: number; amount: number },
   quota: { documentId: string; numericId: number; amount: number; quotaNumber: number; dueDate?: string },
   amountToApply: number,

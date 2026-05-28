@@ -117,6 +117,7 @@ export default function FinancingDetailPage() {
   // State
   const [financing, setFinancing] = useState<FinancingCard | null>(null);
   const [payments, setPayments] = useState<BillingRecordCard[]>([]);
+  const [penaltyDebts, setPenaltyDebts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingPayments, setIsLoadingPayments] = useState(true); // Inicia en true para primera carga
   const [error, setError] = useState<string | null>(null);
@@ -168,18 +169,19 @@ export default function FinancingDetailPage() {
     return { totalPaidPositive, totalMultas, creditReal };
   }, [payments, financing?.quotaAmount]);
 
-  // Fetch billing records directamente (más confiable que populate)
+  // Fetch billing records y penalty-debts en paralelo
   const fetchBillingRecords = useCallback(async () => {
     console.log(`[FetchBillingRecords] Iniciando fetch para financing=${id}`);
     setIsLoadingPayments(true);
     try {
-      // Agregar timestamp para evitar caché
       const timestamp = Date.now();
-      const response = await fetch(`/api/billing?financing=${id}&_t=${timestamp}`, {
-        cache: 'no-store',
-      });
-      if (response.ok) {
-        const data = await response.json();
+      const [billingRes, penaltiesRes] = await Promise.all([
+        fetch(`/api/billing?financing=${id}&_t=${timestamp}`, { cache: 'no-store' }),
+        fetch(`/api/penalties?financing=${id}&_t=${timestamp}`, { cache: 'no-store' }),
+      ]);
+
+      if (billingRes.ok) {
+        const data = await billingRes.json();
         console.log(`[FetchBillingRecords] Respuesta recibida:`, {
           count: data.data?.length || 0,
           records: data.data?.map((p: BillingRecordCard) => ({
@@ -190,12 +192,29 @@ export default function FinancingDetailPage() {
         });
         setPayments(data.data || []);
       } else {
-        console.error("Error response from billing API:", await response.text());
+        console.error("Error response from billing API:", await billingRes.text());
         setPayments([]);
       }
+
+      if (penaltiesRes.ok) {
+        const data = await penaltiesRes.json();
+        console.log(`[FetchPenalties] Respuesta recibida:`, {
+          count: data.data?.length || 0,
+          penalties: data.data?.map((p: any) => ({
+            documentId: p.documentId,
+            status: p.status,
+            amountPending: p.amountPending,
+          }))
+        });
+        setPenaltyDebts(data.data || []);
+      } else {
+        console.error("Error response from penalties API:", await penaltiesRes.text());
+        setPenaltyDebts([]);
+      }
     } catch (err) {
-      console.error("Error fetching billing records:", err);
+      console.error("Error fetching billing records or penalties:", err);
       setPayments([]);
+      setPenaltyDebts([]);
     } finally {
       setIsLoadingPayments(false);
     }
@@ -751,101 +770,108 @@ export default function FinancingDetailPage() {
       {/* Payments Timeline */}
       <PaymentTimeline
         key={`timeline-${refreshKey}`}
-        payments={(payments || []).map((p): PaymentRecord => {
-          // REGLA: Si es hijo (tiene parentRecordId) y es "adelanto", mostrar como "abonado"
-          // porque ya está vinculado a una cuota
-          const correctedStatus = (p.parentRecordId && p.status === "adelanto") 
-            ? "abonado" 
-            : p.status;
-          
-          // Calcular faltante por pagar para adelantos
-          const remainingAmount = correctedStatus === "adelanto" && p.quotaAmountCovered && p.amount
-            ? p.amount - p.quotaAmountCovered
-            : 0;
-          
-          // Calcular a qué cuota se está adelantando
-          const advanceForQuota = correctedStatus === "adelanto" && p.quotaNumber && p.quotasCovered
-            ? p.quotaNumber + p.quotasCovered
-            : undefined;
-          
-          // Mapear hijos si existen
-          const children = p.childRecords?.map(child => ({
-            id: child.documentId,
-            invoiceNumber: child.receiptNumber || "",
-            amount: child.amount,
-            status: child.status as ExtendedPaymentStatus,
-            dueDate: child.dueDate || new Date().toISOString(),
-            paymentDate: child.paymentDate,
-            quotaNumber: child.quotaNumber,
-            currency: child.currency,
-            createdAt: child.createdAt,
-            parentId: p.documentId,
-            parentReceiptNumber: p.receiptNumber,
-          }));
-          
-          // Calcular balance/disponible según el tipo de record
-          let balanceDueParent: number;
-          let availableAmount: number | undefined;
-          
-          if (correctedStatus === 'adelanto') {
-            // Para adelantos: calcular saldo disponible (amount - hijos consumidos)
-            const totalConsumed = children?.reduce((sum, child) => sum + (child.amount > 0 ? child.amount : 0), 0) || 0;
-            availableAmount = Math.max(0, p.amount - totalConsumed);
-            balanceDueParent = 0; // Los adelantos no tienen "balance pendiente", tienen "disponible"
-          } else if (correctedStatus === 'cubierta' || correctedStatus === 'pagado' || p.parentRecordId) {
-            // Para cuotas cubiertas o pagadas: balance es 0
-            balanceDueParent = 0;
-          } else {
-            // Para cuotas normales con abonos: calcular balance pendiente
-            const totalAbonos = children?.reduce((sum, child) => sum + (child.amount > 0 ? child.amount : 0), 0) || 0;
-            // Fallback: si el backend envió remainingQuotaBalance, usarlo cuando no hay hijos visibles
-            if (totalAbonos === 0 && p.remainingQuotaBalance > 0 && p.remainingQuotaBalance < p.amount) {
-              balanceDueParent = p.remainingQuotaBalance;
+        payments={(() => {
+          const quotaRecords: PaymentRecord[] = (payments || []).map((p): PaymentRecord => {
+            // REGLA: Si es hijo (tiene parentRecordId) y es "adelanto", mostrar como "abonado"
+            // porque ya está vinculado a una cuota
+            const correctedStatus = (p.parentRecordId && p.status === "adelanto") 
+              ? "abonado" 
+              : p.status;
+            
+            // Calcular faltante por pagar para adelantos
+            const remainingAmount = correctedStatus === "adelanto" && p.quotaAmountCovered && p.amount
+              ? p.amount - p.quotaAmountCovered
+              : 0;
+            
+            // Calcular a qué cuota se está adelantando
+            const advanceForQuota = correctedStatus === "adelanto" && p.quotaNumber && p.quotasCovered
+              ? p.quotaNumber + p.quotasCovered
+              : undefined;
+            
+            // Mapear hijos si existen
+            const children = p.childRecords?.map(child => ({
+              id: child.documentId,
+              invoiceNumber: child.receiptNumber || "",
+              amount: child.amount,
+              status: child.status as ExtendedPaymentStatus,
+              dueDate: child.dueDate || new Date().toISOString(),
+              paymentDate: child.paymentDate,
+              quotaNumber: child.quotaNumber,
+              currency: child.currency,
+              createdAt: child.createdAt,
+              parentId: p.documentId,
+              parentReceiptNumber: p.receiptNumber,
+            }));
+            
+            // Calcular balance/disponible según el tipo de record
+            let balanceDueParent: number;
+            let availableAmount: number | undefined;
+            
+            if (correctedStatus === 'adelanto') {
+              // Para adelantos: calcular saldo disponible (amount - hijos consumidos)
+              const totalConsumed = children?.reduce((sum, child) => sum + (child.amount > 0 ? child.amount : 0), 0) || 0;
+              availableAmount = Math.max(0, p.amount - totalConsumed);
+              balanceDueParent = 0; // Los adelantos no tienen "balance pendiente", tienen "disponible"
+            } else if (correctedStatus === 'cubierta' || correctedStatus === 'pagado' || p.parentRecordId) {
+              // Para cuotas cubiertas o pagadas: balance es 0
+              balanceDueParent = 0;
             } else {
-              balanceDueParent = Math.max(0, p.amount - totalAbonos);
+              // Para cuotas normales con abonos: calcular balance pendiente
+              const totalAbonos = children?.reduce((sum, child) => sum + (child.amount > 0 ? child.amount : 0), 0) || 0;
+              // Fallback: si el backend envió remainingQuotaBalance, usarlo cuando no hay hijos visibles
+              if (totalAbonos === 0 && p.remainingQuotaBalance > 0 && p.remainingQuotaBalance < p.amount) {
+                balanceDueParent = p.remainingQuotaBalance;
+              } else {
+                balanceDueParent = Math.max(0, p.amount - totalAbonos);
+              }
             }
-          }
-          
-          // DEBUG
-          console.log(`[DEBUG page.tsx] ${p.receiptNumber}: status=${correctedStatus}, amount=${p.amount}, available=${availableAmount}, balanceDue=${balanceDueParent}, children=${children?.length || 0}`);
-          
-          return {
-            // Usar status corregido para la UI
-            id: p.documentId,
-            invoiceNumber: p.receiptNumber || "",
-            amount: p.amount,
-            status: correctedStatus as ExtendedPaymentStatus,
-            dueDate: p.dueDate || new Date().toISOString(),
-            paymentDate: p.paymentDate,
-            quotaNumber: p.quotaNumber,
-            lateFeeAmount: p.lateFeeAmount,
-            daysLate: p.daysLate,
-            currency: p.currency,
-            clientName: p.clientName,
-            createdAt: p.createdAt,
-            // Datos de adelanto
-            quotasCovered: p.quotasCovered,
-            quotaAmountCovered: p.quotaAmountCovered,
-            advanceCredit: p.advanceCredit,
-            remainingQuotaBalance: p.remainingQuotaBalance,
-            advanceForQuota,
-            // Monto total de la cuota (para calcular saldo en pendientes)
-            quotaTotalAmount: financing?.quotaAmount || p.amount,
-            // Balance pendiente después de abonos (para cálculo de total a pagar)
-            balanceDue: balanceDueParent,
-            // Saldo disponible para adelantos (calculado en page.tsx)
-            availableAmount,
-            // Info del vehículo para exportación
-            vehicleName: financing?.vehicleName,
-            vehiclePlate: financing?.vehiclePlaca,
-            // Info adicional del cliente para exportación
-            clientPhone: financing?.clientPhone,
-            // Relaciones padre/hijo
-            parentId: p.parentRecordId,
-            parentReceiptNumber: p.parentRecordReceiptNumber,
-            children,
-          };
-        })}
+            
+            // DEBUG
+            console.log(`[DEBUG page.tsx] ${p.receiptNumber}: status=${correctedStatus}, amount=${p.amount}, available=${availableAmount}, balanceDue=${balanceDueParent}, children=${children?.length || 0}`);
+            
+            return {
+              // Usar status corregido para la UI
+              id: p.documentId,
+              invoiceNumber: p.receiptNumber || "",
+              amount: p.amount,
+              status: correctedStatus as ExtendedPaymentStatus,
+              dueDate: p.dueDate || new Date().toISOString(),
+              paymentDate: p.paymentDate,
+              quotaNumber: p.quotaNumber,
+              lateFeeAmount: p.lateFeeAmount,
+              daysLate: p.daysLate,
+              currency: p.currency,
+              clientName: p.clientName,
+              createdAt: p.createdAt,
+              // Datos de adelanto
+              quotasCovered: p.quotasCovered,
+              quotaAmountCovered: p.quotaAmountCovered,
+              advanceCredit: p.advanceCredit,
+              remainingQuotaBalance: p.remainingQuotaBalance,
+              advanceForQuota,
+              // Monto total de la cuota (para calcular saldo en pendientes)
+              quotaTotalAmount: financing?.quotaAmount || p.amount,
+              // Balance pendiente después de abonos (para cálculo de total a pagar)
+              balanceDue: balanceDueParent,
+              // Saldo disponible para adelantos (calculado en page.tsx)
+              availableAmount,
+              // Info del vehículo para exportación
+              vehicleName: financing?.vehicleName,
+              vehiclePlate: financing?.vehiclePlaca,
+              // Info adicional del cliente para exportación
+              clientPhone: financing?.clientPhone,
+              // Relaciones padre/hijo
+              parentId: p.parentRecordId,
+              parentReceiptNumber: p.parentRecordReceiptNumber,
+              children,
+            };
+          });
+          return quotaRecords.sort((a, b) => {
+            const dateA = new Date(a.dueDate).getTime();
+            const dateB = new Date(b.dueDate).getTime();
+            return dateA - dateB;
+          });
+        })()}
         partialPaymentCredit={financing?.partialPaymentCredit || 0}
         quotaAmount={financing?.quotaAmount || 0}
         paymentFrequency={financing?.paymentFrequency || "semanal"}

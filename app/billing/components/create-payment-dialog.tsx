@@ -307,23 +307,17 @@ export function CreatePaymentDialog({
     setError(null);
 
     try {
-      const response = await fetch("/api/billing", {
+      const response = await fetch("/api/billing/unified", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           data: {
-            financing: formData.financingId,
+            financingDocumentId: formData.financingId,
             amount: formData.amount,
             paymentDate: formData.paymentDate,
             dueDate: selectedFinancing.nextDueDate,
             confirmationNumber: formData.confirmationNumber || undefined,
-            notes: formData.notes || undefined,
-            status: paymentCalculations.status,
-            quotaNumber: selectedFinancing.paidQuotas + 1,
-            quotasCovered: paymentCalculations.quotasCovered,
-            advanceCredit: paymentCalculations.advanceCredit,
-            daysLate: paymentCalculations.daysLate,
-            lateFeeAmount: paymentCalculations.lateFeeAmount,
+            comments: formData.notes || undefined,
           },
         }),
       });

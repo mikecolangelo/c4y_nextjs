@@ -10,6 +10,7 @@ import {
   Calendar,
   Banknote,
   FileText,
+  AlertTriangle,
   ChevronRight,
   ChevronLeft,
   ChevronDown,
@@ -112,6 +113,13 @@ export interface PaymentRecord {
   parentId?: string;
   parentReceiptNumber?: string;
   children?: PaymentRecord[];
+  // Penalty-specific fields
+  recordType?: "quota" | "penalty";
+  amountOriginal?: number;
+  amountPending?: number;
+  daysAccrued?: number;
+  dailyRatePercent?: number;
+  penaltyStatus?: "pending" | "partially_paid" | "paid" | "cancelled";
 }
 
 interface PaymentTimelineProps {
@@ -222,6 +230,15 @@ const multaConfig = {
   textColor: "text-orange-700 dark:text-orange-400",
   borderColor: "border-orange-200 dark:border-orange-800",
   dotColor: "bg-orange-500",
+};
+
+const penaltyConfig = {
+  label: "Penalidad",
+  icon: AlertTriangle,
+  bgColor: "bg-rose-50 dark:bg-rose-950/30",
+  textColor: "text-rose-700 dark:text-rose-400",
+  borderColor: "border-rose-200 dark:border-rose-800",
+  dotColor: "bg-rose-500",
 };
 
 // ============================================================================
@@ -1199,9 +1216,10 @@ export function PaymentTimeline({
   // Componente interno para renderizar el contenido de un pago padre
   const ParentContent = ({ payment }: { payment: PaymentRecord & { totalCobro?: number } }) => {
     const isMulta = payment.amount < 0;
-    const config = isMulta ? multaConfig : statusConfig[payment.status];
+    const isPenalty = payment.recordType === "penalty";
+    const config = isPenalty ? penaltyConfig : (isMulta ? multaConfig : statusConfig[payment.status]);
     const StatusIcon = config.icon;
-    const isDraggable = onAssociateToParent && canDragPayment(payment);
+    const isDraggable = onAssociateToParent && canDragPayment(payment) && !isPenalty;
     const isDropTarget = overId === payment.id && activeDragId !== payment.id;
 
     return (
@@ -1232,7 +1250,11 @@ export function PaymentTimeline({
                 <span className={typography.body.large} title={payment.invoiceNumber}>
                   {getShortIdentifier(payment)}
                 </span>
-                {payment.quotasCovered !== undefined && payment.quotasCovered > 1 && payment.quotaNumber ? (
+                {isPenalty ? (
+                  <Badge variant="outline" className="text-xs">
+                    Cuota #{payment.quotaNumber || 0}
+                  </Badge>
+                ) : payment.quotasCovered !== undefined && payment.quotasCovered > 1 && payment.quotaNumber ? (
                   <Badge variant="outline" className="text-xs">
                     Cuotas #{payment.quotaNumber}–#{payment.quotaNumber + payment.quotasCovered - 1}
                   </Badge>
@@ -1271,6 +1293,30 @@ export function PaymentTimeline({
               <div className="text-right">
                 {/* Calcular total a pagar (pendiente + penalidad) */}
                 {(() => {
+                  if (isPenalty) {
+                    const pending = payment.amountPending ?? payment.amount;
+                    const original = payment.amountOriginal ?? pending;
+                    const paid = Math.max(0, original - pending);
+                    return (
+                      <div>
+                        <p className={cn(typography.body.large, "flex items-center gap-1 font-bold text-rose-600")}>
+                          <AlertTriangle className="h-4 w-4" />
+                          {formatCurrency(pending, payment.currency)}
+                        </p>
+                        {original !== pending && (
+                          <p className="text-xs text-muted-foreground">
+                            Original {formatCurrency(original, payment.currency)}
+                            {paid > 0 && ` · Pagado ${formatCurrency(paid, payment.currency)}`}
+                          </p>
+                        )}
+                        {payment.daysAccrued !== undefined && (
+                          <p className="text-xs text-rose-600 font-medium">
+                            {payment.daysAccrued} día(s) de mora · {payment.dailyRatePercent || 10}% diario
+                          </p>
+                        )}
+                      </div>
+                    );
+                  }
                   const pendingBalance = payment.balanceDue !== undefined 
                     ? payment.balanceDue 
                     : payment.amount;
@@ -1412,7 +1458,7 @@ export function PaymentTimeline({
               </div>
               
               <div onPointerDown={(e) => e.stopPropagation()} className="flex items-center gap-1">
-                {onAssociateToParent && !payment.parentId && (
+                {!isPenalty && onAssociateToParent && !payment.parentId && (
                   <button
                     onClick={(e) => openAssociateModal(payment, e)}
                     className="p-1 hover:bg-blue-100 rounded-full text-blue-500 transition-colors cursor-pointer"
@@ -1421,7 +1467,7 @@ export function PaymentTimeline({
                     <Link2 className="h-4 w-4" />
                   </button>
                 )}
-                {onDisassociateFromParent && payment.parentId && (
+                {!isPenalty && onDisassociateFromParent && payment.parentId && (
                   <button
                     onClick={(e) => handleDisassociate(payment, e)}
                     className="p-1 hover:bg-orange-100 rounded-full text-orange-500 transition-colors cursor-pointer"
@@ -1433,7 +1479,7 @@ export function PaymentTimeline({
               </div>
               
               <div onPointerDown={(e) => e.stopPropagation()} className="flex items-center gap-1">
-                {onPayPending && payment.status === "pendiente" && (
+                {!isPenalty && onPayPending && payment.status === "pendiente" && (
                   <button
                     onClick={(e) => openPayPendingModal(payment, e)}
                     className="p-1.5 hover:bg-green-100 rounded-full text-green-600 transition-colors cursor-pointer"
@@ -1443,7 +1489,7 @@ export function PaymentTimeline({
                   </button>
                 )}
                 
-                {onDeletePayment && (
+                {!isPenalty && onDeletePayment && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
