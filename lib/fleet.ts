@@ -16,7 +16,9 @@ import type { StrapiResponse } from "@/validations/types";
 // pero necesitamos no especificar fields para obtenerlos
 const populateImageConfig = {
   populate: {
-    image: true, // Obtener todos los campos de la imagen incluyendo formats
+    image: {
+      fields: ["url", "alternativeText", "formats"],
+    },
   },
 };
 
@@ -339,7 +341,8 @@ export async function fetchFleetVehiclesFromStrapi(): Promise<FleetVehicleCard[]
     headers: {
       Authorization: `Bearer ${STRAPI_API_TOKEN}`,
     },
-    cache: "no-store",
+    cache: "force-cache",
+    next: { revalidate: 300, tags: ['fleet'] },
   });
 
   if (!response.ok) {
@@ -441,7 +444,8 @@ export async function fetchFleetVehicleByIdFromStrapi(
       headers: {
         Authorization: `Bearer ${STRAPI_API_TOKEN}`,
       },
-      cache: "no-store",
+      cache: "force-cache",
+      next: { revalidate: 300, tags: ['fleet'] },
     });
 
     if (response.status === 404) {
@@ -463,7 +467,8 @@ export async function fetchFleetVehicleByIdFromStrapi(
     headers: {
       Authorization: `Bearer ${STRAPI_API_TOKEN}`,
     },
-    cache: "no-store",
+    cache: "force-cache",
+    next: { revalidate: 300, tags: ['fleet'] },
   });
 
   if (response.status === 404) {
@@ -493,7 +498,8 @@ export async function fetchFleetVehicleRawFromStrapi(
       headers: {
         Authorization: `Bearer ${STRAPI_API_TOKEN}`,
       },
-      cache: "no-store",
+      cache: "force-cache",
+      next: { revalidate: 300, tags: ['fleet'] },
     });
 
     if (response.status === 404) {
@@ -514,7 +520,8 @@ export async function fetchFleetVehicleRawFromStrapi(
     headers: {
       Authorization: `Bearer ${STRAPI_API_TOKEN}`,
     },
-    cache: "no-store",
+    cache: "force-cache",
+    next: { revalidate: 300, tags: ['fleet'] },
   });
 
   if (response.status === 404) {

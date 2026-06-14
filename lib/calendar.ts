@@ -308,7 +308,8 @@ export async function fetchAppointmentsFromStrapi(): Promise<AppointmentCard[]> 
     headers: {
       Authorization: `Bearer ${STRAPI_API_TOKEN}`,
     },
-    cache: "no-store",
+    cache: "force-cache",
+    next: { revalidate: 300, tags: ['calendar'] },
   });
 
   if (!response.ok) {
@@ -381,7 +382,8 @@ export async function fetchAppointmentByIdFromStrapi(
     headers: {
       Authorization: `Bearer ${STRAPI_API_TOKEN}`,
     },
-    cache: "no-store",
+    cache: "force-cache",
+    next: { revalidate: 300, tags: ['calendar'] },
   });
 
   if (response.status === 404) {

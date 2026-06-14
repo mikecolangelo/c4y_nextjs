@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import {
   fetchInventoryItemsFromStrapi,
   createInventoryItemInStrapi,
@@ -92,6 +93,7 @@ export async function POST(request: Request) {
     }
 
     const item = await createInventoryItemInStrapi(data);
+    revalidateTag("inventory");
     return NextResponse.json({ data: item }, { status: 201 });
   } catch (error) {
     console.error("Error creating inventory item:", error);

@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   distDir: '.next-prod-deploy',
+  output: "standalone",
 
   // Deshabilitar todo lo que consume RAM innecesariamente
   eslint: { ignoreDuringBuilds: true },
@@ -41,20 +42,23 @@ const nextConfig = {
     ];
   },
 
-  webpack: (config, { isServer }) => {
-    // Limitar paralelismo de webpack a 1 para reducir picos de memoria
-    config.parallelism = 1;
+  webpack: (config, { isServer, dev }) => {
+    // Solo aplicar límites de memoria estrictos en producción/build, no en desarrollo local
+    if (!dev) {
+      // Limitar paralelismo de webpack a 1 para reducir picos de memoria
+      config.parallelism = 1;
 
-    // Deshabilitar caché persistente de webpack durante build (ahorra RAM)
-    config.cache = false;
+      // Deshabilitar caché persistente de webpack durante build (ahorra RAM)
+      config.cache = false;
 
-    // Reducir el número de workers de terser/minificación
-    if (config.optimization && config.optimization.minimizer) {
-      config.optimization.minimizer.forEach((plugin) => {
-        if (plugin.constructor.name === 'TerserPlugin') {
-          plugin.options.parallel = 1;
-        }
-      });
+      // Reducir el número de workers de terser/minificación
+      if (config.optimization && config.optimization.minimizer) {
+        config.optimization.minimizer.forEach((plugin) => {
+          if (plugin.constructor.name === 'TerserPlugin') {
+            plugin.options.parallel = 1;
+          }
+        });
+      }
     }
 
     return config;

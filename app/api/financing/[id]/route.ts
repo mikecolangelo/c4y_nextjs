@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import {
   fetchFinancingByIdFromStrapi,
   updateFinancingInStrapi,
@@ -72,6 +73,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     }
 
     const financing = await updateFinancingInStrapi(id, data);
+    revalidateTag("financing");
     return NextResponse.json({ data: financing });
   } catch (error) {
     console.error("Error updating financing:", error);
@@ -96,6 +98,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
   try {
     const { id } = await params;
     await deleteFinancingFromStrapi(id);
+    revalidateTag("financing");
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting financing:", error);

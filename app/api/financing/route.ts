@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import {
   fetchFinancingsFromStrapi,
   createFinancingInStrapi,
@@ -82,6 +83,7 @@ export async function POST(request: Request) {
     }
 
     const financing = await createFinancingInStrapi(data);
+    revalidateTag("financing");
     return NextResponse.json({ data: financing }, { status: 201 });
   } catch (error) {
     console.error("Error creating financing:", error);

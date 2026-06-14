@@ -368,7 +368,7 @@ const normalizeBillingRecord = (raw: BillingRecordRaw): BillingRecordCard => {
 // API FUNCTIONS
 // ============================================================================
 
-const populateConfig = {
+const populateConfigDetail = {
   populate: {
     financing: {
       fields: ["id", "documentId", "financingNumber", "quotaAmount", "totalQuotas", "paidQuotas", "currentBalance", "status"],
@@ -414,6 +414,25 @@ const populateConfig = {
   },
 };
 
+const populateConfigList = {
+  populate: {
+    financing: {
+      fields: ["id", "documentId", "financingNumber", "status"],
+      populate: {
+        client: {
+          fields: ["id", "documentId", "displayName"],
+        },
+        vehicle: {
+          fields: ["id", "documentId", "name", "placa"],
+        },
+      },
+    },
+    verifiedBy: {
+      fields: ["id", "documentId", "displayName"],
+    },
+  },
+};
+
 // Populate para cuando se consulta desde financing (sin incluir financing para evitar circular)
 const populateConfigFromFinancing = {
   populate: {
@@ -449,7 +468,7 @@ const populateConfigFromFinancing = {
 export async function fetchBillingRecordsFromStrapi(): Promise<BillingRecordCard[]> {
   const query = qs.stringify({
     status: "published",
-    ...populateConfig,
+    ...populateConfigList,
     sort: ["createdAt:desc"],
     pagination: { pageSize: 100 },
   }, { encodeValuesOnly: true });
@@ -707,7 +726,7 @@ export async function fetchBillingRecordByIdFromStrapi(documentId: string): Prom
     filters: {
       documentId: { $eq: documentId },
     },
-    populate: populateConfig.populate,
+    populate: populateConfigDetail.populate,
     pagination: { pageSize: 1 },
   }, { encodeValuesOnly: true });
 
@@ -882,7 +901,7 @@ export async function createBillingRecordInStrapi(
     }
   }
 
-  const query = qs.stringify(populateConfig, { encodeValuesOnly: true });
+  const query = qs.stringify(populateConfigDetail, { encodeValuesOnly: true });
 
   const response = await fetch(`${STRAPI_BASE_URL}/api/billing-records?${query}`, {
     method: "POST",
@@ -957,7 +976,7 @@ export async function updateBillingRecordInStrapi(
   documentId: string,
   payload: BillingRecordUpdatePayload
 ): Promise<BillingRecordCard> {
-  const query = qs.stringify(populateConfig, { encodeValuesOnly: true });
+  const query = qs.stringify(populateConfigDetail, { encodeValuesOnly: true });
 
   // Transformar payload al formato Strapi 5
   const transformedPayload: Record<string, unknown> = { ...payload };

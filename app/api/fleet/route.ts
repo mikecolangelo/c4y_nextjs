@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server";
 import { fetchFleetVehiclesFromStrapi, createFleetVehicleInStrapi, updateFleetVehicleInStrapi, type FleetVehicleCreatePayload } from "@/lib/fleet";
 import { requireAdmin } from "@/lib/admin-guard";
+import { revalidateTag } from "next/cache";
+import { checkRateLimit } from "@/lib/rate-limiter";
+import { headers } from "next/headers";
 
 export async function GET() {
   try {
+    const headersList = await headers();
+    const ip = headersList.get("x-forwarded-for") || "unknown";
+    if (!checkRateLimit(ip)) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
     try {
       await requireAdmin();
     } catch {
@@ -25,6 +33,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const headersList = await headers();
+    const ip = headersList.get("x-forwarded-for") || "unknown";
+    if (!checkRateLimit(ip)) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
     try {
       await requireAdmin();
     } catch {
@@ -120,6 +133,7 @@ export async function POST(request: Request) {
       }
     }
 
+    revalidateTag("fleet");
     return NextResponse.json({ data: vehicle }, { status: 201 });
   } catch (error) {
     console.error("Error creating fleet vehicle:", error);

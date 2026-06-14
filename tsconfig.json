@@ -47,6 +47,8 @@
     ".next-prod-deploy/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    ".next-prod-deploy",
+    "dist"
   ]
 }

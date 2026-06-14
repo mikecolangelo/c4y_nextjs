@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-guard";
+import { revalidateTag } from "next/cache";
 import {
   deleteFleetVehicleInStrapi,
   fetchFleetVehicleByIdFromStrapi,
@@ -72,6 +73,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const { id } = await context.params;
     const updated = await updateFleetVehicleInStrapi(id, body.data);
+    revalidateTag("fleet");
     return NextResponse.json({ data: updated });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Error desconocido";
@@ -95,6 +97,7 @@ export async function DELETE(_: Request, context: RouteContext) {
     }
     const { id } = await context.params;
     await deleteFleetVehicleInStrapi(id);
+    revalidateTag("fleet");
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting fleet vehicle:", error);

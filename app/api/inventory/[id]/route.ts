@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import {
   fetchInventoryItemByIdFromStrapi,
   updateInventoryItemInStrapi,
@@ -88,6 +89,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     const updated = await updateInventoryItemInStrapi(id, body.data);
+    revalidateTag("inventory");
     return NextResponse.json({ data: updated });
   } catch (error) {
     console.error("Error updating inventory item:", error);
@@ -107,6 +109,7 @@ export async function DELETE(_: Request, context: RouteContext) {
   try {
     const { id } = await context.params;
     await deleteInventoryItemInStrapi(id);
+    revalidateTag("inventory");
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting inventory item:", error);

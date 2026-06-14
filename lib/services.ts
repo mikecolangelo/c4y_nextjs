@@ -149,7 +149,8 @@ export async function fetchServicesFromStrapi(): Promise<ServiceCard[]> {
     headers: {
       Authorization: `Bearer ${jwt ?? ""}`,
     },
-    cache: "no-store",
+    cache: "force-cache",
+    next: { revalidate: 300, tags: ['services'] },
   });
 
   if (!response.ok) {
@@ -221,7 +222,8 @@ export async function fetchServiceByIdFromStrapi(
     headers: {
       Authorization: `Bearer ${jwt ?? ""}`,
     },
-    cache: "no-store",
+    cache: "force-cache",
+    next: { revalidate: 300, tags: ['services'] },
   });
 
   if (response.status === 404) {

@@ -103,7 +103,8 @@ export async function fetchInventoryItemsFromStrapi(): Promise<InventoryItemCard
     headers: {
       Authorization: `Bearer ${STRAPI_API_TOKEN}`,
     },
-    cache: "no-store",
+    cache: "force-cache",
+    next: { revalidate: 300, tags: ['inventory'] },
   });
 
   if (!response.ok) {
@@ -161,7 +162,8 @@ export async function fetchInventoryItemByIdFromStrapi(
     headers: {
       Authorization: `Bearer ${STRAPI_API_TOKEN}`,
     },
-    cache: "no-store",
+    cache: "force-cache",
+    next: { revalidate: 300, tags: ['inventory'] },
   });
 
   if (response.status === 404) {

@@ -14,7 +14,8 @@ export async function getStrapiData(path: string): Promise<StrapiResponse | null
     
     const response = await fetch(`${STRAPI_BASE_URL}/api/${path}`, {
       headers,
-      next: { revalidate: 0 }, // Sin cache para desarrollo (cambiar a 3600 en producción)
+      cache: "force-cache",
+      next: { revalidate: 3600, tags: ['cms'] },
     });
     if (!response.ok) {
       // No lanzar error, solo loguear y retornar null

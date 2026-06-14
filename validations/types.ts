@@ -377,19 +377,36 @@ export interface SinginData {
   }>;
   title?: string;
   description?: string;
-  header?: unknown;
+  header?: AuthHeader;
+}
+
+export interface AuthHeader {
+  title: string;
+  subtitle: string;
+}
+
+export interface AuthLink {
+  href: string;
+  label: string;
 }
 
 export interface SinginFormData {
   title?: string;
   description?: string;
-  [key: string]: unknown;
+  header: AuthHeader;
+  email_label: string;
+  email_placeholder: string;
+  password_label: string;
+  password_placeholder: string;
+  submit_button: string;
+  singup_previous_link_text: string;
+  singup_link?: AuthLink[];
 }
 
 export interface SinginDataProcessed {
   title?: string;
   description?: string;
-  header?: unknown;
+  header?: AuthHeader;
   singinForm?: SinginFormData;
 }
 
@@ -400,19 +417,30 @@ export interface SingupData {
   }>;
   Title?: string;
   Description?: string;
-  header?: unknown;
+  header?: AuthHeader;
 }
 
 export interface SingupFormData {
   title?: string;
   description?: string;
-  [key: string]: unknown;
+  header: AuthHeader;
+  fullname_label?: string;
+  fullname_placeholder?: string;
+  username_label: string;
+  username_placeholder: string;
+  email_label: string;
+  email_placeholder: string;
+  password_label: string;
+  password_placeholder: string;
+  submit_buton: string;
+  singin_previous_link_text: string;
+  singin_link?: AuthLink[];
 }
 
 export interface SingupDataProcessed {
   title?: string;
   description?: string;
-  header?: { title?: string; description?: string };
+  header?: AuthHeader;
   singupForm?: SingupFormData;
 }
 

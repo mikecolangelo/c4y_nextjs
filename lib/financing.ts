@@ -495,7 +495,8 @@ export async function fetchFinancingsFromStrapi(): Promise<FinancingCard[]> {
     headers: {
       Authorization: `Bearer ${STRAPI_API_TOKEN}`,
     },
-    cache: "no-store",
+    cache: "force-cache",
+    next: { revalidate: 120, tags: ['financing'] },
   });
 
   if (!response.ok) {
@@ -517,7 +518,8 @@ export async function fetchFinancingByIdFromStrapi(documentId: string): Promise<
     headers: {
       Authorization: `Bearer ${STRAPI_API_TOKEN}`,
     },
-    cache: "no-store",
+    cache: "force-cache",
+    next: { revalidate: 120, tags: ['financing'] },
   });
 
   if (!response.ok) {

@@ -52,7 +52,7 @@ export async function registerUserAction(prevState: FormState, formData: FormDat
   const validatedFields = SignUpFormSchema.safeParse(fields)
 
   if (!validatedFields.success) {
-    const flattenedErrors = z.flattenError(validatedFields.error)
+    const flattenedErrors = validatedFields.error.flatten()
 
     console.log("Validation errors:", flattenedErrors.fieldErrors)
 
@@ -106,7 +106,7 @@ export async function loginUserAction(prevState: FormState, formData: FormData):
   const validatedFields = SignInFormSchema.safeParse(fields)
 
   if (!validatedFields.success) {
-    const flattenedErrors = z.flattenError(validatedFields.error)
+    const flattenedErrors = validatedFields.error.flatten()
 
     return {
       success: false,

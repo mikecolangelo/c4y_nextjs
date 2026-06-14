@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { STRAPI_BASE_URL } from "./lib/config";
 
+const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN || "";
 const ALLOWED_ROLES = ["admin", "super-admin"];
 
 /**
@@ -124,6 +125,64 @@ function isPublicRoute(path: string): boolean {
 
 export default async function middleware(request: NextRequest) {
   const currentPath = request.nextUrl.pathname;
+
+  // Interceptar rutas API de fleet (lógica proveniente del antiguo middleware.js)
+  if (currentPath.match(/^\/api\/fleet\/[^\/]+\/(reminder|document)$/)) {
+    const match = currentPath.match(/^\/api\/fleet\/([^\/]+)\/(reminder|document)$/);
+    if (match) {
+      const vehicleDocumentId = match[1];
+      const endpoint = match[2];
+
+      console.log(`[Middleware] Interceptando ${currentPath} para vehículo ${vehicleDocumentId}`);
+
+      try {
+        const vehicleResponse = await fetch(
+          `${STRAPI_BASE_URL}/api/fleets/${vehicleDocumentId}?fields=id`,
+          {
+            headers: {
+              Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+            },
+          }
+        );
+
+        if (!vehicleResponse.ok) {
+          if (vehicleResponse.status === 404) {
+            return NextResponse.json(
+              { error: 'Vehículo no encontrado' },
+              { status: 404 }
+            );
+          }
+          throw new Error(`Strapi error: ${vehicleResponse.status}`);
+        }
+
+        const vehicleData = await vehicleResponse.json();
+        const vehicleId = vehicleData.data?.id;
+
+        if (!vehicleId) {
+          return NextResponse.json(
+            { error: 'No se pudo obtener el ID del vehículo' },
+            { status: 404 }
+          );
+        }
+
+        const requestHeaders = new Headers(request.headers);
+        requestHeaders.set('x-vehicle-id', String(vehicleId));
+        requestHeaders.set('x-vehicle-document-id', vehicleDocumentId);
+
+        return NextResponse.next({
+          request: {
+            headers: requestHeaders,
+          },
+        });
+      } catch (error) {
+        console.error('[Middleware] Error:', error);
+        return NextResponse.json(
+          { error: 'Error interno del servidor' },
+          { status: 500 }
+        );
+      }
+    }
+  }
 
   // Redirigir página principal a signin
   if (currentPath === '/') {
@@ -278,6 +337,8 @@ export const config = {
     '/dashboard/:path*',
     '/dashboard_user',
     '/dashboard_user/:path*',
+    '/api/fleet/:id/reminder',
+    '/api/fleet/:id/document',
   ],
 };
 
