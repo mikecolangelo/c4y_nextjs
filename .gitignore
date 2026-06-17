@@ -31,6 +31,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# Versionar config por entorno (sin secretos): viaja al VPS por git pull
+!.env.development
+!.env.production
 
 # vercel
 .vercel
