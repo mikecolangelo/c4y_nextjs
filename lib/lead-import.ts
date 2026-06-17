@@ -276,12 +276,6 @@ const ROLE_ALIASES: Record<string, string> = {
   "super-admin": "admin",
   "super admin": "admin",
   superadmin: "admin",
-  // seller
-  seller: "seller",
-  vendedor: "seller",
-  vendedora: "seller",
-  asesor: "seller",
-  asesora: "seller",
   // driver
   driver: "driver",
   conductor: "driver",
@@ -553,7 +547,7 @@ export function generateTemplateBuffer(): ArrayBuffer {
       "Llamar después de las 6pm",
       "20/04/2026",
       "",
-      "seller",
+      "driver",
     ],
   ];
 

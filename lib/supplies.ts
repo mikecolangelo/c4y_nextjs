@@ -264,9 +264,9 @@ const normalizeSupplyRequest = (entry: SupplyRequestRaw, currentUserRole?: strin
     }
   }
 
-  // Determinar si puede aprobar o entregar (solo admin y seller)
-  const canApprove = attributes.status === "pendiente" && ["admin", "seller"].includes(currentUserRole || "");
-  const canDeliver = attributes.status === "aprobado" && ["admin", "seller"].includes(currentUserRole || "");
+  // Determinar si puede aprobar o entregar (solo admin)
+  const canApprove = attributes.status === "pendiente" && ["admin"].includes(currentUserRole || "");
+  const canDeliver = attributes.status === "aprobado" && ["admin"].includes(currentUserRole || "");
 
   return {
     id: String(idSource),

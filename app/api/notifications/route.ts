@@ -103,8 +103,7 @@ export async function GET() {
 
     // SOLUCIÓN 1: Incluir notificaciones con targetAudience que coincida con el rol del usuario
     // Esto evita necesitar N notificaciones duplicadas en BD
-    const userRoleAudience = currentUser.role === 'admin' ? 'admins' 
-                           : currentUser.role === 'seller' ? 'sellers' 
+    const userRoleAudience = currentUser.role === 'admin' ? 'admins'
                            : 'drivers';
 
     const notificationQuery = qs.stringify({
@@ -407,8 +406,7 @@ export async function GET() {
       
       // Si no tiene recipient pero tiene targetAudience, verificar que coincida con el rol del usuario
       if (!hasRecipient && hasTargetAudience) {
-        const userRoleAudience = currentUser.role === 'admin' ? 'admins' 
-                               : currentUser.role === 'seller' ? 'sellers' 
+        const userRoleAudience = currentUser.role === 'admin' ? 'admins'
                                : 'drivers';
         if (notification.targetAudience !== userRoleAudience && notification.targetAudience !== 'all') {
           return false;
@@ -611,7 +609,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Todos los roles pueden crear notificaciones (admin, seller, driver)
+    // Todos los roles pueden crear notificaciones (admin, driver)
     // Pero solo los admins pueden fijar notificaciones
 
     const body = await request.json();
@@ -720,12 +718,11 @@ export async function POST(request: Request) {
       });
 
     } else {
-      // Para grupos (all_sellers, all_admins, all_drivers): usar targetAudience
+      // Para grupos (all_admins, all_drivers): usar targetAudience
       // Esto crea UNA sola notificación en BD, no N duplicadas
-      
-      const targetAudience = recipientType === "all_sellers" ? "sellers" 
-                            : recipientType === "all_admins" ? "admins" 
-                            : recipientType === "all_drivers" ? "drivers" 
+
+      const targetAudience = recipientType === "all_admins" ? "admins"
+                            : recipientType === "all_drivers" ? "drivers"
                             : "all";
 
       const notificationData = {

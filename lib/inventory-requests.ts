@@ -114,8 +114,8 @@ const normalizeInventoryRequest = (entry: InventoryRequestRaw, currentUserRole?:
     }
   }
 
-  const canApprove = attributes.status === "pendiente" && ["admin", "seller"].includes(currentUserRole || "");
-  const canDeliver = attributes.status === "aprobado" && ["admin", "seller"].includes(currentUserRole || "");
+  const canApprove = attributes.status === "pendiente" && ["admin"].includes(currentUserRole || "");
+  const canDeliver = attributes.status === "aprobado" && ["admin"].includes(currentUserRole || "");
 
   return {
     id: String(idSource),

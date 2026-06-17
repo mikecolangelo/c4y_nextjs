@@ -173,7 +173,7 @@ export default function StockPage() {
     fetchUserRole();
   }, []);
 
-  const canManageRequests = useMemo(() => ["admin", "seller"].includes(role || ""), [role]);
+  const canManageRequests = useMemo(() => ["admin"].includes(role || ""), [role]);
 
   const loadItems = useCallback(async () => {
     setIsLoadingItems(true);
@@ -619,7 +619,7 @@ export default function StockPage() {
                         <div className="shrink-0">{getStatusBadge(request.status)}</div>
                       </div>
 
-                      {/* Acciones para admin/seller */}
+                      {/* Acciones para admin */}
                       {canManageRequests && request.canApprove && (
                         <div className="flex gap-2 justify-end pt-2 border-t">
                           <Button

@@ -14,11 +14,11 @@ export async function POST(request: Request, context: RouteContext) {
     const { id } = await context.params;
     const body = (await request.json()) as { data?: SupplyRequestRejectPayload };
     
-    // Verificar que el usuario tenga permiso (admin o seller)
+    // Verificar que el usuario tenga permiso (solo admin)
     const userRole = request.headers.get("x-user-role");
-    if (!["admin", "seller"].includes(userRole || "")) {
+    if (!["admin"].includes(userRole || "")) {
       return NextResponse.json(
-        { error: "Solo administradores y vendedores pueden rechazar solicitudes." },
+        { error: "Solo administradores pueden rechazar solicitudes." },
         { status: 403 }
       );
     }

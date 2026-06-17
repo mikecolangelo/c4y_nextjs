@@ -795,8 +795,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     // Verificar que el usuario tiene acceso a esta notificación
-    const userRoleAudience = currentUser.role === 'admin' ? 'admins' 
-                           : currentUser.role === 'seller' ? 'sellers' 
+    const userRoleAudience = currentUser.role === 'admin' ? 'admins'
                            : 'drivers';
     
     // La notificación es accesible si:

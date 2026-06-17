@@ -96,7 +96,7 @@ export default function ServiceOrderDetailsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [currentUserRole, setCurrentUserRole] = useState<"admin" | "seller" | "driver" | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<"admin" | "driver" | null>(null);
   
   const [availableServices, setAvailableServices] = useState<ServiceItem[]>([]);
   const [availableDrivers, setAvailableDrivers] = useState<DriverOption[]>([]);

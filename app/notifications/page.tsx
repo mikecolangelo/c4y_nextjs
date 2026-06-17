@@ -38,7 +38,7 @@ interface UserProfile {
   documentId: string;
   displayName: string;
   email?: string;
-  role: "admin" | "seller" | "driver";
+  role: "admin" | "driver";
 }
 
 interface ManualNotification {
@@ -282,7 +282,7 @@ export default function NotificationsPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentUserRole, setCurrentUserRole] = useState<"admin" | "seller" | "driver" | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<"admin" | "driver" | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -315,7 +315,7 @@ export default function NotificationsPage() {
   const [formTitle, setFormTitle] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formType, setFormType] = useState<"lead" | "sale" | "reminder" | "payment" | "inventory">("lead");
-  const [formRecipientType, setFormRecipientType] = useState<"specific" | "all_sellers" | "all_admins" | "all_drivers">("specific");
+  const [formRecipientType, setFormRecipientType] = useState<"specific" | "all_admins" | "all_drivers">("specific");
   const [formRecipientId, setFormRecipientId] = useState("");
   const [formDurationDays, setFormDurationDays] = useState<number>(7);
   const [formIsPinned, setFormIsPinned] = useState<boolean>(false);
@@ -1734,7 +1734,6 @@ export default function NotificationsPage() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="specific">Usuario específico</SelectItem>
-                          <SelectItem value="all_sellers">Todos los vendedores</SelectItem>
                           <SelectItem value="all_admins">Todos los administradores</SelectItem>
                           <SelectItem value="all_drivers">Todos los conductores</SelectItem>
                         </SelectContent>
@@ -1752,7 +1751,7 @@ export default function NotificationsPage() {
                           <SelectContent>
                             {users.map((user) => (
                               <SelectItem key={user.documentId} value={user.documentId}>
-                                {user.displayName} ({user.role === "admin" ? "Admin" : user.role === "seller" ? "Vendedor" : "Conductor"})
+                                {user.displayName} ({user.role === "admin" ? "Admin" : "Conductor"})
                               </SelectItem>
                             ))}
                           </SelectContent>

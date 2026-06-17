@@ -288,7 +288,7 @@ export function QuickUserCreate({
                 <span className="font-medium">{formData.address}</span>
                 
                 <span className="text-muted-foreground">Rol:</span>
-                <span className="font-medium">{formData.role === "admin" ? "Administrador" : formData.role === "seller" ? "Vendedor" : formData.role === "driver" ? "Conductor" : "Lead"}</span>
+                <span className="font-medium">{formData.role === "admin" ? "Administrador" : formData.role === "driver" ? "Conductor" : "Lead"}</span>
               </div>
 
               {createdPassword && (
@@ -614,7 +614,6 @@ export function QuickUserCreate({
                     disabled={loading}
                   >
                     <option value="driver">Conductor</option>
-                    <option value="seller">Vendedor</option>
                     <option value="admin">Administrador</option>
                     <option value="lead">Lead</option>
                   </select>

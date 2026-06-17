@@ -153,7 +153,7 @@ interface UserProfile {
   displayName: string;
   email?: string;
   phone?: string;
-  role: "admin" | "seller" | "driver" | "lead";
+  role: "admin" | "driver" | "lead";
   department?: string;
   bio?: string;
   address?: string;
@@ -196,13 +196,8 @@ const roleConfig = {
     className: "bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100",
     icon: Shield 
   },
-  seller: { 
-    label: "Vendedor", 
-    className: "bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100",
-    icon: Briefcase 
-  },
-  driver: { 
-    label: "Conductor", 
+  driver: {
+    label: "Conductor",
     className: "bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100",
     icon: Car 
   },
@@ -234,7 +229,7 @@ export default function UserDetailsPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showConvertDialog, setShowConvertDialog] = useState(false);
-  const [convertTargetRole, setConvertTargetRole] = useState<"admin" | "seller" | "driver">("driver");
+  const [convertTargetRole, setConvertTargetRole] = useState<"admin" | "driver">("driver");
   const [convertPassword, setConvertPassword] = useState("");
   const [showConvertPassword, setShowConvertPassword] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
@@ -271,7 +266,7 @@ export default function UserDetailsPage() {
     displayName: "",
     email: "",
     phone: "",
-    role: "driver" as "admin" | "seller" | "driver" | "lead",
+    role: "driver" as "admin" | "driver" | "lead",
     department: "",
     bio: "",
     address: "",
@@ -899,14 +894,13 @@ export default function UserDetailsPage() {
                     <Label>Rol</Label>
                     <Select
                       value={formData.role}
-                      onValueChange={(value: "admin" | "seller" | "driver" | "lead") => setFormData({ ...formData, role: value })}
+                      onValueChange={(value: "admin" | "driver" | "lead") => setFormData({ ...formData, role: value })}
                     >
                       <SelectTrigger className="mt-1">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="admin">Administrador</SelectItem>
-                        <SelectItem value="seller">Vendedor</SelectItem>
                         <SelectItem value="driver">Conductor</SelectItem>
                         <SelectItem value="lead">Lead</SelectItem>
                       </SelectContent>
@@ -955,17 +949,6 @@ export default function UserDetailsPage() {
                         onChange={(e) => setFormData({ ...formData, driverLicense: e.target.value })}
                         className="mt-1"
                         placeholder="B, C, D"
-                      />
-                    </div>
-                  )}
-                  {user.role === "seller" && (
-                    <div className="w-full">
-                      <Label>Especialidades</Label>
-                      <Input
-                        value={formData.specialties}
-                        onChange={(e) => setFormData({ ...formData, specialties: e.target.value })}
-                        className="mt-1"
-                        placeholder="Especialidades o áreas de experiencia"
                       />
                     </div>
                   )}
@@ -1644,7 +1627,7 @@ export default function UserDetailsPage() {
             )}
 
             {/* Información Profesional Adicional */}
-            {((user.role === "driver" && user.driverLicense) || (user.role === "seller" && user.specialties)) && (
+            {(user.role === "driver" && user.driverLicense) && (
               <Card className="shadow-sm ring-1 ring-inset ring-border/50">
                 <CardHeader className="px-6 pt-6 pb-4">
                   <CardTitle className={`${typography.h4} flex items-center gap-2`}>
@@ -1660,15 +1643,6 @@ export default function UserDetailsPage() {
                         <div>
                           <p className={`${typography.body.small} text-muted-foreground`}>Licencia de Conducir</p>
                           <p className={typography.body.base}>{user.driverLicense}</p>
-                        </div>
-                      </div>
-                    )}
-                    {user.role === "seller" && user.specialties && (
-                      <div className="flex items-start gap-3">
-                        <Briefcase className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-                        <div className="flex-1">
-                          <p className={`${typography.body.small} text-muted-foreground`}>Especialidades</p>
-                          <p className={typography.body.base}>{user.specialties}</p>
                         </div>
                       </div>
                     )}
@@ -1756,14 +1730,13 @@ export default function UserDetailsPage() {
               <Label>Rol destino</Label>
               <Select
                 value={convertTargetRole}
-                onValueChange={(value: "admin" | "seller" | "driver") => setConvertTargetRole(value)}
+                onValueChange={(value: "admin" | "driver") => setConvertTargetRole(value)}
               >
                 <SelectTrigger className="mt-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Administrador</SelectItem>
-                  <SelectItem value="seller">Vendedor</SelectItem>
                   <SelectItem value="driver">Conductor</SelectItem>
                 </SelectContent>
               </Select>
