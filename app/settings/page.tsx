@@ -12,8 +12,9 @@ import { Skeleton } from "@/components_shadcn/ui/skeleton";
 import { Badge } from "@/components_shadcn/ui/badge";
 import { spacing, typography } from "@/lib/design-system";
 import { toast } from "@/lib/toast";
-import { Building2, MessageSquare, Calendar, CreditCard, Save, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Building2, MessageSquare, Calendar, CreditCard, Save, Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
 import { BillingSettingsSection } from "./components/billing-settings-section";
+import { PermissionsSettingsSection } from "./components/permissions-settings-section";
 
 interface Configuration {
   id: number;
@@ -204,6 +205,10 @@ export default function SettingsPage() {
             <CreditCard className="h-4 w-4" />
             <span className="hidden sm:inline">Facturación</span>
           </TabsTrigger>
+          <TabsTrigger value="permissions" className="gap-2 data-[state=active]:bg-primary/10">
+            <ShieldCheck className="h-4 w-4" />
+            <span className="hidden sm:inline">Permisos</span>
+          </TabsTrigger>
         </TabsList>
 
         {/* Tab: Información de Empresa */}
@@ -375,6 +380,11 @@ export default function SettingsPage() {
         {/* Tab: Facturación */}
         <TabsContent value="billing">
           <BillingSettingsSection />
+        </TabsContent>
+
+        {/* Tab: Permisos */}
+        <TabsContent value="permissions">
+          <PermissionsSettingsSection />
         </TabsContent>
       </Tabs>
     </AdminLayout>
