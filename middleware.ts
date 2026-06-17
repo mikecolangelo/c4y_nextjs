@@ -268,8 +268,16 @@ export default async function middleware(request: NextRequest) {
     const moduleKey = moduleForPath(currentPath);
     if (moduleKey) {
       const myPermissions = await fetchMyPermissions(jwt, STRAPI_BASE_URL);
-      const role = myPermissions?.role ?? 'lead';
-      const allowed = !!myPermissions?.permissions?.[moduleKey]?.canAccess;
+
+      // Fail-open: si no se pudieron obtener los permisos (fallo transitorio del
+      // backend) pero el JWT es válido, dejamos pasar. El sidebar y el backend
+      // siguen aplicando el control. Evita expulsar al usuario por un timeout.
+      if (myPermissions === null) {
+        return NextResponse.next();
+      }
+
+      const role = myPermissions.role ?? 'lead';
+      const allowed = !!myPermissions.permissions?.[moduleKey]?.canAccess;
 
       if (!allowed) {
         const landing = landingForRole(role);
