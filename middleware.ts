@@ -1,44 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { STRAPI_BASE_URL } from "./lib/config";
+import { fetchMyPermissions, moduleForPath, landingForRole, isUnderConstruction } from "./lib/permissions";
 
 const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN || "";
-const ALLOWED_ROLES = ["admin", "super-admin"];
-
-/**
- * Obtiene el rol del usuario desde Strapi usando el JWT.
- * Retorna null si no se puede determinar.
- */
-async function getUserRoleFromJwt(jwt: string): Promise<string | null> {
-  try {
-    // 1. Obtener usuario actual
-    const userRes = await fetch(`${STRAPI_BASE_URL}/api/users/me`, {
-      headers: {
-        Authorization: `Bearer ${jwt}`,
-        "Content-Type": "application/json",
-      },
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!userRes.ok) return null;
-    const userData = await userRes.json();
-    const email = userData?.email;
-    if (!email) return null;
-
-    // 2. Buscar user-profile por email usando JWT del usuario
-    const profileUrl = `${STRAPI_BASE_URL}/api/user-profiles?filters[email][$eq]=${encodeURIComponent(email)}&fields[0]=role`;
-    const profileRes = await fetch(profileUrl, {
-      headers: {
-        Authorization: `Bearer ${jwt}`,
-        "Content-Type": "application/json",
-      },
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!profileRes.ok) return null;
-    const profileData = await profileRes.json();
-    return profileData.data?.[0]?.role || null;
-  } catch {
-    return null;
-  }
-}
 
 // Rutas base que no siguen el patrón de módulos
 const baseRoutes = [
@@ -300,18 +264,33 @@ export default async function middleware(request: NextRequest) {
     
     // if (!userResponese?.data?.isActive) return NextResponse.redirect(new URL('/signin', request.url));
 
-    // ─── Autorización por rol para el módulo Flota ───
-    const isFleetRoute = currentPath === '/fleet' || currentPath.startsWith('/fleet/');
-    if (isFleetRoute) {
-      const userRole = await getUserRoleFromJwt(jwt);
-      if (!userRole || !ALLOWED_ROLES.includes(userRole)) {
-        const redirect = NextResponse.redirect(new URL('/dashboard-user', request.url));
-        redirect.cookies.set('access_denied', 'fleet_admin_required', {
+    // ─── Autorización por permisos (matriz rol×módulo) ───
+    const moduleKey = moduleForPath(currentPath);
+    if (moduleKey) {
+      const myPermissions = await fetchMyPermissions(jwt, STRAPI_BASE_URL);
+      const role = myPermissions?.role ?? 'lead';
+      const allowed = !!myPermissions?.permissions?.[moduleKey]?.canAccess;
+
+      if (!allowed) {
+        const landing = landingForRole(role);
+        // Evitar bucle de redirección si el destino tampoco está permitido.
+        if (currentPath === landing) {
+          return NextResponse.next();
+        }
+        const redirect = NextResponse.redirect(new URL(landing, request.url));
+        redirect.cookies.set('access_denied', moduleKey, {
           maxAge: 10,
           path: '/',
           httpOnly: false,
         });
         return redirect;
+      }
+
+      // Módulos rotos: mostrar pantalla "en construcción" en vez de la vista que falla.
+      if (isUnderConstruction(moduleKey)) {
+        return NextResponse.redirect(
+          new URL(`/under-construction?module=${moduleKey}`, request.url)
+        );
       }
     }
 

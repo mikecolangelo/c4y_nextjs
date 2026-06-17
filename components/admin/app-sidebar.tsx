@@ -16,79 +16,85 @@ import {
   SidebarRail,
 } from "@/components_shadcn/ui/sidebar";
 import { Users, Settings, Package, Car, CreditCard, Cog, BarChart3 } from "lucide-react";
+import type { RolePermissions } from "@/lib/permissions";
 
 interface NavItem {
   href: string;
   label: string;
   icon: ComponentType<{ className?: string }>;
-  adminOnly?: boolean;
+  /** Clave de módulo en la matriz de permisos. */
+  module: string;
 }
 
 const navItems: NavItem[] = [
   {
+    href: "/dashboard",
+    label: "Panel",
+    icon: BarChart3,
+    module: "dashboard",
+  },
+  {
     href: "/users",
     label: "Contactos",
     icon: Users,
+    module: "users",
   },
   {
     href: "/adm-services",
     label: "Servicios",
     icon: Settings,
-  },
-  {
-    href: "/stock/dashboard",
-    label: "Dashboard Inventario",
-    icon: BarChart3,
+    module: "adm-services",
   },
   {
     href: "/stock",
     label: "Inventario",
     icon: Package,
+    module: "stock",
   },
   {
     href: "/fleet",
     label: "Flota",
     icon: Car,
-    adminOnly: true,
+    module: "fleet",
   },
   {
     href: "/billing",
     label: "Facturación",
     icon: CreditCard,
+    module: "billing",
   },
   {
     href: "/settings",
     label: "Configuración",
     icon: Cog,
-    adminOnly: true,
+    module: "settings",
   },
 ];
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [permissions, setPermissions] = useState<RolePermissions | null>(null);
 
   useEffect(() => {
-    const fetchUserRole = async () => {
+    const fetchPermissions = async () => {
       try {
-        const response = await fetch("/api/user-profile/me", { cache: "no-store" });
+        const response = await fetch("/api/permissions/me", { cache: "no-store" });
         if (response.ok) {
           const data = await response.json();
-          setUserRole(data.data?.role || null);
+          setPermissions(data.data?.permissions || {});
         }
       } catch (error) {
-        console.error("Error fetching user role:", error);
+        console.error("Error fetching permissions:", error);
+        setPermissions({});
       }
     };
-    fetchUserRole();
+    fetchPermissions();
   }, []);
 
-  const filteredNavItems = navItems.filter((item) => {
-    if (item.adminOnly && userRole !== "admin") {
-      return false;
-    }
-    return true;
-  });
+  // Mientras carga, no mostramos nada para evitar parpadeo de módulos no permitidos.
+  const filteredNavItems = permissions
+    ? navItems.filter((item) => permissions[item.module]?.canAccess)
+    : [];
 
   return (
     <Sidebar collapsible="icon">
