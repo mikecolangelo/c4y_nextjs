@@ -69,7 +69,15 @@ function checkIsProtectedRoute(path: string): boolean {
   if (protectedRoutes.includes(path)) {
     return true;
   }
-  
+
+  // Cualquier ruta mapeada a un módulo del sistema de permisos es protegida.
+  // Esto garantiza que el enforcement por matriz cubra TODOS los módulos
+  // (profile, settings, service-orders, dashboard-user, etc.), no solo la
+  // lista legacy de abajo.
+  if (moduleForPath(path)) {
+    return true;
+  }
+
   // Verifica patrones dinámicos (rutas con :id)
   return protectedRoutes.some((route) => {
     // Convierte el patrón de ruta a expresión regular
