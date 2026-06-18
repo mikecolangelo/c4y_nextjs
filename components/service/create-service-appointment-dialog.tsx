@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components_shadcn/ui/dialog";
 import { Button } from "@/components_shadcn/ui/button";
@@ -21,7 +22,9 @@ import {
 } from "@/components_shadcn/ui/select";
 import { Loader2, Calendar, Clock, Car, Truck } from "lucide-react";
 import { toast } from "@/lib/toast";
-import type { ServiceCard } from "@/validations/types";
+import { ServiceSelector, type ServiceOption } from "./service-selector";
+import { InventoryItemSelector, type UsedItem } from "./inventory-item-selector";
+import { CostSummary } from "./cost-summary";
 
 interface FleetVehicleOption {
   id: string;
@@ -51,9 +54,13 @@ export function CreateServiceAppointmentDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingServices, setIsLoadingServices] = useState(false);
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
-  const [services, setServices] = useState<ServiceCard[]>([]);
+  const [isLoadingInventory, setIsLoadingInventory] = useState(false);
+  const [services, setServices] = useState<ServiceOption[]>([]);
   const [vehicles, setVehicles] = useState<FleetVehicleOption[]>([]);
-  
+  const [inventoryItems, setInventoryItems] = useState<any[]>([]);
+  const [selectedServices, setSelectedServices] = useState<ServiceOption[]>([]);
+  const [usedItems, setUsedItems] = useState<UsedItem[]>([]);
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -63,7 +70,27 @@ export function CreateServiceAppointmentDialog({
     serviceId: "none",
     fleetVehicleId: "none",
     location: "",
+    laborCost: "",
   });
+
+  // Cargar items de inventario
+  const loadInventory = useCallback(async () => {
+    setIsLoadingInventory(true);
+    try {
+      const response = await fetch("/api/inventory-items", { cache: "no-store" });
+      if (!response.ok) {
+        throw new Error(`Error ${response.status} cargando inventario`);
+      }
+      const result = await response.json();
+      const items = Array.isArray(result.data) ? result.data : Array.isArray(result) ? result : [];
+      setInventoryItems(items);
+    } catch (error) {
+      console.error("Error loading inventory:", error);
+      toast.error("No se pudieron cargar los repuestos");
+    } finally {
+      setIsLoadingInventory(false);
+    }
+  }, []);
 
   // Cargar servicios disponibles
   const loadServices = useCallback(async () => {
@@ -88,7 +115,7 @@ export function CreateServiceAppointmentDialog({
       if (!response.ok) throw new Error("Error cargando vehículos");
       const { data } = await response.json();
       if (Array.isArray(data)) {
-        const vehicleOptions = data.map((v) => ({
+        const vehicleOptions = data.map((v: any) => ({
           id: String(v.id),
           documentId: v.documentId || String(v.id),
           name: v.name,
@@ -112,22 +139,26 @@ export function CreateServiceAppointmentDialog({
       const loadData = async () => {
         await loadServices();
         await loadVehicles();
+        await loadInventory();
       };
       loadData();
-      
+
       setFormData((prev) => ({
         ...prev,
         date: selectedDate,
-        // Pre-seleccionar servicio si viene de catálogo
         serviceId: preSelectedServiceId || "none",
       }));
+      setSelectedServices([]);
+      setUsedItems([]);
     }
-  }, [isOpen, selectedDate, loadServices, loadVehicles, preSelectedServiceId]);
-  
+  }, [isOpen, selectedDate, loadServices, loadVehicles, loadInventory, preSelectedServiceId]);
+
   // Actualizar título cuando se selecciona un servicio
   useEffect(() => {
     if (preSelectedServiceId && services.length > 0) {
-      const service = services.find((s) => s.documentId === preSelectedServiceId || s.id === preSelectedServiceId);
+      const service = services.find(
+        (s) => s.documentId === preSelectedServiceId || s.id === preSelectedServiceId
+      );
       if (service) {
         setFormData((prev) => ({
           ...prev,
@@ -137,6 +168,56 @@ export function CreateServiceAppointmentDialog({
       }
     }
   }, [preSelectedServiceId, services]);
+
+  // Handlers de servicios
+  const handleAddService = (service: ServiceOption) => {
+    if (!selectedServices.find((s) => s.documentId === service.documentId || s.id === service.id)) {
+      setSelectedServices([...selectedServices, service]);
+    }
+  };
+
+  const handleRemoveService = (serviceId: string | number) => {
+    setSelectedServices(selectedServices.filter((s) => s.documentId !== serviceId && s.id !== serviceId));
+  };
+
+  // Handlers de inventario
+  const handleAddInventoryItem = (item: any) => {
+    if (!usedItems.find((u) => u.inventoryItem === item.id)) {
+      setUsedItems([
+        ...usedItems,
+        {
+          inventoryItem: item.id,
+          code: item.code,
+          description: item.description,
+          quantity: 1,
+          unitPriceAtMoment: item.salePrice || item.unitCost || 0,
+        },
+      ]);
+    }
+  };
+
+  const handleRemoveInventoryItem = (itemId: string | number) => {
+    setUsedItems(usedItems.filter((u) => u.inventoryItem !== itemId));
+  };
+
+  const handleUpdateItemQuantity = (itemId: string | number, quantity: string) => {
+    setUsedItems(
+      usedItems.map((u) =>
+        u.inventoryItem === itemId ? { ...u, quantity: parseFloat(quantity) || 0 } : u
+      )
+    );
+  };
+
+  const handleUpdateItemPrice = (itemId: string | number, price: string) => {
+    setUsedItems(
+      usedItems.map((u) =>
+        u.inventoryItem === itemId ? { ...u, unitPriceAtMoment: parseFloat(price) || 0 } : u
+      )
+    );
+  };
+
+  const partsCost = usedItems.reduce((sum, item) => sum + (item.quantity * item.unitPriceAtMoment), 0);
+  const laborCost = parseFloat(formData.laborCost) || 0;
 
   const handleSubmit = async () => {
     if (!formData.title.trim()) {
@@ -151,14 +232,18 @@ export function CreateServiceAppointmentDialog({
       toast.error("La hora es requerida");
       return;
     }
+    if (formData.fleetVehicleId === "none") {
+      toast.error("Debes seleccionar un vehículo de flota para una cita de mantenimiento");
+      return;
+    }
 
     setIsLoading(true);
     try {
       const [year, month, day] = formData.date.split("-").map(Number);
       const [hours, minutes] = formData.time.split(":").map(Number);
-      
+
       const scheduledAt = new Date(year, month - 1, day, hours, minutes);
-      
+
       const payload = {
         title: formData.title,
         description: formData.description || undefined,
@@ -167,14 +252,31 @@ export function CreateServiceAppointmentDialog({
         durationMinutes: formData.durationMinutes ? parseInt(formData.durationMinutes, 10) : undefined,
         location: formData.location || undefined,
         service: formData.serviceId && formData.serviceId !== "none" ? formData.serviceId : undefined,
-        fleetVehicle: formData.fleetVehicleId && formData.fleetVehicleId !== "none" ? formData.fleetVehicleId : undefined,
+        vehicle: formData.fleetVehicleId !== "none" ? formData.fleetVehicleId : undefined,
         status: "pendiente",
+      };
+
+      // Datos para la orden de servicio vinculada
+      const serviceOrderData = {
+        laborCost: laborCost,
+        services:
+          selectedServices.length > 0
+            ? selectedServices.map((s) => s.documentId || s.id)
+            : undefined,
+        usedItems:
+          usedItems.length > 0
+            ? usedItems.map((item) => ({
+                inventoryItem: item.inventoryItem,
+                quantity: item.quantity,
+                unitPriceAtMoment: item.unitPriceAtMoment,
+              }))
+            : undefined,
       };
 
       const response = await fetch("/api/calendar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data: payload }),
+        body: JSON.stringify({ data: payload, serviceOrderData }),
       });
 
       if (!response.ok) {
@@ -182,8 +284,8 @@ export function CreateServiceAppointmentDialog({
         throw new Error(errorData.error || "Error al crear la cita");
       }
 
-      toast.success("Cita creada exitosamente");
-      
+      toast.success("Cita y orden de servicio creadas exitosamente");
+
       // Reset form
       setFormData({
         title: "",
@@ -194,8 +296,11 @@ export function CreateServiceAppointmentDialog({
         serviceId: "none",
         fleetVehicleId: "none",
         location: "",
+        laborCost: "",
       });
-      
+      setSelectedServices([]);
+      setUsedItems([]);
+
       onOpenChange(false);
       onSuccess?.();
     } catch (error) {
@@ -206,7 +311,7 @@ export function CreateServiceAppointmentDialog({
     }
   };
 
-  const selectedService = services.find((s) => s.documentId === formData.serviceId || s.id === formData.serviceId);
+  const selectedVehicle = vehicles.find((v) => v.documentId === formData.fleetVehicleId);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -216,6 +321,9 @@ export function CreateServiceAppointmentDialog({
             <Calendar className="h-5 w-5" />
             Nueva Cita de Servicio
           </DialogTitle>
+          <DialogDescription>
+            Programa una nueva cita de mantenimiento. Se creará automáticamente una orden de servicio vinculada.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -239,7 +347,9 @@ export function CreateServiceAppointmentDialog({
               value={formData.serviceId}
               onValueChange={(value) => {
                 setFormData({ ...formData, serviceId: value });
-                const service = services.find((s) => s.documentId === value || s.id === value);
+                const service = services.find(
+                  (s) => s.documentId === value || s.id === value
+                );
                 if (service && !formData.title) {
                   setFormData((prev) => ({ ...prev, title: service.name }));
                 }
@@ -252,8 +362,8 @@ export function CreateServiceAppointmentDialog({
               <SelectContent>
                 <SelectItem value="none">Sin servicio específico</SelectItem>
                 {services.map((service) => (
-                  <SelectItem key={service.documentId || service.id} value={service.documentId || service.id}>
-                    {service.name} {service.price > 0 && `- $${service.price}`}
+                  <SelectItem key={service.documentId || service.id} value={service.documentId || String(service.id)}>
+                    {service.name} {service.price && service.price > 0 && `- $${service.price}`}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -308,7 +418,7 @@ export function CreateServiceAppointmentDialog({
           <div className="space-y-2">
             <Label htmlFor="fleetVehicle" className="flex items-center gap-2">
               <Truck className="h-4 w-4" />
-              Vehículo de Flota
+              Vehículo de Flota <span className="text-red-500">*</span>
             </Label>
             <Select
               value={formData.fleetVehicleId}
@@ -316,10 +426,10 @@ export function CreateServiceAppointmentDialog({
               disabled={isLoadingVehicles}
             >
               <SelectTrigger id="fleetVehicle">
-                <SelectValue placeholder={isLoadingVehicles ? "Cargando vehículos..." : "Seleccionar vehículo de flota"} />
+                <SelectValue placeholder={isLoadingVehicles ? "Cargando vehículos..." : "Seleccionar vehículo"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Sin vehículo de flota (cliente particular)</SelectItem>
+                <SelectItem value="none">Seleccionar vehículo...</SelectItem>
                 {vehicles.map((vehicle) => (
                   <SelectItem key={vehicle.documentId} value={vehicle.documentId}>
                     {vehicle.brand} {vehicle.model} {vehicle.placa && `(${vehicle.placa})`}
@@ -327,6 +437,11 @@ export function CreateServiceAppointmentDialog({
                 ))}
               </SelectContent>
             </Select>
+            {selectedVehicle && (
+              <p className="text-xs text-muted-foreground">
+                VIN: {selectedVehicle.vin}
+              </p>
+            )}
           </div>
 
           {/* Ubicación */}
@@ -351,6 +466,57 @@ export function CreateServiceAppointmentDialog({
               rows={3}
             />
           </div>
+
+          {/* ── Campos de Orden de Servicio (nuevos) ── */}
+          <div className="border-t pt-4 mt-2">
+            <h4 className="text-sm font-semibold flex items-center gap-2 mb-3">
+              <Car className="h-4 w-4" />
+              Datos de la Orden de Servicio
+            </h4>
+
+            {/* Servicios a realizar */}
+            <ServiceSelector
+              services={services}
+              selectedServices={selectedServices}
+              onAdd={handleAddService}
+              onRemove={handleRemoveService}
+              isLoading={isLoadingServices}
+            />
+
+            {/* Mano de Obra */}
+            <div className="space-y-2 mt-4">
+              <Label htmlFor="laborCost" className="flex items-center gap-2">
+                Mano de Obra ($)
+              </Label>
+              <Input
+                id="laborCost"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                value={formData.laborCost}
+                onChange={(e) => setFormData({ ...formData, laborCost: e.target.value })}
+              />
+            </div>
+
+            {/* Repuestos / Materiales */}
+            <div className="mt-4">
+              <InventoryItemSelector
+                inventoryItems={inventoryItems}
+                usedItems={usedItems}
+                onAdd={handleAddInventoryItem}
+                onRemove={handleRemoveInventoryItem}
+                onUpdateQuantity={handleUpdateItemQuantity}
+                onUpdatePrice={handleUpdateItemPrice}
+                isLoading={isLoadingInventory}
+              />
+            </div>
+
+            {/* Resumen de Costos */}
+            <div className="mt-4">
+              <CostSummary laborCost={laborCost} partsCost={partsCost} />
+            </div>
+          </div>
         </div>
 
         <DialogFooter>
@@ -364,7 +530,7 @@ export function CreateServiceAppointmentDialog({
                 Creando...
               </>
             ) : (
-              "Crear Cita"
+              "Crear Orden"
             )}
           </Button>
         </DialogFooter>

@@ -53,8 +53,8 @@ import { AdminLayout } from "@/components/admin/admin-layout";
 import { toast } from "@/lib/toast";
 import { formatCurrency } from "@/lib/format";
 import type { ServiceCard, ServiceCoverage, InventoryItemRaw } from "@/validations/types";
-import { ServiceDetailDialog } from "@/components/service-v2/service-detail-dialog";
-import { CreateServiceOrderDialog } from "@/components/service-v2/create-service-order-dialog";
+import { ServiceDetailDialog } from "@/components/service/service-detail-dialog";
+import { CreateServiceOrderDialog } from "@/components/service/create-service-order-dialog";
 
 interface TemplateItemState {
   id: string;

@@ -56,6 +56,7 @@ export function AdminHeader({
   const [isLoadingReminders, setIsLoadingReminders] = useState(false);
   const [showCompletedReminders, setShowCompletedReminders] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [canAccessProfile, setCanAccessProfile] = useState(true);
   // Ref para evitar recargar cuando el toggle fue disparado localmente
   const skipNextReloadRef = useRef(false);
 
@@ -73,6 +74,23 @@ export function AdminHeader({
       }
     };
     fetchRole();
+  }, []);
+
+  // Obtener permisos del usuario (para ocultar accesos no permitidos como Perfil)
+  useEffect(() => {
+    const fetchPermissions = async () => {
+      try {
+        const response = await fetch("/api/permissions/me", { cache: "no-store" });
+        if (response.ok) {
+          const data = await response.json();
+          const perms = data.data?.permissions;
+          if (perms) setCanAccessProfile(!!perms.profile?.canAccess);
+        }
+      } catch (error) {
+        console.error("Error fetching permissions:", error);
+      }
+    };
+    fetchPermissions();
   }, []);
 
   // Cargar recordatorios y notificaciones manuales
@@ -581,18 +599,20 @@ export function AdminHeader({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="flex h-10 w-10 items-center justify-center rounded-full"
-        aria-label="Ir al perfil"
-        asChild
-      >
-        <Link href="/profile">
-          <UserIcon className="h-5 w-5" />
-          <span className="sr-only">Ir al perfil</span>
-        </Link>
-      </Button>
+      {canAccessProfile && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="flex h-10 w-10 items-center justify-center rounded-full"
+          aria-label="Ir al perfil"
+          asChild
+        >
+          <Link href="/profile">
+            <UserIcon className="h-5 w-5" />
+            <span className="sr-only">Ir al perfil</span>
+          </Link>
+        </Button>
+      )}
       <LogoutButton />
     </>
   );

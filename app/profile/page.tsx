@@ -43,7 +43,7 @@ interface UserProfile {
   displayName: string;
   email?: string;
   phone?: string;
-  role: "admin" | "seller" | "driver";
+  role: "admin" | "driver";
   department?: string;
   bio?: string;
   address?: string;
@@ -72,13 +72,8 @@ const roleConfig = {
     className: "bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100",
     icon: Shield 
   },
-  seller: { 
-    label: "Vendedor", 
-    className: "bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100",
-    icon: Briefcase 
-  },
-  driver: { 
-    label: "Conductor", 
+  driver: {
+    label: "Conductor",
     className: "bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100",
     icon: Car 
   },
@@ -632,22 +627,6 @@ export default function ProfilePage() {
                     className={`h-14 px-[15px] text-base ${components.input.base}`}
                   />
                 </div>
-
-                {user.role === "seller" && (
-                  <div className="flex flex-col">
-                    <Label htmlFor="specialties" className={`pb-2 ${typography.body.large}`}>
-                      Especialidades
-                    </Label>
-                    <Textarea
-                      id="specialties"
-                      value={formData.specialties}
-                      onChange={(e) => setFormData({ ...formData, specialties: e.target.value })}
-                      placeholder="Especialidades o áreas de experiencia"
-                      className={`min-h-[80px] px-[15px] py-3 text-base ${components.input.base}`}
-                      rows={3}
-                    />
-                  </div>
-                )}
 
                 {user.role === "driver" && (
                   <div className="flex flex-col">

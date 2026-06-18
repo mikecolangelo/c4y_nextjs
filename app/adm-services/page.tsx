@@ -5,9 +5,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/ui/tabs";
 import { Card, CardContent } from "@/ui/card";
 import { Calendar, Wrench } from "lucide-react";
 import { AdminLayout } from "@/components/admin/admin-layout";
-import { ServiceCalendar } from "@/components/service-v2/service-calendar-wrapper";
+import { ServiceCalendar } from "@/components/service/service-calendar-wrapper";
 import { ServiceCatalog } from "@/components/service/service-catalog";
-import { ServiceOrders } from "@/components/service-v2/service-orders";
+import { ServiceOrders } from "@/components/service/service-orders";
 import type { AppointmentCard } from "@/validations/types";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "@/lib/toast";
@@ -31,7 +31,7 @@ function AdmServicesContent() {
   const handleEventClick = (appointment: AppointmentCard) => {
     // Navegar al detalle de la orden de servicio asociada a la cita
     if (appointment.serviceOrderDocumentId) {
-      router.push(`/service-orders-v2/${appointment.serviceOrderDocumentId}`);
+      router.push(`/service-orders/${appointment.serviceOrderDocumentId}`);
     } else {
       toast.error("Esta cita no tiene una orden de servicio asociada.");
     }

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComponentType } from "react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
@@ -24,12 +24,15 @@ import {
 } from "lucide-react";
 import { spacing, typography } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
+import { resolveNavHref } from "@/lib/permissions";
+import { useMyPermissions } from "@/lib/use-my-permissions";
 
 interface NavItem {
   href: string;
   label: string;
   icon: ComponentType<{ className?: string }>;
-  adminOnly?: boolean;
+  /** Clave de módulo en la matriz de permisos. */
+  module: string;
 }
 
 export interface NavSection {
@@ -42,41 +45,46 @@ export const adminNavSections: NavSection[] = [
     label: "Aplicación",
     items: [
       {
+        href: "/dashboard",
+        label: "Panel",
+        icon: BarChart3,
+        module: "dashboard",
+      },
+      {
         href: "/users",
         label: "Contactos",
         icon: Users,
+        module: "users",
       },
       {
         href: "/adm-services",
         label: "Servicios",
         icon: Settings,
-      },
-      {
-        href: "/stock/dashboard",
-        label: "Dashboard Inventario",
-        icon: BarChart3,
+        module: "adm-services",
       },
       {
         href: "/stock",
         label: "Inventario",
         icon: Package,
+        module: "stock",
       },
       {
         href: "/fleet",
         label: "Flota",
         icon: Car,
-        adminOnly: true,
+        module: "fleet",
       },
       {
         href: "/billing",
         label: "Facturación",
         icon: CreditCard,
+        module: "billing",
       },
       {
         href: "/settings",
         label: "Configuración",
         icon: Cog,
-        adminOnly: true,
+        module: "settings",
       },
     ],
   },
@@ -85,23 +93,7 @@ export const adminNavSections: NavSection[] = [
 export function MobileMenu() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const [userRole, setUserRole] = useState<string | null>(null);
-
-  // Obtener el rol del usuario al montar el componente
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const response = await fetch("/api/user-profile/me", { cache: "no-store" });
-        if (response.ok) {
-          const data = await response.json();
-          setUserRole(data.data?.role || null);
-        }
-      } catch (error) {
-        console.error("Error fetching user role:", error);
-      }
-    };
-    fetchUserRole();
-  }, []);
+  const { role, permissions, loading } = useMyPermissions();
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -117,13 +109,10 @@ export function MobileMenu() {
         </SheetHeader>
         <nav className={cn("mt-6 flex flex-col", spacing.gap.large)}>
           {adminNavSections.map((section) => {
-            // Filtrar items según el rol del usuario
-            const filteredItems = section.items.filter((item) => {
-              if (item.adminOnly && userRole !== "admin") {
-                return false;
-              }
-              return true;
-            });
+            // Filtrar items según los permisos del usuario (canAccess por módulo)
+            const filteredItems = loading
+              ? []
+              : section.items.filter((item) => permissions[item.module]?.canAccess);
 
             return (
               <div key={section.label} className={cn("flex flex-col", spacing.gap.small)}>
@@ -133,11 +122,12 @@ export function MobileMenu() {
                 <div className={cn("flex flex-col", spacing.gap.small)}>
                   {filteredItems.map((item) => {
                     const Icon = item.icon;
-                    const isActive = pathname === item.href;
+                    const href = resolveNavHref(item, role);
+                    const isActive = pathname === href;
                     return (
                       <Link
                         key={item.href}
-                        href={item.href}
+                        href={href}
                         onClick={() => setOpen(false)}
                         className={cn(
                           "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",

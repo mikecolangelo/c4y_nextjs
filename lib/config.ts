@@ -3,7 +3,8 @@
 
 // Read from environment variables with fallbacks for development
 export const STRAPI_BASE_URL = process.env.STRAPI_BASE_URL || "http://localhost:1337";
-export const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN || 'frontend_token_1775409392';
+// El token real vive en .env.local (no versionado). Sin fallback hardcodeado.
+export const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN || '';
 
 // Database configuration (server-side only)
 export const DATABASE_HOST = process.env.DATABASE_HOST || "127.0.0.1";

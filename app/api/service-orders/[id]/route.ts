@@ -1,17 +1,10 @@
 import { NextResponse } from "next/server";
-import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
+import { STRAPI_BASE_URL } from "@/lib/config";
+import { getCurrentUserJwt } from "@/lib/auth";
 import qs from "qs";
-import { cookies } from "next/headers";
 
-// Función para obtener el JWT del usuario desde las cookies
-async function getUserJWT(): Promise<string | null> {
-  try {
-    const cookieStore = await cookies();
-    return cookieStore.get("jwt")?.value || null;
-  } catch {
-    return null;
-  }
-}
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 interface RouteContext {
   params: Promise<{
@@ -38,13 +31,23 @@ const buildDetailQuery = () => {
         notes: {
           fields: ["id", "content", "createdAt"],
         },
+        serviceOrderInventoryItems: {
+          populate: {
+            inventoryItem: {
+              fields: ["id", "documentId", "code", "description", "stock"],
+            },
+          },
+        },
       },
     },
     { encodeValuesOnly: true }
   );
 };
 
-const resolveDocumentId = async (id: string): Promise<string | null> => {
+const resolveDocumentId = async (
+  id: string,
+  jwt: string
+): Promise<string | null> => {
   const numericId = Number(id);
   if (!Number.isNaN(numericId) && String(numericId) === id) {
     const query = qs.stringify(
@@ -55,10 +58,13 @@ const resolveDocumentId = async (id: string): Promise<string | null> => {
       },
       { encodeValuesOnly: true }
     );
-    const res = await fetch(`${STRAPI_BASE_URL}/api/service-orders?${query}`, {
-      headers: { Authorization: `Bearer ${STRAPI_API_TOKEN}` },
-      cache: "no-store",
-    });
+    const res = await fetch(
+      `${STRAPI_BASE_URL}/api/service-orders?${query}`,
+      {
+        headers: { Authorization: `Bearer ${jwt}` },
+        cache: "no-store",
+      }
+    );
     if (!res.ok) return null;
     const data = await res.json();
     return data.data?.[0]?.documentId ?? null;
@@ -66,8 +72,52 @@ const resolveDocumentId = async (id: string): Promise<string | null> => {
   return id;
 };
 
+function mapServiceOrderInventoryItems(order: any) {
+  if (!order) return order;
+  const items = order.serviceOrderInventoryItems;
+  if (!items || !Array.isArray(items)) {
+    order.usedItems = [];
+    return order;
+  }
+  order.usedItems = items.map((item: any) => ({
+    id: item.id,
+    quantity: parseFloat(item.quantity),
+    unitPriceAtMoment: parseFloat(item.unitPriceAtMoment),
+    totalLine: parseFloat(item.totalLine),
+    inventoryItem: item.inventoryItem || null,
+    inventoryItemId: item.inventoryItem?.id ?? null,
+  }));
+  // Recalculate costs if missing but usedItems exist
+  if (
+    (order.partsCost === undefined || order.partsCost === null) &&
+    order.usedItems.length > 0
+  ) {
+    const partsCost = order.usedItems.reduce(
+      (sum: number, item: any) =>
+        sum + item.quantity * item.unitPriceAtMoment,
+      0
+    );
+    const laborCost = parseFloat(order.laborCost || 0);
+    const servicesCost = (order.services || []).reduce(
+      (sum: number, s: any) => sum + parseFloat(s?.price || 0),
+      0
+    );
+    const subtotal = laborCost + partsCost + servicesCost;
+    const totalCost = subtotal;
+    order.partsCost = Number(partsCost.toFixed(2));
+    order.taxAmount = 0;
+    order.totalCost = Number(totalCost.toFixed(2));
+  }
+  return order;
+}
+
 export async function GET(_: Request, context: RouteContext) {
   try {
+    const jwt = await getCurrentUserJwt();
+    if (!jwt) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { id } = await context.params;
     if (!id || id === "undefined" || id === "null") {
       return NextResponse.json(
@@ -75,7 +125,7 @@ export async function GET(_: Request, context: RouteContext) {
         { status: 400 }
       );
     }
-    const documentId = await resolveDocumentId(id);
+    const documentId = await resolveDocumentId(id, jwt);
     if (!documentId) {
       return NextResponse.json(
         { error: "Orden de servicio no encontrada" },
@@ -88,7 +138,7 @@ export async function GET(_: Request, context: RouteContext) {
       `${STRAPI_BASE_URL}/api/service-orders/${documentId}?${query}`,
       {
         headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+          Authorization: `Bearer ${jwt}`,
           "Content-Type": "application/json",
         },
         cache: "no-store",
@@ -97,7 +147,10 @@ export async function GET(_: Request, context: RouteContext) {
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => "Unknown error");
-      console.error(`[ServiceOrder API] Strapi GET error ${response.status}:`, errorText.substring(0, 500));
+      console.error(
+        `[ServiceOrder V2 API] Strapi GET error ${response.status}:`,
+        errorText.substring(0, 500)
+      );
       if (response.status === 404) {
         return NextResponse.json(
           { error: "Orden de servicio no encontrada" },
@@ -108,7 +161,12 @@ export async function GET(_: Request, context: RouteContext) {
     }
 
     const data = await response.json();
-    return NextResponse.json({ data: data.data || null });
+    const order = data.data || null;
+    if (order) {
+      mapServiceOrderInventoryItems(order);
+    }
+
+    return NextResponse.json({ data: order });
   } catch (error) {
     console.error("Error fetching service order:", error);
     return NextResponse.json(
@@ -118,10 +176,15 @@ export async function GET(_: Request, context: RouteContext) {
   }
 }
 
-export async function PATCH(request: Request, context: RouteContext) {
+export async function PUT(request: Request, context: RouteContext) {
   try {
+    const jwt = await getCurrentUserJwt();
+    if (!jwt) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { id } = await context.params;
-    const documentId = await resolveDocumentId(id);
+    const documentId = await resolveDocumentId(id, jwt);
     if (!documentId) {
       return NextResponse.json(
         { error: "Orden de servicio no encontrada" },
@@ -130,58 +193,44 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     const rawPayload = await request.json();
-    // Soportar formato viejo { data: { ... } } y nuevo { ... }
     const actualPayload = rawPayload.data || rawPayload;
     const { appointment: appointmentId, ...orderPayload } = actualPayload;
 
-    // Intentar usar el JWT del usuario del header Authorization, fallback al token maestro
-    const authHeader = request.headers.get("Authorization");
-    const userJWT = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : null;
-
-    async function updateServiceOrder(token: string) {
-      return fetch(
-        `${STRAPI_BASE_URL}/api/service-orders/${documentId}`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ data: orderPayload }),
-          cache: "no-store",
-        }
-      );
-    }
-
-    let response: Response;
-    let tokenToUse: string;
-
-    if (userJWT) {
-      response = await updateServiceOrder(userJWT);
-      tokenToUse = userJWT;
-      if ((response.status === 401 || response.status === 403) && STRAPI_API_TOKEN) {
-        response = await updateServiceOrder(STRAPI_API_TOKEN);
-        tokenToUse = STRAPI_API_TOKEN;
+    const response = await fetch(
+      `${STRAPI_BASE_URL}/api/service-orders/${documentId}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${jwt}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ data: orderPayload }),
+        cache: "no-store",
       }
-    } else if (STRAPI_API_TOKEN) {
-      response = await updateServiceOrder(STRAPI_API_TOKEN);
-      tokenToUse = STRAPI_API_TOKEN;
-    } else {
-      return NextResponse.json(
-        { error: "No hay token de autenticación" },
-        { status: 401 }
-      );
-    }
+    );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error("Strapi error response:", errorData);
-      const errorMessage = errorData.error?.message || `Error ${response.status}: ${response.statusText}`;
-      // Propagar errores de permisos con su código original
+      const errorMessage =
+        errorData.error?.message ||
+        `Error ${response.status}: ${response.statusText}`;
       if (response.status === 401 || response.status === 403) {
         return NextResponse.json(
-          { error: "Permiso denegado. Verifica los permisos del API token en Strapi." },
+          {
+            error:
+              "Permiso denegado. Verifica los permisos del API token en Strapi.",
+          },
           { status: response.status }
+        );
+      }
+      if (response.status === 409) {
+        return NextResponse.json(
+          {
+            error: errorMessage,
+            code: errorData.error?.details?.code || "STOCK_INSUFFICIENT",
+          },
+          { status: 409 }
         );
       }
       throw new Error(errorMessage);
@@ -189,7 +238,6 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const orderData = await response.json();
 
-    // 2. Si se canceló la orden y tiene cita asociada, cancelar la cita también
     if (orderPayload.status === "cancelado" && appointmentId) {
       try {
         const resolvedAppointmentId =
@@ -198,15 +246,18 @@ export async function PATCH(request: Request, context: RouteContext) {
             : appointmentId?.documentId || appointmentId?.id;
 
         if (resolvedAppointmentId) {
-          await fetch(`${STRAPI_BASE_URL}/api/appointments/${resolvedAppointmentId}`, {
-            method: "PUT",
-            headers: {
-              Authorization: `Bearer ${tokenToUse}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ data: { status: "cancelada" } }),
-            cache: "no-store",
-          });
+          await fetch(
+            `${STRAPI_BASE_URL}/api/appointments/${resolvedAppointmentId}`,
+            {
+              method: "PUT",
+              headers: {
+                Authorization: `Bearer ${jwt}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ data: { status: "cancelada" } }),
+              cache: "no-store",
+            }
+          );
         }
       } catch (appointmentError) {
         console.error("Error cancelando cita asociada:", appointmentError);
@@ -217,7 +268,12 @@ export async function PATCH(request: Request, context: RouteContext) {
   } catch (error) {
     console.error("Error updating service order:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Error al actualizar la orden" },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Error al actualizar la orden",
+      },
       { status: 500 }
     );
   }
@@ -225,8 +281,13 @@ export async function PATCH(request: Request, context: RouteContext) {
 
 export async function DELETE(_: Request, context: RouteContext) {
   try {
+    const jwt = await getCurrentUserJwt();
+    if (!jwt) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { id } = await context.params;
-    const documentId = await resolveDocumentId(id);
+    const documentId = await resolveDocumentId(id, jwt);
     if (!documentId) {
       return NextResponse.json(
         { error: "Orden de servicio no encontrada" },
@@ -239,7 +300,7 @@ export async function DELETE(_: Request, context: RouteContext) {
       {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+          Authorization: `Bearer ${jwt}`,
         },
         cache: "no-store",
       }

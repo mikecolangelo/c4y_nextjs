@@ -1,5 +1,5 @@
 import React from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MobileMenu, adminNavSections } from "../mobile-menu";
 
@@ -34,34 +34,78 @@ vi.mock("@/components_shadcn/ui/sheet", () => {
 describe("adminNavSections", () => {
   it("mantiene el orden y labels aprobados", () => {
     const expected = [
-      { href: "/dashboard", label: "Dashboard" },
-      { href: "/dashboard-user", label: "Dashboard Users" },
-      { href: "/users", label: "Contactos" },
-      { href: "/adm-services", label: "Servicios" },
-      { href: "/calendar", label: "Calendario" },
-      { href: "/stock", label: "Inventario" },
-      { href: "/fleet", label: "Flota" },
-      { href: "/deal", label: "Contratos" },
-      { href: "/notifications", label: "Notificaciones" },
-      { href: "/billing", label: "Facturación" },
+      { href: "/dashboard", label: "Panel", module: "dashboard" },
+      { href: "/users", label: "Contactos", module: "users" },
+      { href: "/adm-services", label: "Servicios", module: "adm-services" },
+      { href: "/stock", label: "Inventario", module: "stock" },
+      { href: "/fleet", label: "Flota", module: "fleet" },
+      { href: "/billing", label: "Facturación", module: "billing" },
+      { href: "/settings", label: "Configuración", module: "settings" },
     ];
 
-    const received = adminNavSections[0]?.items.map(({ href, label }) => ({ href, label })) ?? [];
+    const received =
+      adminNavSections[0]?.items.map(({ href, label, module }) => ({ href, label, module })) ?? [];
     expect(received).toEqual(expected);
+  });
+
+  it("cada item declara su clave de módulo", () => {
+    adminNavSections[0]?.items.forEach((item) => {
+      expect(item.module).toBeTruthy();
+    });
   });
 });
 
-describe("MobileMenu", () => {
-  it("muestra todos los enlaces y resalta el activo", () => {
+function mockPermissions(role: string, permissions: Record<string, unknown>) {
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ data: { role, permissions } }),
+  }) as unknown as typeof fetch;
+}
+
+describe("MobileMenu — admin", () => {
+  beforeEach(() => {
+    // Mock de permisos: admin con acceso a todos los módulos del menú.
+    const permissions = Object.fromEntries(
+      adminNavSections[0].items.map((item) => [
+        item.module,
+        { canAccess: true, canRead: true, canCreate: true, canUpdate: true, canDelete: true },
+      ])
+    );
+    mockPermissions("admin", permissions);
+  });
+
+  it("muestra los enlaces permitidos y resalta el activo", async () => {
     render(<MobileMenu />);
 
-    adminNavSections[0]?.items.forEach((item) => {
-      expect(screen.getByRole("link", { name: item.label })).toHaveAttribute("href", item.href);
-    });
+    for (const item of adminNavSections[0].items) {
+      const link = await screen.findByRole("link", { name: item.label });
+      expect(link).toHaveAttribute("href", item.href);
+    }
 
-    const activeLink = screen.getByRole("link", { name: "Flota" });
+    const activeLink = await screen.findByRole("link", { name: "Flota" });
     expect(activeLink.className).toContain("bg-accent");
     expect(activeLink.className).toContain("text-accent-foreground");
   });
 });
 
+describe("MobileMenu — driver", () => {
+  beforeEach(() => {
+    // El conductor solo tiene acceso al módulo dashboard (su panel).
+    mockPermissions("driver", {
+      dashboard: { canAccess: true, canRead: true, canCreate: false, canUpdate: false, canDelete: false },
+    });
+  });
+
+  it("muestra solo 'Panel' y enlaza al panel del conductor", async () => {
+    render(<MobileMenu />);
+
+    // El item dashboard apunta a /dashboard-user para el conductor.
+    const panel = await screen.findByRole("link", { name: "Panel" });
+    expect(panel).toHaveAttribute("href", "/dashboard-user");
+
+    // No debe ver módulos de admin.
+    expect(screen.queryByRole("link", { name: "Flota" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Contactos" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Configuración" })).toBeNull();
+  });
+});

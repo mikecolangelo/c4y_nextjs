@@ -186,11 +186,12 @@ export function QuickUserCreate({
             displayName: formData.displayName.trim(),
             email: formData.email.trim(),
             address: formData.address.trim(),
-            password: formData.password || undefined,
+            // Los leads nunca reciben credenciales de acceso
+            password: formData.role === "lead" ? undefined : (formData.password || undefined),
             phone: formData.phone.trim() || undefined,
             dateOfBirth: formData.dateOfBirth || undefined,
             department: formData.department.trim() || undefined,
-            role: formData.role || "client",
+            role: formData.role,
             workSchedule: formData.workSchedule.trim() || undefined,
             hireDate: formData.hireDate || undefined,
             specialties: formData.specialties.trim() || undefined,
@@ -288,7 +289,7 @@ export function QuickUserCreate({
                 <span className="font-medium">{formData.address}</span>
                 
                 <span className="text-muted-foreground">Rol:</span>
-                <span className="font-medium">{formData.role === "admin" ? "Administrador" : formData.role === "seller" ? "Vendedor" : formData.role === "driver" ? "Conductor" : "Lead"}</span>
+                <span className="font-medium">{formData.role === "admin" ? "Administrador" : formData.role === "driver" ? "Conductor" : "Lead"}</span>
               </div>
 
               {createdPassword && (
@@ -467,22 +468,29 @@ export function QuickUserCreate({
                   />
                 </div>
 
-                {/* Contraseña */}
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="flex items-center gap-2">
-                    <Lock className="h-4 w-4 text-muted-foreground" />
-                    Contraseña
-                  </Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Mínimo 6 caracteres"
-                    value={formData.password}
-                    onChange={handleInputChange("password")}
-                    className={components.input.base}
-                    disabled={loading}
-                  />
-                </div>
+                {/* Contraseña — los leads no tienen credenciales de acceso */}
+                {formData.role !== "lead" ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="password" className="flex items-center gap-2">
+                      <Lock className="h-4 w-4 text-muted-foreground" />
+                      Contraseña
+                    </Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="Mínimo 6 caracteres"
+                      value={formData.password}
+                      onChange={handleInputChange("password")}
+                      className={components.input.base}
+                      disabled={loading}
+                    />
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Los leads no tienen acceso al portal, por lo que no se les asigna contraseña.
+                    Podrás convertirlo en usuario (admin/conductor) más adelante desde su ficha.
+                  </p>
+                )}
               </TabsContent>
 
               {/* Tab: Información Personal */}
@@ -614,7 +622,6 @@ export function QuickUserCreate({
                     disabled={loading}
                   >
                     <option value="driver">Conductor</option>
-                    <option value="seller">Vendedor</option>
                     <option value="admin">Administrador</option>
                     <option value="lead">Lead</option>
                   </select>

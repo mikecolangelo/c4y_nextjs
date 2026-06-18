@@ -16,7 +16,6 @@ import {
   ChevronRight,
   Plus,
   Shield,
-  Briefcase,
   Car,
   UserPlus,
   History,
@@ -49,7 +48,7 @@ interface UserProfile {
   displayName: string;
   email?: string;
   phone?: string;
-  role: "admin" | "seller" | "driver" | "lead";
+  role: "admin" | "driver" | "lead";
   department?: string;
   avatar?: {
     url?: string;
@@ -65,11 +64,6 @@ const roleConfig = {
     label: "Administrador",
     className: "bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100",
     icon: Shield,
-  },
-  seller: {
-    label: "Vendedor",
-    className: "bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100",
-    icon: Briefcase,
   },
   driver: {
     label: "Conductor",
@@ -148,7 +142,7 @@ export default function UsersPage() {
       user.phone?.toLowerCase().includes(searchQuery.toLowerCase());
 
     let matchesFilter = true;
-    if (activeFilter === "admin" || activeFilter === "seller" || activeFilter === "driver" || activeFilter === "lead") {
+    if (activeFilter === "admin" || activeFilter === "driver" || activeFilter === "lead") {
       matchesFilter = user.role === activeFilter;
     }
 
@@ -304,7 +298,7 @@ export default function UsersPage() {
                   <ArrowUpDown className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span className={`${typography.body.base} text-foreground`}>Todos</span>
                 </Button>
-                {(["admin", "seller", "driver", "lead"] as const).map((role) => {
+                {(["admin", "driver", "lead"] as const).map((role) => {
                   const config = roleConfig[role];
                   const Icon = config.icon;
                   const isActive = activeFilter === role;

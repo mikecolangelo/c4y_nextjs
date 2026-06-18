@@ -9,6 +9,8 @@ import { Button } from "@/components_shadcn/ui/button";
 import { Input } from "@/components_shadcn/ui/input";
 import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
 import { adminNavSections } from "./mobile-menu";
+import { resolveNavHref } from "@/lib/permissions";
+import { useMyPermissions } from "@/lib/use-my-permissions";
 
 export function SpotlightSearch() {
   const [open, setOpen] = useState(false);
@@ -18,6 +20,7 @@ export function SpotlightSearch() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const selectedItemRef = useRef<HTMLAnchorElement | null>(null);
   const router = useRouter();
+  const { role, permissions, loading } = useMyPermissions();
 
   useEffect(() => {
     setMounted(true);
@@ -99,13 +102,18 @@ export function SpotlightSearch() {
   }, [selectedIndex, open]);
 
   const navItems = useMemo(() => {
+    if (loading) return [];
     return adminNavSections.flatMap((section) =>
-      section.items.map((item) => ({
-        ...item,
-        section: section.label,
-      }))
+      section.items
+        // Filtrar por permisos (canAccess por módulo) — evita fugas de UX
+        .filter((item) => permissions[item.module]?.canAccess)
+        .map((item) => ({
+          ...item,
+          href: resolveNavHref(item, role),
+          section: section.label,
+        }))
     );
-  }, []);
+  }, [loading, permissions, role]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();

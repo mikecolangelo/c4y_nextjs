@@ -12,8 +12,9 @@ import { Skeleton } from "@/components_shadcn/ui/skeleton";
 import { Badge } from "@/components_shadcn/ui/badge";
 import { spacing, typography } from "@/lib/design-system";
 import { toast } from "@/lib/toast";
-import { Building2, MessageSquare, Calendar, CreditCard, Save, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Building2, MessageSquare, Calendar, CreditCard, Save, Eye, EyeOff, Loader2, ShieldCheck, Phone } from "lucide-react";
 import { BillingSettingsSection } from "./components/billing-settings-section";
+import { PermissionsSettingsSection } from "./components/permissions-settings-section";
 
 interface Configuration {
   id: number;
@@ -204,6 +205,14 @@ export default function SettingsPage() {
             <CreditCard className="h-4 w-4" />
             <span className="hidden sm:inline">Facturación</span>
           </TabsTrigger>
+          <TabsTrigger value="contact" className="gap-2 data-[state=active]:bg-primary/10">
+            <Phone className="h-4 w-4" />
+            <span className="hidden sm:inline">Contacto</span>
+          </TabsTrigger>
+          <TabsTrigger value="permissions" className="gap-2 data-[state=active]:bg-primary/10">
+            <ShieldCheck className="h-4 w-4" />
+            <span className="hidden sm:inline">Permisos</span>
+          </TabsTrigger>
         </TabsList>
 
         {/* Tab: Información de Empresa */}
@@ -375,6 +384,44 @@ export default function SettingsPage() {
         {/* Tab: Facturación */}
         <TabsContent value="billing">
           <BillingSettingsSection />
+        </TabsContent>
+
+        {/* Tab: Contacto */}
+        <TabsContent value="contact">
+          <Card>
+            <CardHeader>
+              <CardTitle className={typography.h3}>Contacto de la administración</CardTitle>
+              <CardDescription>
+                Datos que verán los usuarios para comunicarse (WhatsApp, email y redes).
+                El primer teléfono se usa para el botón de WhatsApp.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className={`flex flex-col ${spacing.gap.medium}`}>
+              <ConfigurationSection
+                category="contact"
+                configs={getConfigsByCategory("contact")}
+                showSecrets={showSecrets}
+                editedConfigs={editedConfigs}
+                onToggleSecret={toggleShowSecret}
+                onConfigChange={handleConfigChange}
+                onSaveConfig={saveConfiguration}
+                onCreateConfig={createConfiguration}
+                defaultConfigs={[
+                  { key: "CONTACT_PHONE_1", description: "Teléfono principal (WhatsApp). Ej: +507 8337688", isSecret: false },
+                  { key: "CONTACT_PHONE_2", description: "Teléfono secundario (opcional)", isSecret: false },
+                  { key: "CONTACT_EMAIL", description: "Email de contacto", isSecret: false },
+                  { key: "CONTACT_TIKTOK", description: "URL de TikTok", isSecret: false },
+                  { key: "CONTACT_INSTAGRAM", description: "URL de Instagram", isSecret: false },
+                  { key: "CONTACT_FACEBOOK", description: "URL de Facebook", isSecret: false },
+                ]}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tab: Permisos */}
+        <TabsContent value="permissions">
+          <PermissionsSettingsSection />
         </TabsContent>
       </Tabs>
     </AdminLayout>

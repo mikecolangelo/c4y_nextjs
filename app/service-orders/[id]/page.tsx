@@ -2,32 +2,29 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components_shadcn/ui/card";
-import { Button } from "@/components_shadcn/ui/button";
-import { Badge } from "@/components_shadcn/ui/badge";
-import { Skeleton } from "@/components_shadcn/ui/skeleton";
-import { 
-  ArrowLeft, 
-  Calendar, 
-  Car, 
-  User, 
-  Wrench, 
-  Edit,
-  Loader2,
-  AlertCircle,
-  CheckCircle2,
-  Play,
-  XCircle,
-  Save,
-  X,
-} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/ui/card";
+import { Button } from "@/ui/button";
+import { Badge } from "@/ui/badge";
+import { Skeleton } from "@/ui/skeleton";
+import { Textarea } from "@/ui/textarea";
+import { Input } from "@/ui/input";
+import { Label } from "@/ui/label";
+import { Separator } from "@/ui/separator";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components_shadcn/ui/select";
+  ArrowLeft,
+  Car,
+  Wrench,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  Trash2,
+  Edit,
+  Package,
+  Banknote,
+  Clock,
+  AlertTriangle,
+  Save,
+} from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,267 +34,256 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components_shadcn/ui/alert-dialog";
-import { spacing, typography } from "@/lib/design-system";
-import { AdminLayout } from "@/components/admin/admin-layout";
+} from "@/ui/alert-dialog";
 import { toast } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
 type ServiceOrderStatus = "pendiente" | "en_progreso" | "completado" | "cancelado";
 
-interface ServiceItem {
-  id: string;
-  documentId: string;
-  name: string;
-  price: number;
-}
-
-interface DriverOption {
-  id: string;
-  documentId: string;
-  displayName: string;
+interface UsedItem {
+  id?: string | number;
+  inventoryItem?: {
+    id: string | number;
+    code?: string;
+    description?: string;
+  };
+  inventoryItemId?: string | number;
+  quantity: number;
+  unitPriceAtMoment: number;
+  totalLine?: number;
 }
 
 interface ServiceOrderDetail {
-  id: string;
-  documentId: string;
+  id: string | number;
+  documentId?: string;
   code?: string;
   status: ServiceOrderStatus;
   scheduledAt?: string;
   completedAt?: string;
   summary?: string;
+  laborCost?: number;
+  partsCost?: number;
+
+  totalCost?: number;
   vehicle?: {
-    id: string;
-    documentId: string;
-    name: string;
+    id?: string | number;
+    documentId?: string;
+    name?: string;
     placa?: string;
     brand?: string;
     model?: string;
   };
-  driver?: DriverOption;
-  services?: ServiceItem[];
+  services?: Array<{
+    id?: string | number;
+    documentId?: string;
+    name?: string;
+    price?: number;
+  }>;
   appointment?: {
-    id: string;
-    documentId: string;
-    status: string;
-    scheduledAt: string;
+    id?: string | number;
+    documentId?: string;
+    status?: string;
+    scheduledAt?: string;
   };
+  usedItems?: UsedItem[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-export default function ServiceOrderDetailsPage() {
+function formatCurrency(value?: number) {
+  if (value === undefined || value === null) return "B/. 0.00";
+  return new Intl.NumberFormat("es-PA", {
+    style: "currency",
+    currency: "PAB",
+  }).format(value);
+}
+
+function formatDateTime(dateString?: string) {
+  if (!dateString) return "No especificada";
+  try {
+    return format(new Date(dateString), "dd MMM yyyy, h:mm a", { locale: es });
+  } catch {
+    return "Fecha inválida";
+  }
+}
+
+export default function ServiceOrderDetailPage() {
   const router = useRouter();
   const params = useParams();
   const orderId = params.id as string;
 
   const [order, setOrder] = useState<ServiceOrderDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isCancelling, setIsCancelling] = useState(false);
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [notesDraft, setNotesDraft] = useState("");
+  const [laborCostDraft, setLaborCostDraft] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [currentUserRole, setCurrentUserRole] = useState<"admin" | "seller" | "driver" | null>(null);
-  
-  const [availableServices, setAvailableServices] = useState<ServiceItem[]>([]);
-  const [availableDrivers, setAvailableDrivers] = useState<DriverOption[]>([]);
-  
-  const [selectedDriverId, setSelectedDriverId] = useState<string>("none");
-  const [selectedServices, setSelectedServices] = useState<ServiceItem[]>([]);
+  const [showFinalizeDialog, setShowFinalizeDialog] = useState(false);
 
   const loadOrder = useCallback(async () => {
-    if (!orderId || orderId === "undefined" || orderId === "null") {
-      console.error("[ServiceOrderDetails] Invalid orderId:", orderId);
-      toast.error("ID de orden inválido");
-      setOrder(null);
-      setIsLoading(false);
-      return;
-    }
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/service-orders/${orderId}`, { cache: "no-store" });
+      const response = await fetch(`/api/service-orders/${orderId}`, {
+        cache: "no-store",
+      });
       if (!response.ok) {
-        const errorText = await response.text().catch(() => "Unknown error");
-        console.error(`[ServiceOrderDetails] API error ${response.status}:`, errorText.substring(0, 500));
         if (response.status === 404) {
+          toast.error("Orden de servicio no encontrada");
           setOrder(null);
           return;
         }
-        throw new Error(`Error ${response.status}: ${errorText}`);
+        throw new Error("Error al cargar la orden");
       }
       const result = await response.json();
-      const orderData = result.data as ServiceOrderDetail;
-      setOrder(orderData);
-      
-      setSelectedDriverId(orderData.driver?.documentId || "none");
-      setSelectedServices(orderData.services || []);
+      const data = result.data;
+      if (!data) {
+        setOrder(null);
+        return;
+      }
+      setOrder(data);
+      setNotesDraft(data.summary || "");
+      setLaborCostDraft(String(data.laborCost || ""));
     } catch (error) {
-      console.error("Error loading service order:", error);
+      console.error("Error loading order:", error);
       toast.error("No se pudo cargar la orden de servicio");
-      setOrder(null);
     } finally {
       setIsLoading(false);
     }
   }, [orderId]);
 
-  const loadServices = useCallback(async () => {
-    try {
-      const response = await fetch("/api/services", { cache: "no-store" });
-      if (!response.ok) throw new Error("Error cargando servicios");
-      const result = await response.json();
-      setAvailableServices(result.data || []);
-    } catch (error) {
-      console.error("Error loading services:", error);
-    }
-  }, []);
-
-  const loadDrivers = useCallback(async () => {
-    try {
-      const response = await fetch("/api/user-profiles", { cache: "no-store" });
-      if (!response.ok) throw new Error("Error cargando conductores");
-      const result = await response.json();
-      const drivers = (result.data || []).filter((u: { role?: string }) => u.role === "driver");
-      setAvailableDrivers(drivers.map((d: { id: string; documentId: string; displayName: string }) => ({
-        id: String(d.id),
-        documentId: d.documentId || String(d.id),
-        displayName: d.displayName,
-      })));
-    } catch (error) {
-      console.error("Error loading drivers:", error);
-    }
-  }, []);
-
   useEffect(() => {
-    loadOrder();
-    loadServices();
-    loadDrivers();
-  }, [loadOrder, loadServices, loadDrivers]);
-
-  // Obtener el rol del usuario actual
-  useEffect(() => {
-    async function fetchUserRole() {
-      try {
-        const response = await fetch("/api/user-profile/me", {
-          cache: "no-store",
-          credentials: "include",
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setCurrentUserRole(data.data?.role || null);
-        }
-      } catch (err) {
-        console.error("Error obteniendo rol del usuario:", err);
-      }
+    if (orderId) {
+      loadOrder();
     }
-    fetchUserRole();
-  }, []);
+  }, [orderId, loadOrder]);
 
-  const handleCancelOrder = async () => {
+  const handleUpdateNotes = async () => {
     if (!order) return;
-    
-    setIsCancelling(true);
+    setIsProcessing(true);
     try {
-      // Obtener el JWT del usuario de las cookies
-      const getCookie = (name: string) => {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) return parts.pop()?.split(';').shift();
-        return null;
-      };
-      const userJWT = getCookie('jwt');
-      
-      const response = await fetch(`/api/service-orders/${order.documentId}`, {
-        method: "PATCH",
-        headers: { 
-          "Content-Type": "application/json",
-          ...(userJWT ? { "Authorization": `Bearer ${userJWT}` } : {})
-        },
-        body: JSON.stringify({ status: "cancelado" }),
+      const laborCost = parseFloat(laborCostDraft) || 0;
+      const response = await fetch(`/api/service-orders/${orderId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: {
+            summary: notesDraft.trim() || undefined,
+            laborCost,
+          },
+        }),
       });
-
-      // Log para diagnosticar
-      console.log("Response status:", response.status);
-
       if (!response.ok) {
-        let errorMessage = "Error al cancelar la orden";
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorData.message || `Error ${response.status}`;
-        } catch {
-          errorMessage = `Error ${response.status}: ${response.statusText}`;
-        }
-        throw new Error(errorMessage);
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || "Error al actualizar");
       }
+      toast.success("Orden actualizada");
+      setIsEditingNotes(false);
+      await loadOrder();
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "Error al actualizar");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
-      toast.success("Orden cancelada exitosamente");
+  const handleFinalize = async () => {
+    if (!order) return;
+    setIsProcessing(true);
+    try {
+      const laborCost = parseFloat(laborCostDraft) || order.laborCost || 0;
+      const response = await fetch(`/api/service-orders/${orderId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: {
+            status: "completado",
+            laborCost,
+          },
+        }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        if (response.status === 409) {
+          throw new Error(err.error || "Stock insuficiente para finalizar la orden");
+        }
+        throw new Error(err.error || "Error al finalizar la orden");
+      }
+      toast.success("Orden finalizada exitosamente");
+      setShowFinalizeDialog(false);
+      await loadOrder();
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "Error al finalizar");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!order) return;
+    setIsProcessing(true);
+    try {
+      const response = await fetch(`/api/service-orders/${orderId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: {
+            status: "cancelado",
+          },
+          appointment: order.appointment?.documentId || order.appointment?.id,
+        }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || "Error al cancelar la orden");
+      }
+      toast.success("Orden cancelada");
       setShowCancelDialog(false);
       await loadOrder();
     } catch (error) {
-      console.error("Error cancelling order:", error);
-      toast.error(error instanceof Error ? error.message : "Error al cancelar la orden");
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "Error al cancelar");
     } finally {
-      setIsCancelling(false);
+      setIsProcessing(false);
     }
   };
 
-  const handleSaveChanges = async () => {
-    if (!order) return;
-    
-    setIsSaving(true);
+  const handleDelete = async () => {
+    setIsProcessing(true);
     try {
-      const payload: Record<string, unknown> = {
-        driver: selectedDriverId === "none" ? null : selectedDriverId,
-        services: selectedServices.length > 0 
-          ? selectedServices.map((s) => s.documentId || s.id)
-          : [],
-      };
-
-      const response = await fetch(`/api/service-orders/${order.documentId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+      const response = await fetch(`/api/service-orders/${orderId}`, {
+        method: "DELETE",
       });
-
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Error al guardar los cambios");
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || "Error al eliminar");
       }
-
-      toast.success("Orden actualizada exitosamente");
-      setIsEditing(false);
-      await loadOrder();
+      toast.success("Orden eliminada");
+      router.push("/adm-services");
     } catch (error) {
-      console.error("Error saving order:", error);
-      toast.error(error instanceof Error ? error.message : "Error al guardar");
-    } finally {
-      setIsSaving(false);
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "Error al eliminar");
+      setIsProcessing(false);
     }
   };
 
-  const getStatusBadgeClass = (status: ServiceOrderStatus) => {
+  const getStatusBadge = (status: ServiceOrderStatus) => {
     switch (status) {
       case "pendiente":
-        return "bg-orange-500/20 text-orange-600 dark:text-orange-400 border-orange-500/30";
+        return "bg-orange-500/15 text-orange-700 dark:text-orange-300 border-orange-500/30";
       case "en_progreso":
-        return "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30";
+        return "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30";
       case "completado":
-        return "bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30";
+        return "bg-green-500/15 text-green-700 dark:text-green-300 border-green-500/30";
       case "cancelado":
-        return "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30";
+        return "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/30";
       default:
         return "bg-muted text-muted-foreground";
-    }
-  };
-
-  const getStatusIcon = (status: ServiceOrderStatus) => {
-    switch (status) {
-      case "pendiente":
-        return <AlertCircle className="h-4 w-4" />;
-      case "en_progreso":
-        return <Play className="h-4 w-4" />;
-      case "completado":
-        return <CheckCircle2 className="h-4 w-4" />;
-      case "cancelado":
-        return <XCircle className="h-4 w-4" />;
     }
   };
 
@@ -314,328 +300,465 @@ export default function ServiceOrderDetailsPage() {
     }
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "Sin fecha";
-    try {
-      return format(new Date(dateString), "dd MMM yyyy, h:mm a", { locale: es });
-    } catch {
-      return "Fecha inválida";
-    }
-  };
-
-  const handleAddService = (service: ServiceItem) => {
-    if (!selectedServices.find((s) => s.documentId === service.documentId || s.id === service.id)) {
-      setSelectedServices([...selectedServices, service]);
-    }
-  };
-
-  const handleRemoveService = (serviceId: string) => {
-    setSelectedServices(selectedServices.filter((s) => s.documentId !== serviceId && s.id !== serviceId));
-  };
-
-  const backButton = (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => router.back()}
-      className="h-10 w-10 flex items-center justify-center rounded-full"
-    >
-      <ArrowLeft className="h-5 w-5" />
-    </Button>
-  );
-
   if (isLoading) {
     return (
-      <AdminLayout title="Cargando orden..." showFilterAction leftActions={backButton}>
-        <section className={`flex flex-col ${spacing.gap.large}`}>
-          <Card className="shadow-sm ring-1 ring-inset ring-border/50">
-            <CardContent className="flex flex-col items-center gap-4 p-6">
-              <Skeleton className="h-16 w-16 rounded-full" />
-              <Skeleton className="h-6 w-48" />
-              <Skeleton className="h-4 w-32" />
-            </CardContent>
-          </Card>
-          <Card className="shadow-sm ring-1 ring-inset ring-border/50">
-            <CardHeader className="px-6 pt-6 pb-4">
-              <Skeleton className="h-5 w-40" />
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4 px-6 pb-6">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
-            </CardContent>
-          </Card>
-        </section>
-      </AdminLayout>
+      <div className="max-w-4xl mx-auto p-4 space-y-4">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-48 w-full" />
+        <Skeleton className="h-48 w-full" />
+      </div>
     );
   }
 
   if (!order) {
     return (
-      <AdminLayout title="Orden no encontrada" showFilterAction leftActions={backButton}>
-        <section className={`flex flex-col items-center justify-center ${spacing.gap.base} min-h-[400px]`}>
-          <p className={typography.body.large}>La orden de servicio solicitada no existe.</p>
-          <Button onClick={() => router.push("/adm-services")}>
-            Volver a Servicios
-          </Button>
-        </section>
-      </AdminLayout>
+      <div className="max-w-4xl mx-auto p-4">
+        <Button variant="ghost" onClick={() => router.back()} className="mb-4">
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Volver
+        </Button>
+        <Card>
+          <CardContent className="p-8 text-center">
+            <AlertTriangle className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+            <h2 className="text-lg font-medium">Orden no encontrada</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              La orden de servicio que buscas no existe o fue eliminada.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
-  const canEdit = order.status !== "cancelado" && order.status !== "completado";
-  const isAdmin = currentUserRole === "admin";
-  const canCancel = isAdmin && order.status !== "cancelado" && order.status !== "completado";
+  const canFinalize = order.status === "pendiente" || order.status === "en_progreso";
+  const canCancel = order.status !== "cancelado";
+  const isCompleted = order.status === "completado";
+  const isCancelled = order.status === "cancelado";
 
   return (
-    <AdminLayout 
-      title={order.code || `Orden #${order.id}`} 
-      showFilterAction 
-      leftActions={backButton}
-      rightActions={
-        canEdit && !isEditing ? (
-          <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-            <Edit className="h-4 w-4 mr-2" />
-            Editar
+    <div className="max-w-4xl mx-auto p-4 space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4">
+        <Button variant="ghost" size="sm" onClick={() => router.back()}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Volver
+        </Button>
+        <div className="flex items-center gap-2">
+          <Badge className={cn("text-xs border", getStatusBadge(order.status))}>
+            {getStatusLabel(order.status)}
+          </Badge>
+          {!isEditingNotes ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditingNotes(true)}
+              disabled={isProcessing || isCancelled}
+            >
+              <Edit className="h-3.5 w-3.5 mr-1" />
+              Editar
+            </Button>
+          ) : (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleUpdateNotes}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+              ) : (
+                <Save className="h-3.5 w-3.5 mr-1" />
+              )}
+              Guardar
+            </Button>
+          )}
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => setShowDeleteDialog(true)}
+            disabled={isProcessing}
+          >
+            <Trash2 className="h-3.5 w-3.5 mr-1" />
+            Eliminar
           </Button>
-        ) : undefined
-      }
-    >
-      <section className={`flex flex-col ${spacing.gap.large}`}>
-        {/* Header con estado */}
-        <Card className="shadow-sm ring-1 ring-inset ring-border/50">
-          <CardContent className="flex flex-col items-center gap-4 p-6">
-            <div className={`flex h-16 w-16 items-center justify-center rounded-full ${
-              order.status === "completado" ? "bg-green-500/10 text-green-500" :
-              order.status === "cancelado" ? "bg-red-500/10 text-red-500" :
-              order.status === "en_progreso" ? "bg-blue-500/10 text-blue-500" :
-              "bg-orange-500/10 text-orange-500"
-            }`}>
-              {getStatusIcon(order.status)}
+        </div>
+      </div>
+
+      <h1 className="text-xl font-semibold">
+        {order.code || `Orden #${order.id}`}
+      </h1>
+
+      {/* Info general */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Car className="h-4 w-4 text-primary" />
+            Información General
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {order.vehicle && (
+            <div className="flex items-center gap-2 text-sm">
+              <Car className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">Vehículo:</span>
+              <span>
+                {order.vehicle.brand} {order.vehicle.model} {order.vehicle.name}
+                {order.vehicle.placa && ` (${order.vehicle.placa})`}
+              </span>
             </div>
-            <div className="text-center">
-              <h2 className={typography.h3}>{order.code || `Orden #${order.id}`}</h2>
-              <Badge className={`mt-2 rounded-full px-3 py-1 text-xs font-medium border ${getStatusBadgeClass(order.status)}`}>
-                {getStatusLabel(order.status)}
-              </Badge>
+          )}
+          <div className="flex items-center gap-2 text-sm">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span className="font-medium">Programada:</span>
+            <span className="text-muted-foreground">
+              {formatDateTime(order.scheduledAt)}
+            </span>
+          </div>
+          {order.completedAt && (
+            <div className="flex items-center gap-2 text-sm">
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <span className="font-medium">Completada:</span>
+              <span className="text-muted-foreground">
+                {formatDateTime(order.completedAt)}
+              </span>
             </div>
-            {canCancel && (
-              <div className="flex items-center gap-2 pt-2">
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => setShowCancelDialog(true)}
-                  disabled={isCancelling}
-                >
-                  <XCircle className="h-4 w-4 mr-2" />
-                  Cancelar Orden
-                </Button>
+          )}
+          {order.services && order.services.length > 0 && (
+            <div className="flex items-start gap-2 text-sm">
+              <Wrench className="h-4 w-4 text-muted-foreground mt-0.5" />
+              <span className="font-medium">Servicios:</span>
+              <span className="text-muted-foreground">
+                {order.services.map((s) => s.name).join(", ")}
+              </span>
+            </div>
+          )}
+
+          {/* Notas / Resumen */}
+          <Separator />
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Notas / Resumen</Label>
+            {isEditingNotes ? (
+              <Textarea
+                value={notesDraft}
+                onChange={(e) => setNotesDraft(e.target.value)}
+                placeholder="Descripción del trabajo realizado..."
+                rows={3}
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                {order.summary || "Sin notas"}
+              </p>
+            )}
+          </div>
+
+          {/* Mano de obra (editable) */}
+          <Separator />
+          <div className="space-y-2">
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <Banknote className="h-3.5 w-3.5" />
+              Costo de Mano de Obra
+            </Label>
+            {isEditingNotes ? (
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={laborCostDraft}
+                onChange={(e) => setLaborCostDraft(e.target.value)}
+                placeholder="0.00"
+                className="max-w-xs"
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {formatCurrency(order.laborCost)}
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Desglose de Costos con Repuestos Detallados */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Banknote className="h-4 w-4 text-primary" />
+            Desglose de Costos
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Mano de Obra */}
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Mano de Obra</span>
+            <span className="font-medium">{formatCurrency(order.laborCost)}</span>
+          </div>
+
+          {/* Servicios */}
+          {order.services && order.services.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm">
+                <Wrench className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">Servicios</span>
+              </div>
+              <div className="pl-6 space-y-1">
+                {order.services.map((svc, idx) => (
+                  <div key={idx} className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{svc.name || "Servicio"}</span>
+                    <span className="font-medium">{formatCurrency(svc.price)}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex justify-between text-sm pl-6">
+                <span className="text-muted-foreground">Subtotal Servicios</span>
+                <span className="font-medium">
+                  {formatCurrency(order.services.reduce((sum, s) => sum + (s.price || 0), 0))}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Repuestos / Materiales detallados */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm">
+              <Package className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">Repuestos / Materiales</span>
+            </div>
+
+            {!order.usedItems || order.usedItems.length === 0 ? (
+              <p className="text-sm text-muted-foreground pl-6">
+                Sin repuestos / materiales registrados.
+              </p>
+            ) : (
+              <div className="overflow-x-auto rounded-md border">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr className="border-b">
+                      <th className="text-left py-2 px-3 font-medium text-muted-foreground">
+                        Código
+                      </th>
+                      <th className="text-left py-2 px-3 font-medium text-muted-foreground">
+                        Descripción
+                      </th>
+                      <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                        Cant.
+                      </th>
+                      <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                        P. Unit.
+                      </th>
+                      <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                        Total
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {order.usedItems.map((item, idx) => {
+                      const inventoryItem = item.inventoryItem;
+                      const lineTotal =
+                        item.totalLine ??
+                        item.quantity * item.unitPriceAtMoment;
+                      return (
+                        <tr
+                          key={item.id ?? idx}
+                          className="border-b last:border-0 hover:bg-muted/30"
+                        >
+                          <td className="py-2 px-3 font-mono text-xs">
+                            {inventoryItem?.code || "N/A"}
+                          </td>
+                          <td className="py-2 px-3">
+                            {inventoryItem?.description || "Sin descripción"}
+                          </td>
+                          <td className="py-2 px-3 text-right">
+                            {item.quantity}
+                          </td>
+                          <td className="py-2 px-3 text-right">
+                            {formatCurrency(item.unitPriceAtMoment)}
+                          </td>
+                          <td className="py-2 px-3 text-right font-medium">
+                            {formatCurrency(lineTotal)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
-          </CardContent>
-        </Card>
 
-        {/* Detalles */}
-        <Card className="shadow-sm ring-1 ring-inset ring-border/50">
-          <CardHeader className="px-6 pt-6 pb-4">
-            <CardTitle className={typography.h4}>Detalles de la Orden</CardTitle>
+            {/* Subtotal repuestos */}
+            {order.usedItems && order.usedItems.length > 0 && (
+              <div className="flex justify-between text-sm pl-0">
+                <span className="text-muted-foreground">Subtotal Repuestos</span>
+                <span className="font-medium">
+                  {formatCurrency(order.partsCost)}
+                </span>
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
+          {/* Totales */}
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Subtotal</span>
+              <span className="font-medium">
+                {formatCurrency(
+                  (order.laborCost || 0) +
+                  (order.partsCost || 0) +
+                  (order.services?.reduce((sum, s) => sum + (s.price || 0), 0) || 0)
+                )}
+              </span>
+            </div>
+            <Separator />
+            <div className="flex justify-between text-base font-semibold">
+              <span>Total</span>
+              <span>{formatCurrency(order.totalCost)}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Acciones */}
+      {!isCancelled && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Acciones</CardTitle>
           </CardHeader>
-          <CardContent className={`flex flex-col ${spacing.gap.base} px-6 pb-6`}>
-            {/* Vehículo */}
-            <div className={`flex items-center ${spacing.gap.medium}`}>
-              <Car className="h-5 w-5 text-muted-foreground shrink-0" />
-              <div className="flex-1">
-                <p className={`${typography.body.small} text-muted-foreground`}>Vehículo</p>
-                <p className={typography.body.base}>
-                  {order.vehicle 
-                    ? `${order.vehicle.name}${order.vehicle.placa ? ` (${order.vehicle.placa})` : ""}`
-                    : "No asignado"}
-                </p>
-              </div>
-            </div>
-
-            {/* Conductor */}
-            <div className={`flex items-center ${spacing.gap.medium}`}>
-              <User className="h-5 w-5 text-muted-foreground shrink-0" />
-              <div className="flex-1">
-                <p className={`${typography.body.small} text-muted-foreground`}>Conductor</p>
-                {isEditing ? (
-                  <Select value={selectedDriverId} onValueChange={setSelectedDriverId}>
-                    <SelectTrigger className="w-full sm:w-72 mt-1">
-                      <SelectValue placeholder="Seleccionar conductor..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Sin conductor asignado</SelectItem>
-                      {availableDrivers.map((driver) => (
-                        <SelectItem key={driver.documentId} value={driver.documentId}>
-                          {driver.displayName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+          <CardContent className="flex flex-wrap gap-3">
+            {canFinalize && (
+              <Button
+                onClick={() => setShowFinalizeDialog(true)}
+                disabled={isProcessing}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                {isProcessing ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 ) : (
-                  <p className={typography.body.base}>
-                    {order.driver?.displayName || "Sin conductor asignado"}
-                  </p>
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
                 )}
-              </div>
-            </div>
-
-            {/* Servicios */}
-            <div className={`flex items-start ${spacing.gap.medium}`}>
-              <Wrench className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className={`${typography.body.small} text-muted-foreground`}>Servicios</p>
-                {isEditing ? (
-                  <div className="mt-2 space-y-3">
-                    {selectedServices.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {selectedServices.map((service) => (
-                          <Badge key={service.documentId || service.id} variant="secondary" className="flex items-center gap-1">
-                            {service.name}
-                            <button
-                              onClick={() => handleRemoveService(service.documentId || service.id)}
-                              className="ml-1 hover:text-destructive"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                    <Select
-                      value="none"
-                      onValueChange={(value) => {
-                        if (value !== "none") {
-                          const service = availableServices.find(
-                            (s) => (s.documentId || s.id) === value
-                          );
-                          if (service) handleAddService(service);
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="w-full sm:w-72">
-                        <SelectValue placeholder="Agregar servicio..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Seleccionar servicio...</SelectItem>
-                        {availableServices
-                          .filter(
-                            (s) =>
-                              !selectedServices.find(
-                                (selected) =>
-                                  selected.documentId === s.documentId || selected.id === s.id
-                              )
-                          )
-                          .map((service) => (
-                            <SelectItem key={service.documentId || service.id} value={service.documentId || service.id}>
-                              <div className="flex items-center justify-between w-full">
-                                <span>{service.name}</span>
-                                {service.price > 0 && (
-                                  <span className="text-muted-foreground ml-2">${service.price}</span>
-                                )}
-                              </div>
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                Finalizar Orden
+              </Button>
+            )}
+            {canCancel && (
+              <Button
+                variant="outline"
+                onClick={() => setShowCancelDialog(true)}
+                disabled={isProcessing}
+                className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
+              >
+                {isProcessing ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 ) : (
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {order.services && order.services.length > 0 ? (
-                      order.services.map((service) => (
-                        <Badge key={service.documentId || service.id} variant="secondary">
-                          {service.name}
-                        </Badge>
-                      ))
-                    ) : (
-                      <p className={typography.body.base}>Sin servicios asignados</p>
-                    )}
-                  </div>
+                  <XCircle className="h-4 w-4 mr-2" />
                 )}
-              </div>
-            </div>
-
-            {/* Fecha programada */}
-            <div className={`flex items-center ${spacing.gap.medium}`}>
-              <Calendar className="h-5 w-5 text-muted-foreground shrink-0" />
-              <div className="flex-1">
-                <p className={`${typography.body.small} text-muted-foreground`}>Fecha programada</p>
-                <p className={typography.body.base}>{formatDate(order.scheduledAt)}</p>
-              </div>
-            </div>
-
-            {/* Botones de edición */}
-            {isEditing && (
-              <div className={`flex flex-col sm:flex-row ${spacing.gap.small} pt-4 border-t`}>
-                <Button
-                  variant="default"
-                  size="lg"
-                  className="flex-1 min-h-[44px]"
-                  onClick={handleSaveChanges}
-                  disabled={isSaving}
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="animate-spin mr-2 h-4 w-4" />
-                      Guardando...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-2" />
-                      Guardar Cambios
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="flex-1 min-h-[44px]"
-                  onClick={() => {
-                    setIsEditing(false);
-                    if (order) {
-                      setSelectedDriverId(order.driver?.documentId || "none");
-                      setSelectedServices(order.services || []);
-                    }
-                  }}
-                  disabled={isSaving}
-                >
-                  Cancelar
-                </Button>
-              </div>
+                Cancelar Orden
+              </Button>
+            )}
+            {isCompleted && (
+              <Badge variant="outline" className="text-green-600 border-green-300">
+                <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                Orden completada — inventario deducido
+              </Badge>
             )}
           </CardContent>
         </Card>
-      </section>
+      )}
 
-      {/* Diálogo de confirmación de cancelación de orden */}
-      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+      {/* Dialog: Finalizar */}
+      <AlertDialog open={showFinalizeDialog} onOpenChange={setShowFinalizeDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Cancelar orden?</AlertDialogTitle>
+            <AlertDialogTitle>Finalizar Orden de Servicio</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción cancelará la orden de servicio <strong>{order?.code || `#${order?.id}`}</strong>. Esta acción no se puede deshacer.
+              Al finalizar la orden, se deducirá el stock de los items de inventario
+              utilizados y se registrará un movimiento de salida. Esta acción no se
+              puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1">
+              <Label>Costo de Mano de Obra</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={laborCostDraft}
+                onChange={(e) => setLaborCostDraft(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
+            {order.usedItems && order.usedItems.length > 0 && (
+              <div className="rounded-md bg-muted p-3 text-xs space-y-1">
+                <p className="font-medium">Items a deducir:</p>
+                {order.usedItems.map((item, idx) => (
+                  <p key={idx} className="text-muted-foreground">
+                    • {item.inventoryItem?.code || "N/A"} — {item.quantity} unidad(es)
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isCancelling}>Volver</AlertDialogCancel>
+            <AlertDialogCancel disabled={isProcessing}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleCancelOrder}
-              disabled={isCancelling}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleFinalize}
+              disabled={isProcessing}
+              className="bg-green-600 hover:bg-green-700"
             >
-              {isCancelling ? (
-                <>
-                  <Loader2 className="animate-spin mr-2 h-4 w-4" />
-                  Cancelando...
-                </>
-              ) : (
-                "Sí, cancelar orden"
-              )}
+              {isProcessing && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Confirmar Finalización
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </AdminLayout>
+
+      {/* Dialog: Cancelar */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar Orden de Servicio</AlertDialogTitle>
+            <AlertDialogDescription>
+              {isCompleted
+                ? "Esta orden ya fue completada. Al cancelarla, se revertirá el stock de los items de inventario utilizados (movimiento de reversión)."
+                : "¿Estás seguro de que deseas cancelar esta orden de servicio?"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isProcessing}>Volver</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancel}
+              disabled={isProcessing}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isProcessing && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Sí, Cancelar Orden
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog: Eliminar */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar Orden</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que deseas eliminar permanentemente esta orden de
+              servicio? Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isProcessing}>Volver</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isProcessing}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isProcessing && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }

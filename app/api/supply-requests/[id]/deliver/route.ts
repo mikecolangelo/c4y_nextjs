@@ -12,11 +12,11 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const { id } = await context.params;
     
-    // Verificar que el usuario tenga permiso (admin o seller)
+    // Verificar que el usuario tenga permiso (solo admin)
     const userRole = request.headers.get("x-user-role");
-    if (!["admin", "seller"].includes(userRole || "")) {
+    if (!["admin"].includes(userRole || "")) {
       return NextResponse.json(
-        { error: "Solo administradores y vendedores pueden marcar como entregado." },
+        { error: "Solo administradores pueden marcar como entregado." },
         { status: 403 }
       );
     }
