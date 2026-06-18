@@ -13,6 +13,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FleetReminder } from "@/validations/types";
 import { toast } from "@/lib/toast";
+import { DriverOverview } from "./components/driver-overview";
 
 interface Notification {
   id: string;
@@ -334,6 +335,8 @@ export default function DashboardUserRoute() {
       title="Resumen Semanal"
       showFilterAction={false}
     >
+        <DriverOverview />
+
         <Card className="shadow-sm ring-1 ring-inset ring-border/50">
           <CardContent className={`flex flex-col ${spacing.gap.base} p-6`}>
             <ToggleGroup
