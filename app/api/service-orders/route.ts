@@ -1,39 +1,54 @@
 import { NextResponse } from "next/server";
-import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
+import { STRAPI_BASE_URL } from "@/lib/config";
+import { getCurrentUserJwt } from "@/lib/auth";
 import qs from "qs";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 // GET - Obtener órdenes de servicio
 export async function GET(request: Request) {
   try {
+    const jwt = await getCurrentUserJwt();
+    if (!jwt) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const populate = searchParams.get("populate");
 
-    const queryString = qs.stringify({
-      populate: populate === "*" ? {
-        vehicle: {
-          fields: ["id", "documentId", "name", "placa"],
+    const queryString = qs.stringify(
+      {
+        populate:
+          populate === "*"
+            ? {
+                vehicle: {
+                  fields: ["id", "documentId", "name", "placa"],
+                },
+                services: {
+                  fields: ["id", "name", "price"],
+                },
+                appointment: {
+                  fields: ["id", "scheduledAt", "status"],
+                },
+                driver: {
+                  fields: ["id", "documentId", "displayName"],
+                },
+              }
+            : undefined,
+        sort: ["createdAt:desc"],
+        pagination: {
+          pageSize: 100,
         },
-        services: {
-          fields: ["id", "name", "price"],
-        },
-        appointment: {
-          fields: ["id", "scheduledAt", "status"],
-        },
-        driver: {
-          fields: ["id", "documentId", "displayName"],
-        },
-      } : undefined,
-      sort: ["createdAt:desc"],
-      pagination: {
-        pageSize: 100,
       },
-    }, { encodeValuesOnly: true });
+      { encodeValuesOnly: true }
+    );
 
     const response = await fetch(
       `${STRAPI_BASE_URL}/api/service-orders?${queryString}`,
       {
         headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+          Authorization: `Bearer ${jwt}`,
           "Content-Type": "application/json",
         },
         cache: "no-store",
@@ -58,20 +73,33 @@ export async function GET(request: Request) {
 // POST - Crear nueva orden de servicio
 export async function POST(request: Request) {
   try {
+    const jwt = await getCurrentUserJwt();
+    if (!jwt) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
-    
-    // 1. Crear la orden de servicio primero
-    const orderResponse = await fetch(`${STRAPI_BASE_URL}/api/service-orders`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    });
+
+    // 1. Crear la orden de servicio (body ya incluye { data: {...}, usedItems: [...] })
+    const orderResponse = await fetch(
+      `${STRAPI_BASE_URL}/api/service-orders`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${jwt}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      }
+    );
 
     if (!orderResponse.ok) {
       const errorData = await orderResponse.json();
+      console.error("[API /service-orders POST] Strapi error:", {
+        status: orderResponse.status,
+        body: body,
+        error: errorData,
+      });
       throw new Error(errorData.error?.message || "Error al crear la orden");
     }
 
@@ -82,56 +110,72 @@ export async function POST(request: Request) {
     // 2. Si la orden se creó exitosamente y tiene fecha programada, crear cita automáticamente
     if (orderId && orderAttributes?.scheduledAt) {
       try {
-        // Obtener información del vehículo si está disponible
         const vehicleId = body.data?.vehicle;
         let vehicleName = "";
-        
+        let vehicleNumericId: number | undefined;
+
         if (vehicleId) {
           const vehicleResponse = await fetch(
-            `${STRAPI_BASE_URL}/api/fleets/${vehicleId}?fields[0]=name&fields[1]=brand&fields[2]=model`,
+            `${STRAPI_BASE_URL}/api/fleets/${vehicleId}?fields[0]=id&fields[1]=name&fields[2]=brand&fields[3]=model`,
             {
               headers: {
-                Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+                Authorization: `Bearer ${jwt}`,
               },
             }
           );
           if (vehicleResponse.ok) {
             const vehicleData = await vehicleResponse.json();
-            const vAttrs = vehicleData.data?.attributes || vehicleData.data;
-            vehicleName = vAttrs?.name || `${vAttrs?.brand} ${vAttrs?.model}` || "";
+            const vData = vehicleData.data;
+            const vAttrs = vData?.attributes || vData;
+            vehicleName =
+              vAttrs?.name || `${vAttrs?.brand} ${vAttrs?.model}` || "";
+            // Strapi v5 requiere ID numérico para relaciones en POST
+            vehicleNumericId = vData?.id ?? undefined;
           }
         }
 
-        // Crear la cita asociada a la orden de servicio
         const appointmentPayload = {
           data: {
             title: `Orden de Servicio - ${vehicleName || "Sin vehículo"}`,
             type: "mantenimiento",
             status: mapOrderStatusToAppointment(orderAttributes.status),
             scheduledAt: orderAttributes.scheduledAt,
-            description: orderAttributes.summary || `Orden de servicio creada automáticamente`,
+            description:
+              orderAttributes.summary ||
+              `Orden de servicio creada automáticamente`,
             serviceOrder: orderId,
-            fleetVehicle: vehicleId || undefined,
+            vehicle: vehicleNumericId || undefined,
           },
         };
 
-        const appointmentResponse = await fetch(`${STRAPI_BASE_URL}/api/appointments`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(appointmentPayload),
-        });
+        const appointmentResponse = await fetch(
+          `${STRAPI_BASE_URL}/api/appointments`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${jwt}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(appointmentPayload),
+          }
+        );
 
         if (!appointmentResponse.ok) {
-          console.error("[Service Orders] Failed to create appointment:", await appointmentResponse.text());
+          console.error(
+            "[Service Orders V2] Failed to create appointment:",
+            await appointmentResponse.text()
+          );
         } else {
-          console.log("[Service Orders] Appointment created successfully for order:", orderId);
+          console.log(
+            "[Service Orders V2] Appointment created successfully for order:",
+            orderId
+          );
         }
       } catch (appointmentError) {
-        // No fallar la creación de la orden si la cita falla
-        console.error("[Service Orders] Error creating appointment:", appointmentError);
+        console.error(
+          "[Service Orders V2] Error creating appointment:",
+          appointmentError
+        );
       }
     }
 
@@ -139,14 +183,18 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Error creating service order:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Error al crear la orden" },
+      {
+        error:
+          error instanceof Error ? error.message : "Error al crear la orden",
+      },
       { status: 500 }
     );
   }
 }
 
-// Helper para mapear estado de orden a estado de cita
-function mapOrderStatusToAppointment(orderStatus: string): "pendiente" | "confirmada" | "cancelada" {
+function mapOrderStatusToAppointment(
+  orderStatus: string
+): "pendiente" | "confirmada" | "cancelada" {
   switch (orderStatus) {
     case "pendiente":
       return "pendiente";

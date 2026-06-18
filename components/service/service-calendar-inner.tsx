@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
-import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
+import { ScrollArea } from "@/components_shadcn/ui/scroll-area";
 import { CreateServiceAppointmentDialog } from "./create-service-appointment-dialog";
 import type { AppointmentCard, AppointmentStatus } from "@/validations/types";
 import { format } from "date-fns";
@@ -47,6 +47,35 @@ interface ServiceOrder {
 export interface ServiceCalendarInnerProps {
   onEventClick?: (appointment: AppointmentCard) => void;
   className?: string;
+}
+
+/**
+ * Helper defensivo para construir una fecha válida desde campos de appointment.
+ * Retorna null si year/month/day son inválidos o la fecha resultante es inválida.
+ */
+function createAppointmentDate(
+  year?: number | null,
+  month?: number | null,
+  day?: number | null,
+  time?: string | null
+): Date | null {
+  const y = Number(year);
+  const m = Number(month);
+  const d = Number(day);
+  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) {
+    return null;
+  }
+  const date = new Date(y, m, d);
+  if (isNaN(date.getTime())) {
+    return null;
+  }
+  if (time) {
+    const [h, min] = time.split(":").map(Number);
+    if (Number.isFinite(h) && Number.isFinite(min)) {
+      date.setHours(h, min);
+    }
+  }
+  return date;
 }
 
 export function ServiceCalendarInner({
@@ -176,28 +205,32 @@ export function ServiceCalendarInner({
 
   // Convertir citas a eventos de calendario
   const calendarEvents = useMemo(() => {
-    return maintenanceAppointments.map((apt) => {
-      const date = new Date(apt.year, apt.month, apt.day);
-      const [hours, minutes] = apt.time.split(":").map(Number);
-      date.setHours(hours, minutes);
-      
-      return {
-        id: apt.id,
-        title: apt.title,
-        start: date.toISOString(),
-        allDay: false,
-        extendedProps: {
-          ...apt,
-        },
-        backgroundColor: getEventColor(apt),
-        borderColor: getEventColor(apt),
-        textColor: "#fff",
-        classNames: [
-          apt.status === "completada" ? "opacity-60" : "",
-          apt.status === "cancelada" ? "opacity-40" : "",
-        ].filter(Boolean),
-      };
-    });
+    return maintenanceAppointments
+      .map((apt) => {
+        const date = createAppointmentDate(apt.year, apt.month, apt.day, apt.time);
+        if (!date) {
+          console.warn("[ServiceCalendar] Fecha inválida omitida:", apt.id, apt.year, apt.month, apt.day);
+          return null;
+        }
+
+        return {
+          id: apt.id,
+          title: apt.title,
+          start: date.toISOString(),
+          allDay: false,
+          extendedProps: {
+            ...apt,
+          },
+          backgroundColor: getEventColor(apt),
+          borderColor: getEventColor(apt),
+          textColor: "#fff",
+          classNames: [
+            apt.status === "completada" ? "opacity-60" : "",
+            apt.status === "cancelada" ? "opacity-40" : "",
+          ].filter(Boolean),
+        };
+      })
+      .filter(Boolean);
   }, [maintenanceAppointments]);
 
   // Estadísticas (incluyen citas y órdenes de servicio)
@@ -208,12 +241,18 @@ export function ServiceCalendarInner({
     const totalAppointments = maintenanceAppointments.length;
     const completedAppointments = maintenanceAppointments.filter((a) => a.status === "completada").length;
     const pendingAppointments = maintenanceAppointments.filter(
-      (a) => a.status !== "completada" && a.status !== "cancelada" && 
-      new Date(a.year, a.month, a.day) >= now
+      (a) => {
+        if (a.status === "completada" || a.status === "cancelada") return false;
+        const d = createAppointmentDate(a.year, a.month, a.day);
+        return d ? d >= now : false;
+      }
     ).length;
     const overdueAppointments = maintenanceAppointments.filter(
-      (a) => a.status !== "completada" && a.status !== "cancelada" && 
-      new Date(a.year, a.month, a.day) < now
+      (a) => {
+        if (a.status === "completada" || a.status === "cancelada") return false;
+        const d = createAppointmentDate(a.year, a.month, a.day);
+        return d ? d < now : false;
+      }
     ).length;
 
     // Estadísticas de órdenes de servicio
@@ -284,8 +323,8 @@ export function ServiceCalendarInner({
   } => {
     // Revisar citas del día
     const dayAppointments = maintenanceAppointments.filter(apt => {
-      const aptDate = new Date(apt.year, apt.month, apt.day);
-      return aptDate.toDateString() === date.toDateString();
+      const aptDate = createAppointmentDate(apt.year, apt.month, apt.day);
+      return aptDate ? aptDate.toDateString() === date.toDateString() : false;
     });
 
     // Revisar órdenes de servicio del día
@@ -298,14 +337,16 @@ export function ServiceCalendarInner({
     const now = new Date();
     
     // Estado de citas
-    const hasOverdue = dayAppointments.some(a => 
-      a.status !== "completada" && a.status !== "cancelada" && 
-      new Date(a.year, a.month, a.day) < now
-    );
-    const hasPending = dayAppointments.some(a => 
-      a.status !== "completada" && a.status !== "cancelada" && 
-      new Date(a.year, a.month, a.day) >= now
-    );
+    const hasOverdue = dayAppointments.some(a => {
+      if (a.status === "completada" || a.status === "cancelada") return false;
+      const d = createAppointmentDate(a.year, a.month, a.day);
+      return d ? d < now : false;
+    });
+    const hasPending = dayAppointments.some(a => {
+      if (a.status === "completada" || a.status === "cancelada") return false;
+      const d = createAppointmentDate(a.year, a.month, a.day);
+      return d ? d >= now : false;
+    });
     const hasCompleted = dayAppointments.some(a => a.status === "completada");
 
     // Estado de órdenes de servicio
@@ -494,11 +535,10 @@ export function ServiceCalendarInner({
                   plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
                   initialView="dayGridMonth"
                   headerToolbar={false}
-                  events={[]}
+                  events={calendarEvents}
                   eventClick={handleEventClick}
                   dateClick={handleDateClick}
                   height="100%"
-                  contentHeight="auto"
                   locale="en"
                   firstDay={0}
                   dayHeaders={true}
@@ -509,12 +549,22 @@ export function ServiceCalendarInner({
                     minute: "2-digit",
                     hour12: true,
                   }}
-                  dayMaxEvents={false}
+                  dayMaxEvents={2}
+                  moreLinkText="+"
                   noEventsText="No hay citas"
                   showNonCurrentDates={false}
                   fixedWeekCount={false}
                   dayCellClassNames="calendar-day-cell service-calendar-cell"
                   dayCellContent={(cellInfo) => <DayCellContent {...cellInfo} />}
+                  eventContent={(eventInfo) => (
+                    <div className="flex items-center gap-1 w-full overflow-hidden">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white/80 shrink-0" />
+                      <span className="text-[10px] leading-tight truncate">
+                        {eventInfo.timeText && <span className="opacity-80 mr-1">{eventInfo.timeText}</span>}
+                        {eventInfo.event.title}
+                      </span>
+                    </div>
+                  )}
                 />
               </div>
               {/* Estilos CSS para el calendario */}
@@ -526,28 +576,35 @@ export function ServiceCalendarInner({
                   border: none !important;
                   box-shadow: none !important;
                   border-radius: 0 !important;
-                  min-height: 32px !important;
-                  height: auto !important;
                 }
                 .service-calendar-cell .fc-daygrid-day-frame {
                   display: flex !important;
                   flex-direction: column !important;
-                  align-items: center !important;
-                  justify-content: center !important;
+                  min-height: 32px !important;
                 }
                 .service-calendar-cell .fc-daygrid-day-top {
                   display: flex !important;
                   align-items: center !important;
                   justify-content: center !important;
                   text-align: center !important;
-                  padding: 0 !important;
+                  padding: 2px 0 !important;
+                  min-height: 20px !important;
                 }
                 .fc-daygrid-day-events {
                   margin-top: 1px !important;
-                  min-height: unset !important;
+                  min-height: 16px !important;
                 }
                 .fc-daygrid-event-harness {
                   margin-top: 1px !important;
+                }
+                .fc-daygrid-event {
+                  border-radius: 3px !important;
+                  padding: 0 3px !important;
+                  font-size: 10px !important;
+                  line-height: 1.2 !important;
+                  white-space: nowrap !important;
+                  overflow: hidden !important;
+                  text-overflow: ellipsis !important;
                 }
                 .fc-daygrid-body tbody tr {
                   height: auto !important;
@@ -572,6 +629,13 @@ export function ServiceCalendarInner({
                   float: none !important;
                   margin: 0 !important;
                   padding: 0 !important;
+                }
+                .fc-daygrid-more-link {
+                  font-size: 9px !important;
+                  line-height: 1 !important;
+                  padding: 0 2px !important;
+                  color: hsl(var(--primary)) !important;
+                  font-weight: 600 !important;
                 }
               `}} />
               {/* Botones de navegación debajo */}
@@ -598,7 +662,7 @@ export function ServiceCalendarInner({
               </div>
             </>
           ) : (
-            <div className="overflow-y-auto p-2 max-h-[420px]">
+            <ScrollArea className="h-[420px] p-2">
               {isLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full" />
@@ -612,8 +676,9 @@ export function ServiceCalendarInner({
                 <div className="space-y-2">
                   {[...maintenanceAppointments]
                     .sort((a, b) => {
-                      const dateA = new Date(a.year, a.month, a.day, ...a.time.split(":").map(Number));
-                      const dateB = new Date(b.year, b.month, b.day, ...b.time.split(":").map(Number));
+                      const dateA = createAppointmentDate(a.year, a.month, a.day, a.time);
+                      const dateB = createAppointmentDate(b.year, b.month, b.day, b.time);
+                      if (!dateA || !dateB) return 0;
                       return dateB.getTime() - dateA.getTime();
                     })
                     .map((apt) => (
@@ -683,7 +748,7 @@ export function ServiceCalendarInner({
                     ))}
                 </div>
               )}
-            </div>
+            </ScrollArea>
           )}
         </CardContent>
       </Card>
@@ -703,12 +768,12 @@ export function ServiceCalendarInner({
 function getEventColor(apt: AppointmentCard): string {
   if (apt.status === "completada") return "#22c55e";
   if (apt.status === "cancelada") return "#6b7280";
-  
+
   const now = new Date();
-  const aptDate = new Date(apt.year, apt.month, apt.day);
-  
-  if (aptDate < now && apt.status !== "completada") return "hsl(var(--destructive))";
-  
+  const aptDate = createAppointmentDate(apt.year, apt.month, apt.day);
+
+  if (aptDate && aptDate < now && apt.status !== "completada") return "hsl(var(--destructive))";
+
   switch (apt.status) {
     case "confirmada":
       return "hsl(var(--primary))";
@@ -722,12 +787,12 @@ function getEventColor(apt: AppointmentCard): string {
 function getEventColorClass(apt: AppointmentCard): string {
   if (apt.status === "completada") return "green";
   if (apt.status === "cancelada") return "gray";
-  
+
   const now = new Date();
-  const aptDate = new Date(apt.year, apt.month, apt.day);
-  
-  if (aptDate < now && apt.status !== "completada") return "red";
-  
+  const aptDate = createAppointmentDate(apt.year, apt.month, apt.day);
+
+  if (aptDate && aptDate < now && apt.status !== "completada") return "red";
+
   switch (apt.status) {
     case "confirmada":
       return "primary";
