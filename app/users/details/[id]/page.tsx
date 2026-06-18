@@ -882,12 +882,12 @@ export default function UserDetailsPage() {
                     />
                   </div>
                   <div className="w-full">
-                    <Label>DNI/NIE</Label>
+                    <Label>Cédula</Label>
                     <Input
                       value={formData.identificationNumber}
                       onChange={(e) => setFormData({ ...formData, identificationNumber: e.target.value })}
                       className="mt-1"
-                      placeholder="12345678X"
+                      placeholder="e.g. 8-888-8888"
                     />
                   </div>
                   <div className="w-full">
@@ -1576,7 +1576,7 @@ export default function UserDetailsPage() {
                       <div className="flex items-center gap-3">
                         <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
                         <div>
-                          <p className={`${typography.body.small} text-muted-foreground`}>DNI/NIE</p>
+                          <p className={`${typography.body.small} text-muted-foreground`}>Cédula</p>
                           <p className={typography.body.base}>{user.identificationNumber}</p>
                         </div>
                       </div>
