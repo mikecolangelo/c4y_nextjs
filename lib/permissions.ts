@@ -82,7 +82,7 @@ export async function fetchMyPermissions(
 }
 
 /** Módulos que aún están en construcción (se muestra aviso en vez de romper). */
-export const UNDER_CONSTRUCTION_MODULES = new Set<string>(["billing", "calendar"]);
+export const UNDER_CONSTRUCTION_MODULES = new Set<string>(["calendar"]);
 
 export function isUnderConstruction(moduleKey: string | null): boolean {
   return !!moduleKey && UNDER_CONSTRUCTION_MODULES.has(moduleKey);
