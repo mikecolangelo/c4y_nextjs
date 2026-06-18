@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComponentType } from "react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
@@ -24,7 +24,8 @@ import {
 } from "lucide-react";
 import { spacing, typography } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
-import type { RolePermissions } from "@/lib/permissions";
+import { resolveNavHref } from "@/lib/permissions";
+import { useMyPermissions } from "@/lib/use-my-permissions";
 
 interface NavItem {
   href: string;
@@ -92,24 +93,7 @@ export const adminNavSections: NavSection[] = [
 export function MobileMenu() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const [permissions, setPermissions] = useState<RolePermissions | null>(null);
-
-  // Obtener los permisos del usuario al montar el componente
-  useEffect(() => {
-    const fetchPermissions = async () => {
-      try {
-        const response = await fetch("/api/permissions/me", { cache: "no-store" });
-        if (response.ok) {
-          const data = await response.json();
-          setPermissions(data.data?.permissions || {});
-        }
-      } catch (error) {
-        console.error("Error fetching permissions:", error);
-        setPermissions({});
-      }
-    };
-    fetchPermissions();
-  }, []);
+  const { role, permissions, loading } = useMyPermissions();
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -126,9 +110,9 @@ export function MobileMenu() {
         <nav className={cn("mt-6 flex flex-col", spacing.gap.large)}>
           {adminNavSections.map((section) => {
             // Filtrar items según los permisos del usuario (canAccess por módulo)
-            const filteredItems = permissions
-              ? section.items.filter((item) => permissions[item.module]?.canAccess)
-              : [];
+            const filteredItems = loading
+              ? []
+              : section.items.filter((item) => permissions[item.module]?.canAccess);
 
             return (
               <div key={section.label} className={cn("flex flex-col", spacing.gap.small)}>
@@ -138,11 +122,12 @@ export function MobileMenu() {
                 <div className={cn("flex flex-col", spacing.gap.small)}>
                   {filteredItems.map((item) => {
                     const Icon = item.icon;
-                    const isActive = pathname === item.href;
+                    const href = resolveNavHref(item, role);
+                    const isActive = pathname === href;
                     return (
                       <Link
                         key={item.href}
-                        href={item.href}
+                        href={href}
                         onClick={() => setOpen(false)}
                         className={cn(
                           "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors",

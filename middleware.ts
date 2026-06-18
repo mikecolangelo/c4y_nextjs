@@ -302,6 +302,18 @@ export default async function middleware(request: NextRequest) {
         return redirect;
       }
 
+      // Guardia del dashboard: el módulo "dashboard" es compartido por
+      // /dashboard (panel admin con inventario) y /dashboard-user (panel del
+      // conductor). El conductor nunca debe alcanzar el panel admin, ni por
+      // URL directa: lo enviamos a su propio panel.
+      if (
+        role === 'driver' &&
+        moduleKey === 'dashboard' &&
+        !currentPath.startsWith('/dashboard-user')
+      ) {
+        return NextResponse.redirect(new URL('/dashboard-user', request.url));
+      }
+
       // Módulos rotos: mostrar pantalla "en construcción" en vez de la vista que falla.
       if (isUnderConstruction(moduleKey)) {
         return NextResponse.redirect(
@@ -330,8 +342,8 @@ export const config = {
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
     '/dashboard',
     '/dashboard/:path*',
-    '/dashboard_user',
-    '/dashboard_user/:path*',
+    '/dashboard-user',
+    '/dashboard-user/:path*',
     '/api/fleet/:id/reminder',
     '/api/fleet/:id/document',
   ],

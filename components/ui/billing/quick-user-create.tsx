@@ -191,7 +191,7 @@ export function QuickUserCreate({
             phone: formData.phone.trim() || undefined,
             dateOfBirth: formData.dateOfBirth || undefined,
             department: formData.department.trim() || undefined,
-            role: formData.role || "client",
+            role: formData.role,
             workSchedule: formData.workSchedule.trim() || undefined,
             hireDate: formData.hireDate || undefined,
             specialties: formData.specialties.trim() || undefined,

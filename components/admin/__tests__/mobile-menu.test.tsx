@@ -55,7 +55,14 @@ describe("adminNavSections", () => {
   });
 });
 
-describe("MobileMenu", () => {
+function mockPermissions(role: string, permissions: Record<string, unknown>) {
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ data: { role, permissions } }),
+  }) as unknown as typeof fetch;
+}
+
+describe("MobileMenu — admin", () => {
   beforeEach(() => {
     // Mock de permisos: admin con acceso a todos los módulos del menú.
     const permissions = Object.fromEntries(
@@ -64,10 +71,7 @@ describe("MobileMenu", () => {
         { canAccess: true, canRead: true, canCreate: true, canUpdate: true, canDelete: true },
       ])
     );
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ data: { role: "admin", permissions } }),
-    }) as unknown as typeof fetch;
+    mockPermissions("admin", permissions);
   });
 
   it("muestra los enlaces permitidos y resalta el activo", async () => {
@@ -81,5 +85,27 @@ describe("MobileMenu", () => {
     const activeLink = await screen.findByRole("link", { name: "Flota" });
     expect(activeLink.className).toContain("bg-accent");
     expect(activeLink.className).toContain("text-accent-foreground");
+  });
+});
+
+describe("MobileMenu — driver", () => {
+  beforeEach(() => {
+    // El conductor solo tiene acceso al módulo dashboard (su panel).
+    mockPermissions("driver", {
+      dashboard: { canAccess: true, canRead: true, canCreate: false, canUpdate: false, canDelete: false },
+    });
+  });
+
+  it("muestra solo 'Panel' y enlaza al panel del conductor", async () => {
+    render(<MobileMenu />);
+
+    // El item dashboard apunta a /dashboard-user para el conductor.
+    const panel = await screen.findByRole("link", { name: "Panel" });
+    expect(panel).toHaveAttribute("href", "/dashboard-user");
+
+    // No debe ver módulos de admin.
+    expect(screen.queryByRole("link", { name: "Flota" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Contactos" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Configuración" })).toBeNull();
   });
 });

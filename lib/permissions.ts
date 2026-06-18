@@ -31,7 +31,6 @@ export const ROUTE_MODULE_MAP: Array<{ prefix: string; module: string }> = [
   { prefix: "/billing", module: "billing" },
   { prefix: "/calendar", module: "calendar" },
   { prefix: "/deal", module: "deal" },
-  { prefix: "/service-orders-v2", module: "service-orders" },
   { prefix: "/service-orders", module: "service-orders" },
   { prefix: "/notifications", module: "notifications" },
   { prefix: "/profile", module: "profile" },
@@ -58,6 +57,23 @@ export function landingForRole(role: string): string {
   if (role === "admin") return "/dashboard";
   if (role === "driver") return "/dashboard-user";
   return "/signin";
+}
+
+/**
+ * Resuelve el href de un item de navegación según el rol.
+ *
+ * El módulo `dashboard` es compartido por `/dashboard` (panel admin) y
+ * `/dashboard-user` (panel del conductor). Para el conductor debemos
+ * enlazar a su propio panel, no al de admin.
+ */
+export function resolveNavHref(
+  item: { href: string; module: string },
+  role: string
+): string {
+  if (item.module === "dashboard" && role === "driver") {
+    return "/dashboard-user";
+  }
+  return item.href;
 }
 
 /** Obtiene los permisos del usuario actual desde Strapi usando su JWT. */
