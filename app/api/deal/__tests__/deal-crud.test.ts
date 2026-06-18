@@ -615,19 +615,21 @@ describe("Deal CRUD - Strapi Integration", () => {
       expect(result[0].paymentAgreement).toBe("semanal"); // Valor por defecto
     });
 
-    it("debe filtrar contratos sin tipo", async () => {
+    it("no filtra contratos por el campo legacy 'type' (reemplazado por contractType)", async () => {
+      // El campo 'type' fue reemplazado por la relación 'contractType'.
+      // fetchDealsFromStrapi ya no descarta deals por tipo: solo omite los nulos.
       const mockDeals = {
         data: [
           {
             id: 1,
-            documentId: "valid-deal",
+            documentId: "deal-con-tipo",
             type: "conduccion",
             status: "pendiente",
           },
           {
             id: 2,
-            documentId: "invalid-deal",
-            type: "", // Tipo vacío
+            documentId: "deal-sin-tipo",
+            type: "", // Tipo vacío: ya NO se filtra
             status: "pendiente",
           },
         ],
@@ -640,8 +642,11 @@ describe("Deal CRUD - Strapi Integration", () => {
 
       const result = await fetchDealsFromStrapi();
 
-      expect(result).toHaveLength(1);
-      expect(result[0].type).toBe("conduccion");
+      expect(result).toHaveLength(2);
+      expect(result.map((d) => d.documentId)).toEqual([
+        "deal-con-tipo",
+        "deal-sin-tipo",
+      ]);
     });
 
     it("debe normalizar cláusulas y descuentos correctamente", async () => {

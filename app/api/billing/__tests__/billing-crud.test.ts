@@ -105,21 +105,25 @@ describe("Billing API CRUD", () => {
 
   describe("fetchBillingRecordByIdFromStrapi", () => {
     it("debe obtener un pago por ID", async () => {
+      // Strapi v5: los registros se crean como drafts, por lo que el GET por
+      // documentId usa una list-query y devuelve data como array.
       const mockData = {
-        data: {
-          id: 1,
-          documentId: "pay-001",
-          receiptNumber: "REC-202601-00001",
-          amount: 225,
-          currency: "USD",
-          status: "pagado",
-          quotaNumber: 1,
-          quotasCovered: 1,
-          dueDate: "2026-02-01",
-          paymentDate: "2026-02-01",
-          verifiedInBank: false,
-          createdAt: "2026-02-01T10:00:00Z",
-        },
+        data: [
+          {
+            id: 1,
+            documentId: "pay-001",
+            receiptNumber: "REC-202601-00001",
+            amount: 225,
+            currency: "USD",
+            status: "pagado",
+            quotaNumber: 1,
+            quotasCovered: 1,
+            dueDate: "2026-02-01",
+            paymentDate: "2026-02-01",
+            verifiedInBank: false,
+            createdAt: "2026-02-01T10:00:00Z",
+          },
+        ],
       };
 
       mockFetch.mockResolvedValueOnce({
@@ -135,9 +139,10 @@ describe("Billing API CRUD", () => {
     });
 
     it("debe retornar null cuando no existe", async () => {
+      // La list-query responde ok con data vacía cuando no hay coincidencias.
       mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 404,
+        ok: true,
+        json: () => Promise.resolve({ data: [] }),
       });
 
       const result = await fetchBillingRecordByIdFromStrapi("no-existe");
@@ -175,10 +180,30 @@ describe("Billing API CRUD", () => {
 
   describe("deleteBillingRecordFromStrapi", () => {
     it("debe eliminar un pago correctamente", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({}),
-      });
+      // El delete hace primero un lookup (para el borrado en cascada de hijos)
+      // y luego ejecuta el DELETE.
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              data: [
+                {
+                  id: 1,
+                  documentId: "pay-001",
+                  receiptNumber: "REC-202601-00001",
+                  amount: 225,
+                  status: "pagado",
+                  verifiedInBank: false,
+                  createdAt: "2026-02-01T10:00:00Z",
+                },
+              ],
+            }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve({}),
+        });
 
       await expect(
         deleteBillingRecordFromStrapi("pay-001")
