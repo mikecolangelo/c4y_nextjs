@@ -45,6 +45,26 @@ export function clearThemeCookie() {
   deleteCookie(THEME_COOKIE_NAME);
 }
 
+const VALID_THEMES: Theme[] = ["light", "dark", "system"];
+
+function isValidTheme(value: unknown): value is Theme {
+  return typeof value === "string" && VALID_THEMES.includes(value as Theme);
+}
+
+// Persiste la preferencia en la base de datos (por usuario). Es "fire and
+// forget": si el usuario no está autenticado o falla la red, el tema sigue
+// viviendo en la cookie y no rompemos la experiencia.
+function persistThemeToDb(theme: Theme) {
+  if (typeof window === "undefined") return;
+  fetch("/api/user-profile/theme", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ themePreference: theme }),
+  }).catch(() => {
+    /* sin conexión o sin sesión: la cookie mantiene la preferencia */
+  });
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("light");
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
@@ -55,7 +75,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const cookieTheme = getCookie(THEME_COOKIE_NAME) as Theme | null;
     const initialTheme = cookieTheme || "light";
     setThemeState(initialTheme);
-    
+
     // Resolver tema inicial inmediatamente
     let initialResolved: "light" | "dark";
     if (initialTheme === "system") {
@@ -67,6 +87,23 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
     setResolvedTheme(initialResolved);
     setMounted(true);
+
+    // La cookie da una respuesta instantánea (evita parpadeo). La fuente de
+    // verdad es la base de datos: al cargar, traemos la preferencia guardada
+    // del usuario y la aplicamos para que el tema siga al usuario entre
+    // dispositivos. No re-persistimos aquí (solo hidratamos el estado).
+    fetch("/api/user-profile/me", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((payload) => {
+        const dbTheme = payload?.data?.themePreference;
+        if (isValidTheme(dbTheme) && dbTheme !== initialTheme) {
+          setThemeState(dbTheme);
+          setCookie(THEME_COOKIE_NAME, dbTheme, THEME_COOKIE_MAX_AGE);
+        }
+      })
+      .catch(() => {
+        /* sin sesión o sin red: nos quedamos con la cookie */
+      });
   }, []);
 
   // Resolver el tema real (light/dark) basado en el tema seleccionado
@@ -117,8 +154,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
-    // Guardar en cookie
+    // Guardar en cookie (instantáneo) y persistir en la BD (por usuario).
     setCookie(THEME_COOKIE_NAME, newTheme, THEME_COOKIE_MAX_AGE);
+    persistThemeToDb(newTheme);
   };
 
   // Siempre proporcionar el contexto, incluso antes de montar
@@ -136,4 +174,3 @@ export function useTheme() {
   }
   return context;
 }
-
