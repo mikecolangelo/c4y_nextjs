@@ -115,18 +115,20 @@ export function NotificationCalendar({
   }, [events]);
 
   // Función para obtener el estado de un día (vencido, pendiente, completado, mixto)
-  const getDayStatus = (date: Date): { hasOverdue: boolean; hasPending: boolean; hasCompleted: boolean } => {
-    const dateStr = date.toISOString().split('T')[0];
+  const getDayStatus = (
+    date: Date
+  ): { hasOverdue: boolean; hasPending: boolean; hasCompleted: boolean } => {
+    const dateStr = date.toISOString().split("T")[0];
     const now = new Date();
-    
-    const dayEvents = events.filter(event => {
-      const eventDate = new Date(event.start).toISOString().split('T')[0];
+
+    const dayEvents = events.filter((event) => {
+      const eventDate = new Date(event.start).toISOString().split("T")[0];
       return eventDate === dateStr;
     });
 
-    const hasOverdue = dayEvents.some(e => !e.isCompleted && new Date(e.start) < now);
-    const hasPending = dayEvents.some(e => !e.isCompleted && new Date(e.start) >= now);
-    const hasCompleted = dayEvents.some(e => e.isCompleted);
+    const hasOverdue = dayEvents.some((e) => !e.isCompleted && new Date(e.start) < now);
+    const hasPending = dayEvents.some((e) => !e.isCompleted && new Date(e.start) >= now);
+    const hasCompleted = dayEvents.some((e) => e.isCompleted);
 
     return { hasOverdue, hasPending, hasCompleted };
   };
@@ -140,7 +142,7 @@ export function NotificationCalendar({
     let bgColorClass = "";
     let textColorClass = "";
     let hoverBgClass = "";
-    
+
     if (hasOverdue) {
       // Color para vencidos
       bgColorClass = "bg-red-500/20";
@@ -159,7 +161,7 @@ export function NotificationCalendar({
     }
 
     return (
-      <span 
+      <span
         className={cn(
           "font-medium leading-none cursor-pointer",
           isCompact ? "text-xs" : "text-sm",
@@ -209,15 +211,15 @@ export function NotificationCalendar({
           <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
             {stats.total}
           </Badge>
-          <Badge 
-            variant="default" 
+          <Badge
+            variant="default"
             className="text-[10px] bg-primary hover:bg-primary/90 px-1.5 py-0"
           >
             {stats.pending} pend
           </Badge>
           {stats.overdue > 0 && (
-            <Badge 
-              variant="destructive" 
+            <Badge
+              variant="destructive"
               className="text-[10px] bg-destructive hover:bg-destructive/90 px-1.5 py-0"
             >
               {stats.overdue} venc
@@ -243,8 +245,8 @@ export function NotificationCalendar({
                 locale="en"
                 firstDay={0}
                 dayHeaders={true}
-                dayHeaderFormat={{ weekday: 'narrow' }}
-                titleFormat={{ month: 'short', year: 'numeric' }}
+                dayHeaderFormat={{ weekday: "narrow" }}
+                titleFormat={{ month: "short", year: "numeric" }}
                 eventTimeFormat={{
                   hour: "2-digit",
                   minute: "2-digit",
@@ -261,29 +263,21 @@ export function NotificationCalendar({
             </div>
             {/* Botones de navegación debajo */}
             <div className="flex items-center justify-center gap-2 mt-8 pb-2 pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handlePrevMonth}
-                className="h-8 w-8 p-0"
-              >
+              <Button variant="outline" size="sm" onClick={handlePrevMonth} className="h-8 w-8 p-0">
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <span className="text-sm font-medium min-w-[120px] text-center capitalize">
                 {currentMonth}
               </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleNextMonth}
-                className="h-8 w-8 p-0"
-              >
+              <Button variant="outline" size="sm" onClick={handleNextMonth} className="h-8 w-8 p-0">
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
           </>
         ) : (
-          <div className={cn("overflow-y-auto", isCompact ? "p-2 max-h-[250px]" : "p-4 max-h-[400px]")}>
+          <div
+            className={cn("overflow-y-auto", isCompact ? "p-2 max-h-[250px]" : "p-4 max-h-[400px]")}
+          >
             {events.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 No hay notificaciones para mostrar
@@ -298,9 +292,7 @@ export function NotificationCalendar({
                       onClick={() => onEventClick?.(event)}
                       className={cn(
                         "p-3 rounded-lg border cursor-pointer transition-all hover:shadow-md",
-                        event.isCompleted
-                          ? "bg-muted/50 opacity-60"
-                          : "bg-card hover:bg-accent",
+                        event.isCompleted ? "bg-muted/50 opacity-60" : "bg-card hover:bg-accent",
                         event.type === "reminder" && !event.isActive && "opacity-70"
                       )}
                     >
@@ -349,7 +341,7 @@ export function NotificationCalendar({
                             {event.type === "reminder" && !event.isActive && !event.isCompleted && (
                               <Badge
                                 variant="secondary"
-                                className="text-[10px] h-5 bg-gray-100 text-gray-600"
+                                className="text-[10px] h-5 bg-muted text-muted-foreground"
                               >
                                 Pausado
                               </Badge>
@@ -371,13 +363,13 @@ export function NotificationCalendar({
 function getEventColor(event: CalendarEvent): string {
   if (event.isCompleted) return "#22c55e"; // Verde para completados
   if (event.type === "reminder" && !event.isActive) return "#6b7280"; // Gris para pausados
-  
+
   const now = new Date();
   const eventDate = new Date(event.start);
-  
+
   // Usar destructive color para vencidos (basado en el color del sitio)
-  if (eventDate < now) return "hsl(var(--destructive))"; 
-  
+  if (eventDate < now) return "hsl(var(--destructive))";
+
   // Usar primary color para pendientes (basado en el color del sitio)
   return "hsl(var(--primary))";
 }
@@ -385,12 +377,12 @@ function getEventColor(event: CalendarEvent): string {
 function getEventColorClass(event: CalendarEvent): string {
   if (event.isCompleted) return "green";
   if (event.type === "reminder" && !event.isActive) return "gray";
-  
+
   const now = new Date();
   const eventDate = new Date(event.start);
-  
+
   if (eventDate < now) return "destructive";
-  
+
   switch (event.type) {
     case "reminder":
       return "primary";
@@ -405,11 +397,12 @@ function formatEventDate(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
   const isToday = date.toDateString() === now.toDateString();
-  const isYesterday = new Date(now.setDate(now.getDate() - 1)).toDateString() === date.toDateString();
-  
+  const isYesterday =
+    new Date(now.setDate(now.getDate() - 1)).toDateString() === date.toDateString();
+
   if (isToday) return "Hoy";
   if (isYesterday) return "Ayer";
-  
+
   return date.toLocaleDateString("es-ES", {
     day: "numeric",
     month: "short",
