@@ -1,5 +1,7 @@
 "use client";
 
+import { clientLogger } from "@/lib/client-logger";
+
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import FullCalendar from "@fullcalendar/react";
@@ -9,26 +11,13 @@ import interactionPlugin from "@fullcalendar/interaction";
 import { Button } from "@/components_shadcn/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components_shadcn/ui/card";
 import { Badge } from "@/components_shadcn/ui/badge";
-import { 
-  Calendar, 
-  List, 
-  ChevronLeft, 
-  ChevronRight,
-  Plus,
-  Clock,
-  MapPin,
-  Car,
-  Wrench,
-  CheckCircle2,
-  AlertCircle
-} from "lucide-react";
+import { Calendar, List, ChevronLeft, ChevronRight, Plus, Clock, MapPin, Car } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import { ScrollArea } from "@/components_shadcn/ui/scroll-area";
 import { CreateServiceAppointmentDialog } from "./create-service-appointment-dialog";
 import type { AppointmentCard, AppointmentStatus } from "@/validations/types";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
 
 // Tipo para órdenes de servicio
 interface ServiceOrder {
@@ -78,17 +67,14 @@ function createAppointmentDate(
   return date;
 }
 
-export function ServiceCalendarInner({
-  onEventClick,
-  className,
-}: ServiceCalendarInnerProps) {
+export function ServiceCalendarInner({ onEventClick, className }: ServiceCalendarInnerProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const calendarRef = useRef<any>(null);
   const [view, setView] = useState<"calendar" | "list">("calendar");
   const [isCompact] = useState(true);
   const [currentMonth, setCurrentMonth] = useState<string>("");
-  
+
   // Estado para pre-seleccionar servicio desde URL
   const [preSelectedServiceId, setPreSelectedServiceId] = useState<string>("");
 
@@ -112,27 +98,27 @@ export function ServiceCalendarInner({
   useEffect(() => {
     updateCurrentMonth();
   }, [updateCurrentMonth]);
-  
+
   // Estados para datos
   const [appointments, setAppointments] = useState<AppointmentCard[]>([]);
   const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>("");
-  
+
   // Leer parámetros de URL para pre-seleccionar servicio
   useEffect(() => {
     const serviceId = searchParams.get("serviceId");
     const serviceName = searchParams.get("serviceName");
     const fromService = searchParams.get("fromService");
-    
+
     if (fromService === "true" && serviceId) {
       setPreSelectedServiceId(serviceId);
       // Abrir el diálogo automáticamente
       const today = format(new Date(), "yyyy-MM-dd");
       setSelectedDate(today);
       setIsCreateDialogOpen(true);
-      
+
       // Limpiar los parámetros de URL para evitar re-apertura al recargar
       const newParams = new URLSearchParams(searchParams);
       newParams.delete("serviceId");
@@ -154,7 +140,7 @@ export function ServiceCalendarInner({
       const result = await response.json();
       setAppointments(result.data || []);
     } catch (err) {
-      console.error("Error fetching appointments:", err);
+      clientLogger.error("Error fetching appointments:", err);
       toast.error("No se pudieron cargar las citas");
     } finally {
       setIsLoading(false);
@@ -170,7 +156,7 @@ export function ServiceCalendarInner({
       }
       const result = await response.json();
       const ordersData = result.data || [];
-      
+
       // Mapear órdenes al formato ServiceOrder
       const mappedOrders: ServiceOrder[] = ordersData.map((order: any) => ({
         id: order.id,
@@ -180,10 +166,10 @@ export function ServiceCalendarInner({
         scheduledAt: order.scheduledAt,
         vehicle: order.vehicle,
       }));
-      
+
       setServiceOrders(mappedOrders);
     } catch (error) {
-      console.error("Error loading service orders:", error);
+      clientLogger.error("Error loading service orders:", error);
       setServiceOrders([]);
     }
   }, []);
@@ -194,14 +180,10 @@ export function ServiceCalendarInner({
   }, [fetchAppointments, fetchServiceOrders]);
 
   // Filtrar solo citas de mantenimiento
-  const maintenanceAppointments = appointments.filter(
-    (apt) => apt.type === "mantenimiento"
-  );
-  
+  const maintenanceAppointments = appointments.filter((apt) => apt.type === "mantenimiento");
+
   // Filtrar órdenes de servicio con fecha programada
-  const scheduledOrders = serviceOrders.filter(
-    (order) => order.scheduledAt
-  );
+  const scheduledOrders = serviceOrders.filter((order) => order.scheduledAt);
 
   // Convertir citas a eventos de calendario
   const calendarEvents = useMemo(() => {
@@ -209,7 +191,13 @@ export function ServiceCalendarInner({
       .map((apt) => {
         const date = createAppointmentDate(apt.year, apt.month, apt.day, apt.time);
         if (!date) {
-          console.warn("[ServiceCalendar] Fecha inválida omitida:", apt.id, apt.year, apt.month, apt.day);
+          clientLogger.warn(
+            "[ServiceCalendar] Fecha inválida omitida:",
+            apt.id,
+            apt.year,
+            apt.month,
+            apt.day
+          );
           return null;
         }
 
@@ -236,24 +224,22 @@ export function ServiceCalendarInner({
   // Estadísticas (incluyen citas y órdenes de servicio)
   const stats = useMemo(() => {
     const now = new Date();
-    
+
     // Estadísticas de citas
     const totalAppointments = maintenanceAppointments.length;
-    const completedAppointments = maintenanceAppointments.filter((a) => a.status === "completada").length;
-    const pendingAppointments = maintenanceAppointments.filter(
-      (a) => {
-        if (a.status === "completada" || a.status === "cancelada") return false;
-        const d = createAppointmentDate(a.year, a.month, a.day);
-        return d ? d >= now : false;
-      }
+    const completedAppointments = maintenanceAppointments.filter(
+      (a) => a.status === "completada"
     ).length;
-    const overdueAppointments = maintenanceAppointments.filter(
-      (a) => {
-        if (a.status === "completada" || a.status === "cancelada") return false;
-        const d = createAppointmentDate(a.year, a.month, a.day);
-        return d ? d < now : false;
-      }
-    ).length;
+    const pendingAppointments = maintenanceAppointments.filter((a) => {
+      if (a.status === "completada" || a.status === "cancelada") return false;
+      const d = createAppointmentDate(a.year, a.month, a.day);
+      return d ? d >= now : false;
+    }).length;
+    const overdueAppointments = maintenanceAppointments.filter((a) => {
+      if (a.status === "completada" || a.status === "cancelada") return false;
+      const d = createAppointmentDate(a.year, a.month, a.day);
+      return d ? d < now : false;
+    }).length;
 
     // Estadísticas de órdenes de servicio
     const totalOrders = scheduledOrders.length;
@@ -261,14 +247,16 @@ export function ServiceCalendarInner({
     const pendingOrders = scheduledOrders.filter((o) => o.status === "pendiente").length;
     const inProgressOrders = scheduledOrders.filter((o) => o.status === "en_progreso").length;
     const overdueOrders = scheduledOrders.filter(
-      (o) => (o.status === "pendiente" || o.status === "en_progreso") && 
-      o.scheduledAt && new Date(o.scheduledAt) < now
+      (o) =>
+        (o.status === "pendiente" || o.status === "en_progreso") &&
+        o.scheduledAt &&
+        new Date(o.scheduledAt) < now
     ).length;
 
-    return { 
-      total: totalAppointments + totalOrders, 
-      completed: completedAppointments + completedOrders, 
-      pending: pendingAppointments + pendingOrders + inProgressOrders, 
+    return {
+      total: totalAppointments + totalOrders,
+      completed: completedAppointments + completedOrders,
+      pending: pendingAppointments + pendingOrders + inProgressOrders,
       overdue: overdueAppointments + overdueOrders,
       inProgress: inProgressOrders,
     };
@@ -287,7 +275,7 @@ export function ServiceCalendarInner({
     setPreSelectedServiceId(""); // Limpiar pre-selección al abrir manualmente
     setIsCreateDialogOpen(true);
   };
-  
+
   // Handler para cerrar el diálogo y limpiar pre-selección
   const handleDialogOpenChange = (open: boolean) => {
     setIsCreateDialogOpen(open);
@@ -313,60 +301,76 @@ export function ServiceCalendarInner({
   };
 
   // Función para obtener el estado de un día (incluye citas y órdenes de servicio)
-  const getDayStatus = (date: Date): { 
-    hasOverdue: boolean; 
-    hasPending: boolean; 
+  const getDayStatus = (
+    date: Date
+  ): {
+    hasOverdue: boolean;
+    hasPending: boolean;
     hasCompleted: boolean;
     hasOrderPending: boolean;
     hasOrderInProgress: boolean;
     hasOrderCompleted: boolean;
   } => {
     // Revisar citas del día
-    const dayAppointments = maintenanceAppointments.filter(apt => {
+    const dayAppointments = maintenanceAppointments.filter((apt) => {
       const aptDate = createAppointmentDate(apt.year, apt.month, apt.day);
       return aptDate ? aptDate.toDateString() === date.toDateString() : false;
     });
 
     // Revisar órdenes de servicio del día
-    const dayOrders = scheduledOrders.filter(order => {
+    const dayOrders = scheduledOrders.filter((order) => {
       if (!order.scheduledAt) return false;
       const orderDate = new Date(order.scheduledAt);
       return orderDate.toDateString() === date.toDateString();
     });
 
     const now = new Date();
-    
+
     // Estado de citas
-    const hasOverdue = dayAppointments.some(a => {
+    const hasOverdue = dayAppointments.some((a) => {
       if (a.status === "completada" || a.status === "cancelada") return false;
       const d = createAppointmentDate(a.year, a.month, a.day);
       return d ? d < now : false;
     });
-    const hasPending = dayAppointments.some(a => {
+    const hasPending = dayAppointments.some((a) => {
       if (a.status === "completada" || a.status === "cancelada") return false;
       const d = createAppointmentDate(a.year, a.month, a.day);
       return d ? d >= now : false;
     });
-    const hasCompleted = dayAppointments.some(a => a.status === "completada");
+    const hasCompleted = dayAppointments.some((a) => a.status === "completada");
 
     // Estado de órdenes de servicio
-    const hasOrderPending = dayOrders.some(o => o.status === "pendiente");
-    const hasOrderInProgress = dayOrders.some(o => o.status === "en_progreso");
-    const hasOrderCompleted = dayOrders.some(o => o.status === "completado");
+    const hasOrderPending = dayOrders.some((o) => o.status === "pendiente");
+    const hasOrderInProgress = dayOrders.some((o) => o.status === "en_progreso");
+    const hasOrderCompleted = dayOrders.some((o) => o.status === "completado");
 
-    return { hasOverdue, hasPending, hasCompleted, hasOrderPending, hasOrderInProgress, hasOrderCompleted };
+    return {
+      hasOverdue,
+      hasPending,
+      hasCompleted,
+      hasOrderPending,
+      hasOrderInProgress,
+      hasOrderCompleted,
+    };
   };
 
   // Componente personalizado para el contenido de la celda
   const DayCellContent = (cellInfo: any) => {
     const date = cellInfo.date;
-    const { hasOverdue, hasPending, hasCompleted, hasOrderPending, hasOrderInProgress, hasOrderCompleted } = getDayStatus(date);
+    const {
+      hasOverdue,
+      hasPending,
+      hasCompleted,
+      hasOrderPending,
+      hasOrderInProgress,
+      hasOrderCompleted,
+    } = getDayStatus(date);
 
     let bgColorClass = "";
     let textColorClass = "";
     let hoverBgClass = "";
     let borderClass = "";
-    
+
     // Prioridad: Overdue > In Progress > Pending > Completed
     if (hasOverdue) {
       bgColorClass = "bg-red-500/20";
@@ -391,7 +395,7 @@ export function ServiceCalendarInner({
     }
 
     return (
-      <span 
+      <span
         className={cn(
           "text-xs font-medium leading-none text-center cursor-pointer",
           hasOverdue && "font-bold",
@@ -410,7 +414,9 @@ export function ServiceCalendarInner({
       case "confirmada":
         return <Badge className="text-[10px] bg-primary hover:bg-primary/90">Confirmada</Badge>;
       case "pendiente":
-        return <Badge className="text-[10px] bg-orange-500 hover:bg-orange-500/90">Pendiente</Badge>;
+        return (
+          <Badge className="text-[10px] bg-orange-500 hover:bg-orange-500/90">Pendiente</Badge>
+        );
       case "cancelada":
         return <Badge className="text-[10px] bg-red-500 hover:bg-red-500/90">Cancelada</Badge>;
       case "completada":
@@ -467,8 +473,8 @@ export function ServiceCalendarInner({
               {stats.total}
             </Badge>
             {stats.pending > 0 && (
-              <Badge 
-                variant="default" 
+              <Badge
+                variant="default"
                 className="text-[9px] bg-orange-500 hover:bg-orange-500/90 px-1 py-0 h-4"
                 title="Pendientes"
               >
@@ -476,8 +482,8 @@ export function ServiceCalendarInner({
               </Badge>
             )}
             {stats.inProgress > 0 && (
-              <Badge 
-                variant="default" 
+              <Badge
+                variant="default"
                 className="text-[9px] bg-blue-500 hover:bg-blue-500/90 px-1 py-0 h-4"
                 title="En Progreso"
               >
@@ -485,8 +491,8 @@ export function ServiceCalendarInner({
               </Badge>
             )}
             {stats.overdue > 0 && (
-              <Badge 
-                variant="destructive" 
+              <Badge
+                variant="destructive"
                 className="text-[9px] bg-destructive hover:bg-destructive/90 px-1 py-0 h-4"
                 title="Vencidas"
               >
@@ -494,8 +500,8 @@ export function ServiceCalendarInner({
               </Badge>
             )}
             {stats.completed > 0 && (
-              <Badge 
-                variant="secondary" 
+              <Badge
+                variant="secondary"
                 className="text-[9px] bg-green-100 text-green-700 px-1 py-0 h-4"
                 title="Completadas"
               >
@@ -542,8 +548,8 @@ export function ServiceCalendarInner({
                   locale="en"
                   firstDay={0}
                   dayHeaders={true}
-                  dayHeaderFormat={{ weekday: 'narrow' }}
-                  titleFormat={{ month: 'short', year: 'numeric' }}
+                  dayHeaderFormat={{ weekday: "narrow" }}
+                  titleFormat={{ month: "short", year: "numeric" }}
                   eventTimeFormat={{
                     hour: "2-digit",
                     minute: "2-digit",
@@ -560,7 +566,9 @@ export function ServiceCalendarInner({
                     <div className="flex items-center gap-1 w-full overflow-hidden">
                       <span className="w-1.5 h-1.5 rounded-full bg-white/80 shrink-0" />
                       <span className="text-[10px] leading-tight truncate">
-                        {eventInfo.timeText && <span className="opacity-80 mr-1">{eventInfo.timeText}</span>}
+                        {eventInfo.timeText && (
+                          <span className="opacity-80 mr-1">{eventInfo.timeText}</span>
+                        )}
                         {eventInfo.event.title}
                       </span>
                     </div>
@@ -568,7 +576,9 @@ export function ServiceCalendarInner({
                 />
               </div>
               {/* Estilos CSS para el calendario */}
-              <style dangerouslySetInnerHTML={{ __html: `
+              <style
+                dangerouslySetInnerHTML={{
+                  __html: `
                 .service-calendar-cell,
                 .service-calendar-cell .fc-daygrid-day-frame,
                 .service-calendar-cell .fc-daygrid-day-top {
@@ -637,7 +647,9 @@ export function ServiceCalendarInner({
                   color: hsl(var(--primary)) !important;
                   font-weight: 600 !important;
                 }
-              `}} />
+              `,
+                }}
+              />
               {/* Botones de navegación debajo */}
               <div className="flex items-center justify-center gap-1.5 mt-6 pb-1.5 pt-2">
                 <Button
@@ -706,33 +718,33 @@ export function ServiceCalendarInner({
                           />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h4 className="font-medium text-sm truncate">
-                                {apt.title}
-                              </h4>
+                              <h4 className="font-medium text-sm truncate">{apt.title}</h4>
                               {getStatusBadge(apt.status)}
                             </div>
-                            
+
                             <div className="flex items-center gap-1 text-muted-foreground text-xs mt-1">
                               <Clock className="h-3 w-3" />
                               <span>{apt.time}</span>
-                              {apt.durationMinutes && (
-                                <span>({apt.durationMinutes} min)</span>
-                              )}
+                              {apt.durationMinutes && <span>({apt.durationMinutes} min)</span>}
                             </div>
 
                             {apt.fleetVehiclePlate && (
-                              <div 
+                              <div
                                 className="flex items-center gap-1 text-xs mt-1.5 p-1.5 bg-muted/50 rounded cursor-pointer hover:bg-muted transition-colors"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  apt.fleetVehicleDocumentId && router.push(`/fleet/details/${apt.fleetVehicleDocumentId}`);
+                                  if (apt.fleetVehicleDocumentId) {
+                                    router.push(`/fleet/details/${apt.fleetVehicleDocumentId}`);
+                                  }
                                 }}
                               >
                                 <Car className="h-3 w-3 text-primary" />
                                 <span className="font-medium truncate">
                                   {apt.fleetVehicleBrand} {apt.fleetVehicleModel}
                                 </span>
-                                <span className="text-muted-foreground">• {apt.fleetVehiclePlate}</span>
+                                <span className="text-muted-foreground">
+                                  • {apt.fleetVehiclePlate}
+                                </span>
                               </div>
                             )}
 
