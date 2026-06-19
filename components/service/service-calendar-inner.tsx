@@ -212,10 +212,7 @@ export function ServiceCalendarInner({ onEventClick, className }: ServiceCalenda
           backgroundColor: getEventColor(apt),
           borderColor: getEventColor(apt),
           textColor: "#fff",
-          classNames: [
-            apt.status === "completada" ? "opacity-60" : "",
-            apt.status === "cancelada" ? "opacity-40" : "",
-          ].filter(Boolean),
+          classNames: [apt.status === "cancelada" ? "opacity-40" : ""].filter(Boolean),
         };
       })
       .filter(Boolean);
@@ -225,18 +222,16 @@ export function ServiceCalendarInner({ onEventClick, className }: ServiceCalenda
   const stats = useMemo(() => {
     const now = new Date();
 
-    // Estadísticas de citas
+    // Estadísticas de citas (las citas no tienen estado "completada":
+    // confirmada | pendiente | cancelada)
     const totalAppointments = maintenanceAppointments.length;
-    const completedAppointments = maintenanceAppointments.filter(
-      (a) => a.status === "completada"
-    ).length;
     const pendingAppointments = maintenanceAppointments.filter((a) => {
-      if (a.status === "completada" || a.status === "cancelada") return false;
+      if (a.status === "cancelada") return false;
       const d = createAppointmentDate(a.year, a.month, a.day);
       return d ? d >= now : false;
     }).length;
     const overdueAppointments = maintenanceAppointments.filter((a) => {
-      if (a.status === "completada" || a.status === "cancelada") return false;
+      if (a.status === "cancelada") return false;
       const d = createAppointmentDate(a.year, a.month, a.day);
       return d ? d < now : false;
     }).length;
@@ -255,7 +250,7 @@ export function ServiceCalendarInner({ onEventClick, className }: ServiceCalenda
 
     return {
       total: totalAppointments + totalOrders,
-      completed: completedAppointments + completedOrders,
+      completed: completedOrders,
       pending: pendingAppointments + pendingOrders + inProgressOrders,
       overdue: overdueAppointments + overdueOrders,
       inProgress: inProgressOrders,
@@ -306,7 +301,6 @@ export function ServiceCalendarInner({ onEventClick, className }: ServiceCalenda
   ): {
     hasOverdue: boolean;
     hasPending: boolean;
-    hasCompleted: boolean;
     hasOrderPending: boolean;
     hasOrderInProgress: boolean;
     hasOrderCompleted: boolean;
@@ -328,17 +322,15 @@ export function ServiceCalendarInner({ onEventClick, className }: ServiceCalenda
 
     // Estado de citas
     const hasOverdue = dayAppointments.some((a) => {
-      if (a.status === "completada" || a.status === "cancelada") return false;
+      if (a.status === "cancelada") return false;
       const d = createAppointmentDate(a.year, a.month, a.day);
       return d ? d < now : false;
     });
     const hasPending = dayAppointments.some((a) => {
-      if (a.status === "completada" || a.status === "cancelada") return false;
+      if (a.status === "cancelada") return false;
       const d = createAppointmentDate(a.year, a.month, a.day);
       return d ? d >= now : false;
     });
-    const hasCompleted = dayAppointments.some((a) => a.status === "completada");
-
     // Estado de órdenes de servicio
     const hasOrderPending = dayOrders.some((o) => o.status === "pendiente");
     const hasOrderInProgress = dayOrders.some((o) => o.status === "en_progreso");
@@ -347,7 +339,6 @@ export function ServiceCalendarInner({ onEventClick, className }: ServiceCalenda
     return {
       hasOverdue,
       hasPending,
-      hasCompleted,
       hasOrderPending,
       hasOrderInProgress,
       hasOrderCompleted,
@@ -357,14 +348,8 @@ export function ServiceCalendarInner({ onEventClick, className }: ServiceCalenda
   // Componente personalizado para el contenido de la celda
   const DayCellContent = (cellInfo: any) => {
     const date = cellInfo.date;
-    const {
-      hasOverdue,
-      hasPending,
-      hasCompleted,
-      hasOrderPending,
-      hasOrderInProgress,
-      hasOrderCompleted,
-    } = getDayStatus(date);
+    const { hasOverdue, hasPending, hasOrderPending, hasOrderInProgress, hasOrderCompleted } =
+      getDayStatus(date);
 
     let bgColorClass = "";
     let textColorClass = "";
@@ -387,7 +372,7 @@ export function ServiceCalendarInner({ onEventClick, className }: ServiceCalenda
       bgColorClass = "bg-orange-500/20";
       textColorClass = "text-orange-700 dark:text-orange-400";
       hoverBgClass = "hover:bg-orange-500/30";
-    } else if (hasCompleted || hasOrderCompleted) {
+    } else if (hasOrderCompleted) {
       // Completadas - verde
       bgColorClass = "bg-green-500/15";
       textColorClass = "text-green-700 dark:text-green-400";
@@ -419,8 +404,6 @@ export function ServiceCalendarInner({ onEventClick, className }: ServiceCalenda
         );
       case "cancelada":
         return <Badge className="text-[10px] bg-red-500 hover:bg-red-500/90">Cancelada</Badge>;
-      case "completada":
-        return <Badge className="text-[10px] bg-green-500 hover:bg-green-500/90">Completada</Badge>;
       default:
         return null;
     }
@@ -699,9 +682,7 @@ export function ServiceCalendarInner({ onEventClick, className }: ServiceCalenda
                         onClick={() => onEventClick?.(apt)}
                         className={cn(
                           "p-2.5 rounded-lg border cursor-pointer transition-all hover:shadow-md",
-                          apt.status === "completada"
-                            ? "bg-muted/50 opacity-60"
-                            : "bg-card hover:bg-accent",
+                          "bg-card hover:bg-accent",
                           apt.status === "cancelada" && "opacity-40"
                         )}
                       >
@@ -778,13 +759,12 @@ export function ServiceCalendarInner({ onEventClick, className }: ServiceCalenda
 }
 
 function getEventColor(apt: AppointmentCard): string {
-  if (apt.status === "completada") return "#22c55e";
   if (apt.status === "cancelada") return "#6b7280";
 
   const now = new Date();
   const aptDate = createAppointmentDate(apt.year, apt.month, apt.day);
 
-  if (aptDate && aptDate < now && apt.status !== "completada") return "hsl(var(--destructive))";
+  if (aptDate && aptDate < now) return "hsl(var(--destructive))";
 
   switch (apt.status) {
     case "confirmada":
@@ -797,13 +777,12 @@ function getEventColor(apt: AppointmentCard): string {
 }
 
 function getEventColorClass(apt: AppointmentCard): string {
-  if (apt.status === "completada") return "green";
   if (apt.status === "cancelada") return "gray";
 
   const now = new Date();
   const aptDate = createAppointmentDate(apt.year, apt.month, apt.day);
 
-  if (aptDate && aptDate < now && apt.status !== "completada") return "red";
+  if (aptDate && aptDate < now) return "red";
 
   switch (apt.status) {
     case "confirmada":
