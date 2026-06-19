@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { ChangeEvent } from "react";
 import Image from "next/image";
+import { ContactCommentsTimeline } from "./components/contact-comments-timeline";
 import { useRouter, useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components_shadcn/ui/card";
 import { Button } from "@/components_shadcn/ui/button";
@@ -11,14 +12,12 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components_shadcn/ui/avat
 import { Textarea } from "@/components_shadcn/ui/textarea";
 import { Input } from "@/components_shadcn/ui/input";
 import { Label } from "@/components_shadcn/ui/label";
-import { 
-  ArrowLeft, 
-  MoreVertical, 
-  Phone, 
-  Mail, 
-  MessageSquare,
+import {
+  ArrowLeft,
+  MoreVertical,
+  Phone,
+  Mail,
   Edit,
-  Save,
   X,
   Calendar,
   Car,
@@ -27,7 +26,6 @@ import {
   User as UserIcon,
   Bell,
   Camera,
-  Upload,
   MapPin,
   Clock,
   FileText,
@@ -35,7 +33,6 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
-  CheckCircle2,
   History,
   Plus,
   ClipboardList,
@@ -45,8 +42,7 @@ import {
   UserPlus,
   Copy,
   Check,
-  Loader2,
-  Lock
+  Lock,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -82,10 +78,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components_shadcn/ui/alert-dialog";
-import {
-  Alert,
-  AlertDescription,
-} from "@/components_shadcn/ui/alert";
+import { Alert, AlertDescription } from "@/components_shadcn/ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -178,7 +171,12 @@ interface UserProfile {
   interestedVehicles?: Vehicle[];
   assignedReminders?: FleetReminder[];
   driverHistories?: DriverHistory[];
-  registeredVehicles?: Array<Vehicle & { createdAt: string; currentDrivers?: Array<{ id: number; documentId?: string; displayName: string }> }>;
+  registeredVehicles?: Array<
+    Vehicle & {
+      createdAt: string;
+      currentDrivers?: Array<{ id: number; documentId?: string; displayName: string }>;
+    }
+  >;
   serviceNotes?: ServiceNote[];
   deals?: Deal[];
   userAccount?: {
@@ -191,20 +189,20 @@ interface UserProfile {
 }
 
 const roleConfig = {
-  admin: { 
-    label: "Administrador", 
+  admin: {
+    label: "Administrador",
     className: "bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100",
-    icon: Shield 
+    icon: Shield,
   },
   driver: {
     label: "Conductor",
     className: "bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100",
-    icon: Car 
+    icon: Car,
   },
-  lead: { 
-    label: "Lead", 
+  lead: {
+    label: "Lead",
     className: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100",
-    icon: UserPlus 
+    icon: UserPlus,
   },
 };
 
@@ -253,9 +251,11 @@ export default function UserDetailsPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Usuario autenticado (para saber si está viendo su propio perfil y su rol)
-  const [currentUser, setCurrentUser] = useState<{ documentId?: string; role?: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ documentId?: string; role?: string } | null>(
+    null
+  );
   const [isAdminChangingOther, setIsAdminChangingOther] = useState(false);
-  
+
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [shouldRemoveImage, setShouldRemoveImage] = useState(false);
@@ -355,12 +355,12 @@ export default function UserDetailsPage() {
         return;
       }
       const responseData = await response.json();
-      
+
       // Verificar que la respuesta tenga la estructura esperada
       if (!responseData || !responseData.data) {
         throw new Error("La respuesta del servidor no tiene el formato esperado");
       }
-      
+
       const { data } = responseData;
       setUser(data);
       setFormData({
@@ -410,9 +410,11 @@ export default function UserDetailsPage() {
     }
 
     // Validar tipo de archivo
-    const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const validImageTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
     if (!validImageTypes.includes(file.type)) {
-      toast.error(`Tipo de archivo no válido. Solo se permiten imágenes: ${validImageTypes.join(', ')}`);
+      toast.error(
+        `Tipo de archivo no válido. Solo se permiten imágenes: ${validImageTypes.join(", ")}`
+      );
       return;
     }
 
@@ -524,7 +526,8 @@ export default function UserDetailsPage() {
           uploadedImageId = uploadData.data?.id || null;
         } catch (uploadError) {
           console.error("Error subiendo imagen:", uploadError);
-          const errorMessage = uploadError instanceof Error ? uploadError.message : "Error al subir la imagen";
+          const errorMessage =
+            uploadError instanceof Error ? uploadError.message : "Error al subir la imagen";
           toast.error("Error al subir imagen", {
             description: errorMessage,
           });
@@ -538,7 +541,7 @@ export default function UserDetailsPage() {
 
       // Preparar datos para actualizar
       const updateData: any = { ...formData };
-      
+
       if (uploadedImageId !== null) {
         updateData.avatar = uploadedImageId;
       } else if (shouldRemoveImage) {
@@ -555,9 +558,10 @@ export default function UserDetailsPage() {
         try {
           const errorData = await response.json();
           if (errorData?.error) {
-            errorMessage = typeof errorData.error === 'string' 
-              ? errorData.error 
-              : JSON.stringify(errorData.error);
+            errorMessage =
+              typeof errorData.error === "string"
+                ? errorData.error
+                : JSON.stringify(errorData.error);
           }
         } catch {
           errorMessage = `Error al guardar contacto (HTTP ${response.status})`;
@@ -597,8 +601,8 @@ export default function UserDetailsPage() {
   };
 
   const generateSecurePassword = () => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-    let password = '';
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+    let password = "";
     for (let i = 0; i < 12; i++) {
       password += chars.charAt(Math.floor(Math.random() * chars.length));
     }
@@ -652,7 +656,10 @@ export default function UserDetailsPage() {
       const response = await fetch(`/api/user-profiles/${user.documentId}/convert`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetRole: convertTargetRole, customPassword: trimmedPassword || undefined }),
+        body: JSON.stringify({
+          targetRole: convertTargetRole,
+          customPassword: trimmedPassword || undefined,
+        }),
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -665,7 +672,14 @@ export default function UserDetailsPage() {
         throw new Error(errorMessage);
       }
       const result = await response.json();
-      const rawTempPassword = result.meta?.tempPassword ?? result.meta?.temporaryPassword ?? result.data?.temporaryPassword ?? result.data?.tempPassword ?? result.temporaryPassword ?? result.tempPassword ?? null;
+      const rawTempPassword =
+        result.meta?.tempPassword ??
+        result.meta?.temporaryPassword ??
+        result.data?.temporaryPassword ??
+        result.data?.tempPassword ??
+        result.temporaryPassword ??
+        result.tempPassword ??
+        null;
       const isReused = result.data?.alreadyConverted === true || rawTempPassword === null;
       setConvertedPassword(rawTempPassword || "N/A");
       setIsAlreadyConverted(isReused);
@@ -711,11 +725,11 @@ export default function UserDetailsPage() {
   if (error || !user) {
     return (
       <AdminLayout title="Contacto no encontrado" showFilterAction leftActions={backButton}>
-        <section className={`flex flex-col items-center justify-center ${spacing.gap.base} min-h-[400px]`}>
+        <section
+          className={`flex flex-col items-center justify-center ${spacing.gap.base} min-h-[400px]`}
+        >
           <p className={typography.body.large}>{error || "El contacto solicitado no existe."}</p>
-          <Button onClick={() => router.push("/users")}>
-            Volver a Contactos
-          </Button>
+          <Button onClick={() => router.push("/users")}>Volver a Contactos</Button>
         </section>
       </AdminLayout>
     );
@@ -742,27 +756,41 @@ export default function UserDetailsPage() {
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full flex items-center justify-center">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 rounded-full flex items-center justify-center"
+                  >
                     <MoreVertical className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="min-w-[10rem]">
-                  <DropdownMenuItem className="cursor-pointer" onClick={() => setIsEditing(!isEditing)}>
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onClick={() => setIsEditing(!isEditing)}
+                  >
                     {isEditing ? "Cancelar edición" : "Editar Contacto"}
                   </DropdownMenuItem>
                   {(user.role === "driver" || user.role === "admin") && (
-                    <DropdownMenuItem className="cursor-pointer" onSelect={(e) => e.preventDefault()}>
+                    <DropdownMenuItem
+                      className="cursor-pointer"
+                      onSelect={(e) => e.preventDefault()}
+                    >
                       <AssignDriverDialog
                         userId={user.documentId || user.id}
                         userName={user.displayName}
                         currentVehicles={user.assignedVehicles}
                         onAssigned={loadUser}
-                        trigger={<span className="flex items-center gap-2"><Car className="h-4 w-4" /> Asignar Vehículo</span>}
+                        trigger={
+                          <span className="flex items-center gap-2">
+                            <Car className="h-4 w-4" /> Asignar Vehículo
+                          </span>
+                        }
                       />
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem 
-                    variant="destructive" 
+                  <DropdownMenuItem
+                    variant="destructive"
                     className="cursor-pointer"
                     onClick={() => setShowDeleteDialog(true)}
                   >
@@ -775,14 +803,14 @@ export default function UserDetailsPage() {
             <div className="relative group">
               <Avatar className="h-24 w-24 shrink-0 rounded-full overflow-hidden ring-2 ring-background">
                 {imagePreview ? (
-                  <AvatarImage 
-                    src={imagePreview} 
+                  <AvatarImage
+                    src={imagePreview}
                     alt={user.avatar?.alternativeText || `Avatar de ${user.displayName}`}
                     className="rounded-full object-cover w-full h-full"
                   />
                 ) : user.avatar?.url ? (
-                  <AvatarImage 
-                    src={strapiImages.getURL(user.avatar.url)} 
+                  <AvatarImage
+                    src={strapiImages.getURL(user.avatar.url)}
                     alt={user.avatar.alternativeText || `Avatar de ${user.displayName}`}
                     className="rounded-full object-cover w-full h-full"
                   />
@@ -885,7 +913,9 @@ export default function UserDetailsPage() {
                     <Label>Cédula</Label>
                     <Input
                       value={formData.identificationNumber}
-                      onChange={(e) => setFormData({ ...formData, identificationNumber: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, identificationNumber: e.target.value })
+                      }
                       className="mt-1"
                       placeholder="e.g. 8-888-8888"
                     />
@@ -894,7 +924,9 @@ export default function UserDetailsPage() {
                     <Label>Rol</Label>
                     <Select
                       value={formData.role}
-                      onValueChange={(value: "admin" | "driver" | "lead") => setFormData({ ...formData, role: value })}
+                      onValueChange={(value: "admin" | "driver" | "lead") =>
+                        setFormData({ ...formData, role: value })
+                      }
                     >
                       <SelectTrigger className="mt-1">
                         <SelectValue />
@@ -946,7 +978,9 @@ export default function UserDetailsPage() {
                       <Label>Licencia de Conducir</Label>
                       <Input
                         value={formData.driverLicense}
-                        onChange={(e) => setFormData({ ...formData, driverLicense: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, driverLicense: e.target.value })
+                        }
                         className="mt-1"
                         placeholder="B, C, D"
                       />
@@ -1010,7 +1044,9 @@ export default function UserDetailsPage() {
                     <Label>Contacto de Emergencia - Nombre</Label>
                     <Input
                       value={formData.emergencyContactName}
-                      onChange={(e) => setFormData({ ...formData, emergencyContactName: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, emergencyContactName: e.target.value })
+                      }
                       className="mt-1"
                       placeholder="Nombre del contacto"
                     />
@@ -1019,7 +1055,9 @@ export default function UserDetailsPage() {
                     <Label>Contacto de Emergencia - Teléfono</Label>
                     <Input
                       value={formData.emergencyContactPhone}
-                      onChange={(e) => setFormData({ ...formData, emergencyContactPhone: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, emergencyContactPhone: e.target.value })
+                      }
                       className="mt-1"
                       placeholder="+34 600 123 456"
                     />
@@ -1036,10 +1074,15 @@ export default function UserDetailsPage() {
                   </div>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2 w-full">
-                  <Button onClick={handleSave} disabled={isSaving || isUploadingImage} size="lg" className="flex-1 min-h-[44px]">
+                  <Button
+                    onClick={handleSave}
+                    disabled={isSaving || isUploadingImage}
+                    size="lg"
+                    className="flex-1 min-h-[44px]"
+                  >
                     {isSaving || isUploadingImage ? "Guardando..." : "Guardar"}
                   </Button>
-                  <Button 
+                  <Button
                     onClick={() => {
                       setIsEditing(false);
                       // Restaurar imagen original si se canceló
@@ -1050,8 +1093,8 @@ export default function UserDetailsPage() {
                       }
                       setSelectedImageFile(null);
                       setShouldRemoveImage(false);
-                    }} 
-                    variant="outline" 
+                    }}
+                    variant="outline"
                     size="lg"
                     className="flex-1 min-h-[44px]"
                     disabled={isSaving || isUploadingImage}
@@ -1059,32 +1102,35 @@ export default function UserDetailsPage() {
                     Cancelar
                   </Button>
                 </div>
-                {user.role !== "lead" && user.userAccount && (currentUser?.documentId === user.documentId || currentUser?.role === "admin") && (
-                  <Button
-                    onClick={() => {
-                      const isOther = currentUser?.documentId !== user.documentId && currentUser?.role === "admin";
-                      setIsAdminChangingOther(isOther);
-                      setCurrentPassword("");
-                      setNewPassword("");
-                      setConfirmPassword("");
-                      setShowCurrentPassword(false);
-                      setShowNewPassword(false);
-                      setShowConfirmPassword(false);
-                      setShowPasswordDialog(true);
-                    }}
-                    className="w-full bg-slate-200 dark:bg-slate-800 text-[#0d141b] dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-700 font-medium min-h-[44px]"
-                  >
-                    <Lock className="h-4 w-4 mr-2" />
-                    Cambiar Contraseña
-                  </Button>
-                )}
+                {user.role !== "lead" &&
+                  user.userAccount &&
+                  (currentUser?.documentId === user.documentId ||
+                    currentUser?.role === "admin") && (
+                    <Button
+                      onClick={() => {
+                        const isOther =
+                          currentUser?.documentId !== user.documentId &&
+                          currentUser?.role === "admin";
+                        setIsAdminChangingOther(isOther);
+                        setCurrentPassword("");
+                        setNewPassword("");
+                        setConfirmPassword("");
+                        setShowCurrentPassword(false);
+                        setShowNewPassword(false);
+                        setShowConfirmPassword(false);
+                        setShowPasswordDialog(true);
+                      }}
+                      className="w-full bg-slate-200 dark:bg-slate-800 text-[#0d141b] dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-700 font-medium min-h-[44px]"
+                    >
+                      <Lock className="h-4 w-4 mr-2" />
+                      Cambiar Contraseña
+                    </Button>
+                  )}
               </div>
             ) : (
               <>
                 <div className="flex flex-col items-center text-center">
-                  <h2 className={`${typography.h3} text-center`}>
-                    {user.displayName}
-                  </h2>
+                  <h2 className={`${typography.h3} text-center`}>{user.displayName}</h2>
                   {user.email && (
                     <p className={`${typography.body.small} mt-1 text-muted-foreground`}>
                       {user.email}
@@ -1093,11 +1139,12 @@ export default function UserDetailsPage() {
                 </div>
 
                 {/* Badge de Rol */}
-                <Badge className={`rounded-full px-3 py-1 text-xs font-medium border-0 flex items-center gap-1 ${roleInfo.className}`}>
+                <Badge
+                  className={`rounded-full px-3 py-1 text-xs font-medium border-0 flex items-center gap-1 ${roleInfo.className}`}
+                >
                   <RoleIcon className="h-3 w-3" />
                   {roleInfo.label}
                 </Badge>
-
 
                 {user.role === "lead" && (
                   <Button
@@ -1124,25 +1171,30 @@ export default function UserDetailsPage() {
                   </Button>
                 )}
 
-                {user.role !== "lead" && user.userAccount && (currentUser?.documentId === user.documentId || currentUser?.role === "admin") && (
-                  <Button
-                    onClick={() => {
-                      const isOther = currentUser?.documentId !== user.documentId && currentUser?.role === "admin";
-                      setIsAdminChangingOther(isOther);
-                      setCurrentPassword("");
-                      setNewPassword("");
-                      setConfirmPassword("");
-                      setShowCurrentPassword(false);
-                      setShowNewPassword(false);
-                      setShowConfirmPassword(false);
-                      setShowPasswordDialog(true);
-                    }}
-                    className="mt-2 bg-slate-200 dark:bg-slate-800 text-[#0d141b] dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-700 font-medium"
-                  >
-                    <Lock className="h-4 w-4 mr-2" />
-                    Cambiar Contraseña
-                  </Button>
-                )}
+                {user.role !== "lead" &&
+                  user.userAccount &&
+                  (currentUser?.documentId === user.documentId ||
+                    currentUser?.role === "admin") && (
+                    <Button
+                      onClick={() => {
+                        const isOther =
+                          currentUser?.documentId !== user.documentId &&
+                          currentUser?.role === "admin";
+                        setIsAdminChangingOther(isOther);
+                        setCurrentPassword("");
+                        setNewPassword("");
+                        setConfirmPassword("");
+                        setShowCurrentPassword(false);
+                        setShowNewPassword(false);
+                        setShowConfirmPassword(false);
+                        setShowPasswordDialog(true);
+                      }}
+                      className="mt-2 bg-slate-200 dark:bg-slate-800 text-[#0d141b] dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-700 font-medium"
+                    >
+                      <Lock className="h-4 w-4 mr-2" />
+                      Cambiar Contraseña
+                    </Button>
+                  )}
 
                 {/* Información adicional */}
                 {(user.phone || user.department) && (
@@ -1163,13 +1215,15 @@ export default function UserDetailsPage() {
                 )}
 
                 {/* Botones de acción */}
-                <div className={`flex items-center justify-center ${spacing.gap.small} w-full pt-2`}>
+                <div
+                  className={`flex items-center justify-center ${spacing.gap.small} w-full pt-2`}
+                >
                   {user.phone && (
                     <Button
                       variant="default"
                       size="icon"
                       className="h-10 w-10 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center"
-                      onClick={() => window.location.href = `tel:${user.phone}`}
+                      onClick={() => (window.location.href = `tel:${user.phone}`)}
                     >
                       <Phone className="h-5 w-5 flex-shrink-0" />
                     </Button>
@@ -1179,7 +1233,7 @@ export default function UserDetailsPage() {
                       variant="outline"
                       size="icon"
                       className="h-10 w-10 rounded-lg bg-muted hover:bg-muted/80 flex items-center justify-center"
-                      onClick={() => window.location.href = `mailto:${user.email}`}
+                      onClick={() => (window.location.href = `mailto:${user.email}`)}
                     >
                       <Mail className="h-5 w-5 flex-shrink-0" />
                     </Button>
@@ -1195,14 +1249,38 @@ export default function UserDetailsPage() {
                 </div>
 
                 {/* Información de Facturación */}
-                {(user.billingName || user.billingAddress || user.billingTaxId || user.billingPhone) && (
+                {(user.billingName ||
+                  user.billingAddress ||
+                  user.billingTaxId ||
+                  user.billingPhone) && (
                   <div className="w-full max-w-md mt-2 p-3 rounded-lg bg-muted/50">
-                    <p className="text-xs font-medium text-muted-foreground mb-2">Información de Facturación</p>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">
+                      Información de Facturación
+                    </p>
                     <div className="flex flex-col gap-1 text-sm">
-                      {user.billingName && <p><span className="text-muted-foreground">Nombre:</span> {user.billingName}</p>}
-                      {user.billingAddress && <p><span className="text-muted-foreground">Dirección:</span> {user.billingAddress}</p>}
-                      {user.billingTaxId && <p><span className="text-muted-foreground">RUC/Cédula:</span> {user.billingTaxId}</p>}
-                      {user.billingPhone && <p><span className="text-muted-foreground">Teléfono:</span> {user.billingPhone}</p>}
+                      {user.billingName && (
+                        <p>
+                          <span className="text-muted-foreground">Nombre:</span> {user.billingName}
+                        </p>
+                      )}
+                      {user.billingAddress && (
+                        <p>
+                          <span className="text-muted-foreground">Dirección:</span>{" "}
+                          {user.billingAddress}
+                        </p>
+                      )}
+                      {user.billingTaxId && (
+                        <p>
+                          <span className="text-muted-foreground">RUC/Cédula:</span>{" "}
+                          {user.billingTaxId}
+                        </p>
+                      )}
+                      {user.billingPhone && (
+                        <p>
+                          <span className="text-muted-foreground">Teléfono:</span>{" "}
+                          {user.billingPhone}
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1226,17 +1304,24 @@ export default function UserDetailsPage() {
                 isLoading={false}
                 onToggleCompleted={async (reminderId, isCompleted) => {
                   try {
-                    const response = await fetch(`/api/fleet-reminders/${encodeURIComponent(reminderId)}`, {
-                      method: "PATCH",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        data: { isCompleted: !isCompleted },
-                      }),
-                    });
+                    const response = await fetch(
+                      `/api/fleet-reminders/${encodeURIComponent(reminderId)}`,
+                      {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          data: { isCompleted: !isCompleted },
+                        }),
+                      }
+                    );
                     if (!response.ok) throw new Error("Error al actualizar");
                     // Emitir evento de cambio de estado completado
                     emitReminderToggleCompleted(reminderId, !isCompleted);
-                    toast.success(isCompleted ? "Recordatorio marcado como pendiente" : "Recordatorio marcado como completado");
+                    toast.success(
+                      isCompleted
+                        ? "Recordatorio marcado como pendiente"
+                        : "Recordatorio marcado como completado"
+                    );
                     await loadUser();
                   } catch (error) {
                     console.error("Error:", error);
@@ -1263,7 +1348,9 @@ export default function UserDetailsPage() {
                 {user.interestedVehicles.map((vehicle) => (
                   <div
                     key={vehicle.id}
-                    onClick={() => router.push(`/fleet/details/${vehicle.documentId || vehicle.id}`)}
+                    onClick={() =>
+                      router.push(`/fleet/details/${vehicle.documentId || vehicle.id}`)
+                    }
                     className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 cursor-pointer hover:bg-muted transition-colors"
                   >
                     {vehicle.image?.url ? (
@@ -1313,7 +1400,9 @@ export default function UserDetailsPage() {
                 {user.assignedVehicles.map((vehicle) => (
                   <div
                     key={vehicle.id}
-                    onClick={() => router.push(`/fleet/details/${vehicle.documentId || vehicle.id}`)}
+                    onClick={() =>
+                      router.push(`/fleet/details/${vehicle.documentId || vehicle.id}`)
+                    }
                     className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 cursor-pointer hover:bg-muted transition-colors"
                   >
                     {vehicle.image?.url ? (
@@ -1366,7 +1455,9 @@ export default function UserDetailsPage() {
                 {user.registeredVehicles.map((vehicle) => (
                   <div
                     key={vehicle.id}
-                    onClick={() => router.push(`/fleet/details/${vehicle.documentId || vehicle.id}`)}
+                    onClick={() =>
+                      router.push(`/fleet/details/${vehicle.documentId || vehicle.id}`)
+                    }
                     className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 cursor-pointer hover:bg-muted transition-colors"
                   >
                     {vehicle.image?.url ? (
@@ -1392,7 +1483,8 @@ export default function UserDetailsPage() {
                         {vehicle.brand} {vehicle.model} ({vehicle.year})
                       </p>
                       <p className={`${typography.body.small} text-xs text-muted-foreground mt-1`}>
-                        Registrado: {format(new Date(vehicle.createdAt), "dd/MM/yyyy", { locale: es })}
+                        Registrado:{" "}
+                        {format(new Date(vehicle.createdAt), "dd/MM/yyyy", { locale: es })}
                       </p>
                       {vehicle.currentDrivers && vehicle.currentDrivers.length > 0 && (
                         <p className={`${typography.body.small} text-xs text-green-600 mt-1`}>
@@ -1427,9 +1519,13 @@ export default function UserDetailsPage() {
                     className="flex items-start gap-4 p-4 rounded-lg bg-muted/50 border-l-4 border-l-primary"
                   >
                     {history.vehicle?.image?.url ? (
-                      <div 
+                      <div
                         className="relative w-20 h-20 shrink-0 overflow-hidden rounded-lg bg-muted cursor-pointer"
-                        onClick={() => router.push(`/fleet/details/${history.vehicle?.documentId || history.vehicle?.id}`)}
+                        onClick={() =>
+                          router.push(
+                            `/fleet/details/${history.vehicle?.documentId || history.vehicle?.id}`
+                          )
+                        }
                       >
                         <Image
                           src={strapiImages.getURL(history.vehicle.image.url)}
@@ -1449,17 +1545,20 @@ export default function UserDetailsPage() {
                         <p className={`${typography.body.base} font-medium`}>
                           {history.vehicle?.name}
                         </p>
-                        <Badge 
+                        <Badge
                           className={
-                            history.status === "active" 
-                              ? "bg-green-100 text-green-800" 
+                            history.status === "active"
+                              ? "bg-green-100 text-green-800"
                               : history.status === "completed"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-yellow-100 text-yellow-800"
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-yellow-100 text-yellow-800"
                           }
                         >
-                          {history.status === "active" ? "Conductor Actual" : 
-                           history.status === "completed" ? "Conductor Anterior" : "Suspendido"}
+                          {history.status === "active"
+                            ? "Conductor Actual"
+                            : history.status === "completed"
+                              ? "Conductor Anterior"
+                              : "Suspendido"}
                         </Badge>
                       </div>
                       <p className={`${typography.body.small} text-muted-foreground`}>
@@ -1470,7 +1569,8 @@ export default function UserDetailsPage() {
                           <Calendar className="h-4 w-4 text-muted-foreground" />
                           <span className="text-muted-foreground">
                             {format(new Date(history.startDate), "dd/MM/yyyy", { locale: es })}
-                            {history.endDate && ` - ${format(new Date(history.endDate), "dd/MM/yyyy", { locale: es })}`}
+                            {history.endDate &&
+                              ` - ${format(new Date(history.endDate), "dd/MM/yyyy", { locale: es })}`}
                           </span>
                         </div>
                         {(history.mileageStart || history.mileageEnd) && (
@@ -1497,7 +1597,7 @@ export default function UserDetailsPage() {
         )}
 
         {/* Timeline de Actividad */}
-        {(user.serviceNotes?.length || user.deals?.length) ? (
+        {user.serviceNotes?.length || user.deals?.length ? (
           <Card className="shadow-sm ring-1 ring-inset ring-border/50">
             <CardHeader className="px-6 pt-6 pb-4">
               <CardTitle className={`${typography.h4} flex items-center gap-2`}>
@@ -1508,31 +1608,43 @@ export default function UserDetailsPage() {
             <CardContent className="px-6 pb-6">
               <div className="space-y-4">
                 {[...(user.serviceNotes || []), ...(user.deals || [])]
-                  .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                  .sort(
+                    (a: any, b: any) =>
+                      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                  )
                   .slice(0, 10)
                   .map((item: any, index: number) => (
                     <div key={`${item.id}-${index}`} className="flex gap-3">
                       <div className="flex flex-col items-center">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          'salePrice' in item ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
-                        }`}>
-                          {'salePrice' in item ? <Banknote className="h-4 w-4" /> : <ClipboardList className="h-4 w-4" />}
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                            "salePrice" in item
+                              ? "bg-green-100 text-green-600"
+                              : "bg-blue-100 text-blue-600"
+                          }`}
+                        >
+                          {"salePrice" in item ? (
+                            <Banknote className="h-4 w-4" />
+                          ) : (
+                            <ClipboardList className="h-4 w-4" />
+                          )}
                         </div>
                         {index < 9 && <div className="w-0.5 h-full bg-border mt-2" />}
                       </div>
                       <div className="flex-1 pb-4">
                         <div className="flex items-center gap-2">
                           <p className={`${typography.body.base} font-medium`}>
-                            {'salePrice' in item ? 'Negocio cerrado' : 'Nota de servicio'}
+                            {"salePrice" in item ? "Negocio cerrado" : "Nota de servicio"}
                           </p>
                           <span className="text-xs text-muted-foreground">
                             {format(new Date(item.createdAt), "dd/MM/yyyy HH:mm", { locale: es })}
                           </span>
                         </div>
-                        {'salePrice' in item ? (
+                        {"salePrice" in item ? (
                           <>
                             <p className={`${typography.body.small} text-muted-foreground`}>
-                              Vehículo: {item.vehicle?.name} - B/. {item.salePrice?.toLocaleString()}
+                              Vehículo: {item.vehicle?.name} - B/.{" "}
+                              {item.salePrice?.toLocaleString()}
                             </p>
                             <p className={`${typography.body.small} text-muted-foreground`}>
                               Cliente: {item.client?.firstName} {item.client?.lastName}
@@ -1562,7 +1674,11 @@ export default function UserDetailsPage() {
         {!isEditing && (
           <>
             {/* Información Personal Detallada */}
-            {(user.address || user.dateOfBirth || user.identificationNumber || user.hireDate || user.workSchedule) && (
+            {(user.address ||
+              user.dateOfBirth ||
+              user.identificationNumber ||
+              user.hireDate ||
+              user.workSchedule) && (
               <Card className="shadow-sm ring-1 ring-inset ring-border/50">
                 <CardHeader className="px-6 pt-6 pb-4">
                   <CardTitle className={`${typography.h4} flex items-center gap-2`}>
@@ -1585,9 +1701,13 @@ export default function UserDetailsPage() {
                       <div className="flex items-center gap-3">
                         <Calendar className="h-5 w-5 text-muted-foreground shrink-0" />
                         <div>
-                          <p className={`${typography.body.small} text-muted-foreground`}>Fecha de Nacimiento</p>
+                          <p className={`${typography.body.small} text-muted-foreground`}>
+                            Fecha de Nacimiento
+                          </p>
                           <p className={typography.body.base}>
-                            {format(new Date(user.dateOfBirth), "d 'de' MMMM, yyyy", { locale: es })}
+                            {format(new Date(user.dateOfBirth), "d 'de' MMMM, yyyy", {
+                              locale: es,
+                            })}
                           </p>
                         </div>
                       </div>
@@ -1596,7 +1716,9 @@ export default function UserDetailsPage() {
                       <div className="flex items-center gap-3">
                         <Calendar className="h-5 w-5 text-muted-foreground shrink-0" />
                         <div>
-                          <p className={`${typography.body.small} text-muted-foreground`}>Fecha de Contratación</p>
+                          <p className={`${typography.body.small} text-muted-foreground`}>
+                            Fecha de Contratación
+                          </p>
                           <p className={typography.body.base}>
                             {format(new Date(user.hireDate), "d 'de' MMMM, yyyy", { locale: es })}
                           </p>
@@ -1607,7 +1729,9 @@ export default function UserDetailsPage() {
                       <div className="flex items-center gap-3">
                         <Clock className="h-5 w-5 text-muted-foreground shrink-0" />
                         <div>
-                          <p className={`${typography.body.small} text-muted-foreground`}>Horario de Trabajo</p>
+                          <p className={`${typography.body.small} text-muted-foreground`}>
+                            Horario de Trabajo
+                          </p>
                           <p className={typography.body.base}>{user.workSchedule}</p>
                         </div>
                       </div>
@@ -1616,7 +1740,9 @@ export default function UserDetailsPage() {
                       <div className="flex items-start gap-3 md:col-span-2">
                         <MapPin className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
                         <div className="flex-1">
-                          <p className={`${typography.body.small} text-muted-foreground`}>Dirección</p>
+                          <p className={`${typography.body.small} text-muted-foreground`}>
+                            Dirección
+                          </p>
                           <p className={typography.body.base}>{user.address}</p>
                         </div>
                       </div>
@@ -1627,7 +1753,7 @@ export default function UserDetailsPage() {
             )}
 
             {/* Información Profesional Adicional */}
-            {(user.role === "driver" && user.driverLicense) && (
+            {user.role === "driver" && user.driverLicense && (
               <Card className="shadow-sm ring-1 ring-inset ring-border/50">
                 <CardHeader className="px-6 pt-6 pb-4">
                   <CardTitle className={`${typography.h4} flex items-center gap-2`}>
@@ -1641,7 +1767,9 @@ export default function UserDetailsPage() {
                       <div className="flex items-center gap-3">
                         <Car className="h-5 w-5 text-muted-foreground shrink-0" />
                         <div>
-                          <p className={`${typography.body.small} text-muted-foreground`}>Licencia de Conducir</p>
+                          <p className={`${typography.body.small} text-muted-foreground`}>
+                            Licencia de Conducir
+                          </p>
                           <p className={typography.body.base}>{user.driverLicense}</p>
                         </div>
                       </div>
@@ -1666,7 +1794,9 @@ export default function UserDetailsPage() {
                       <div className="flex items-center gap-3">
                         <UserIcon className="h-5 w-5 text-muted-foreground shrink-0" />
                         <div>
-                          <p className={`${typography.body.small} text-muted-foreground`}>Contacto de Emergencia</p>
+                          <p className={`${typography.body.small} text-muted-foreground`}>
+                            Contacto de Emergencia
+                          </p>
                           <p className={typography.body.base}>{user.emergencyContactName}</p>
                         </div>
                       </div>
@@ -1675,7 +1805,9 @@ export default function UserDetailsPage() {
                       <div className="flex items-center gap-3">
                         <Phone className="h-5 w-5 text-muted-foreground shrink-0" />
                         <div>
-                          <p className={`${typography.body.small} text-muted-foreground`}>Teléfono de Emergencia</p>
+                          <p className={`${typography.body.small} text-muted-foreground`}>
+                            Teléfono de Emergencia
+                          </p>
                           <p className={typography.body.base}>{user.emergencyContactPhone}</p>
                         </div>
                       </div>
@@ -1684,10 +1816,12 @@ export default function UserDetailsPage() {
                       <div className="flex items-center gap-3 md:col-span-2">
                         <Linkedin className="h-5 w-5 text-muted-foreground shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className={`${typography.body.small} text-muted-foreground`}>LinkedIn</p>
-                          <a 
-                            href={user.linkedin} 
-                            target="_blank" 
+                          <p className={`${typography.body.small} text-muted-foreground`}>
+                            LinkedIn
+                          </p>
+                          <a
+                            href={user.linkedin}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className={`${typography.body.base} text-primary hover:underline break-all`}
                           >
@@ -1714,6 +1848,9 @@ export default function UserDetailsPage() {
             )}
           </>
         )}
+
+        {/* Comment timeline — available on every contact detail. */}
+        <ContactCommentsTimeline contactDocumentId={user.documentId || String(user.id)} />
       </section>
 
       {/* Diálogo de conversión de lead */}
@@ -1722,7 +1859,8 @@ export default function UserDetailsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Promover Lead a Contacto Activo</AlertDialogTitle>
             <AlertDialogDescription>
-              Selecciona el rol para el contacto {user.displayName}. Se creará una cuenta de autenticación.
+              Selecciona el rol para el contacto {user.displayName}. Se creará una cuenta de
+              autenticación.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-4 space-y-4">
@@ -1758,7 +1896,11 @@ export default function UserDetailsPage() {
                   onClick={() => setShowConvertPassword(!showConvertPassword)}
                   title={showConvertPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                 >
-                  {showConvertPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showConvertPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </Button>
                 <Button
                   type="button"
@@ -1779,14 +1921,20 @@ export default function UserDetailsPage() {
                 </p>
               )}
               <p className="text-xs text-muted-foreground mt-1">
-                Si la dejas en blanco, se generará automáticamente sin caracteres ambiguos (0, O, l, I, 1).
+                Si la dejas en blanco, se generará automáticamente sin caracteres ambiguos (0, O, l,
+                I, 1).
               </p>
             </div>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowConvertDialog(false)}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setShowConvertDialog(false)}>
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
-              onClick={(e) => { e.preventDefault(); handleConvert(); }}
+              onClick={(e) => {
+                e.preventDefault();
+                handleConvert();
+              }}
               className="bg-primary text-primary-foreground hover:bg-primary/90"
               disabled={isConverting}
             >
@@ -1802,7 +1950,8 @@ export default function UserDetailsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Restablecer Contraseña</AlertDialogTitle>
             <AlertDialogDescription>
-              Ingresa una nueva contraseña para {user?.displayName}. Se actualizará inmediatamente en el sistema.
+              Ingresa una nueva contraseña para {user?.displayName}. Se actualizará inmediatamente
+              en el sistema.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-4 space-y-4">
@@ -1823,7 +1972,11 @@ export default function UserDetailsPage() {
                   onClick={() => setShowResetPasswordInput(!showResetPasswordInput)}
                   title={showResetPasswordInput ? "Ocultar" : "Mostrar"}
                 >
-                  {showResetPasswordInput ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showResetPasswordInput ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </Button>
                 <Button
                   type="button"
@@ -1845,9 +1998,14 @@ export default function UserDetailsPage() {
             </div>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowResetPasswordDialog(false)}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setShowResetPasswordDialog(false)}>
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
-              onClick={(e) => { e.preventDefault(); handleResetPassword(); }}
+              onClick={(e) => {
+                e.preventDefault();
+                handleResetPassword();
+              }}
               className="bg-primary text-primary-foreground hover:bg-primary/90"
               disabled={isResettingPassword || resetPasswordValue.trim().length < 6}
             >
@@ -1858,22 +2016,30 @@ export default function UserDetailsPage() {
       </AlertDialog>
 
       {/* Diálogo de resultado con contraseña */}
-      <Dialog open={showResultDialog} onOpenChange={(open) => {
-        if (!open) {
-          setShowResultDialog(false);
-          loadUser();
-        }
-      }}>
+      <Dialog
+        open={showResultDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowResultDialog(false);
+            loadUser();
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              Contacto promovido exitosamente
-            </DialogTitle>
+            <DialogTitle>Contacto promovido exitosamente</DialogTitle>
             <DialogDescription>
               {isAlreadyConverted ? (
-                <>Este contacto ya tenía una cuenta de usuario en el sistema. Se ha vinculado automáticamente.</>
+                <>
+                  Este contacto ya tenía una cuenta de usuario en el sistema. Se ha vinculado
+                  automáticamente.
+                </>
               ) : (
-                <>El lead ha sido convertido a <strong>{roleConfig[convertTargetRole].label}</strong>. Guarda la siguiente contraseña de acceso.</>
+                <>
+                  El lead ha sido convertido a{" "}
+                  <strong>{roleConfig[convertTargetRole].label}</strong>. Guarda la siguiente
+                  contraseña de acceso.
+                </>
               )}
             </DialogDescription>
           </DialogHeader>
@@ -1883,7 +2049,8 @@ export default function UserDetailsPage() {
                 <Alert className="bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800">
                   <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                   <AlertDescription className="text-amber-700 dark:text-amber-400">
-                    El usuario ya existía en el sistema con este email. No se generó una nueva contraseña porque la cuenta fue reutilizada.
+                    El usuario ya existía en el sistema con este email. No se generó una nueva
+                    contraseña porque la cuenta fue reutilizada.
                   </AlertDescription>
                 </Alert>
                 <Button
@@ -1904,7 +2071,8 @@ export default function UserDetailsPage() {
                   <CardContent className="pt-6">
                     <div className="flex flex-col gap-2">
                       <p className="text-xs text-muted-foreground">
-                        Haz clic en el campo, presiona Ctrl+A y luego Copiar. No la escribas manualmente.
+                        Haz clic en el campo, presiona Ctrl+A y luego Copiar. No la escribas
+                        manualmente.
                       </p>
                       <div className="flex items-center justify-between gap-3">
                         <input
@@ -1971,7 +2139,9 @@ export default function UserDetailsPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Lock className="h-5 w-5" />
-              {isAdminChangingOther ? `Cambiar Contraseña de ${user?.displayName}` : "Cambiar Contraseña"}
+              {isAdminChangingOther
+                ? `Cambiar Contraseña de ${user?.displayName}`
+                : "Cambiar Contraseña"}
             </DialogTitle>
             <DialogDescription>
               {isAdminChangingOther
@@ -1997,7 +2167,11 @@ export default function UserDetailsPage() {
                     onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
-                    {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showCurrentPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -2038,7 +2212,11 @@ export default function UserDetailsPage() {
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             </div>
@@ -2074,11 +2252,14 @@ export default function UserDetailsPage() {
                 try {
                   let response;
                   if (isAdminChangingOther) {
-                    response = await fetch(`/api/user-profiles/${user?.documentId}/reset-password`, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ newPassword }),
-                    });
+                    response = await fetch(
+                      `/api/user-profiles/${user?.documentId}/reset-password`,
+                      {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ newPassword }),
+                      }
+                    );
                   } else {
                     response = await fetch("/api/auth/change-password", {
                       method: "POST",
@@ -2094,24 +2275,37 @@ export default function UserDetailsPage() {
                     const data = await response.json();
                     throw new Error(data.error || "Error al cambiar la contraseña");
                   }
-                  toast.success(isAdminChangingOther
-                    ? `Contraseña de ${user?.displayName} actualizada correctamente`
-                    : "Contraseña actualizada correctamente");
+                  toast.success(
+                    isAdminChangingOther
+                      ? `Contraseña de ${user?.displayName} actualizada correctamente`
+                      : "Contraseña actualizada correctamente"
+                  );
                   setShowPasswordDialog(false);
                   setCurrentPassword("");
                   setNewPassword("");
                   setConfirmPassword("");
                 } catch (err) {
                   console.error("Error cambiando contraseña:", err);
-                  toast.error(err instanceof Error ? err.message : "Error al cambiar la contraseña");
+                  toast.error(
+                    err instanceof Error ? err.message : "Error al cambiar la contraseña"
+                  );
                 } finally {
                   setIsChangingPassword(false);
                 }
               }}
-              disabled={isChangingPassword || (!isAdminChangingOther && !currentPassword) || !newPassword || !confirmPassword}
+              disabled={
+                isChangingPassword ||
+                (!isAdminChangingOther && !currentPassword) ||
+                !newPassword ||
+                !confirmPassword
+              }
               className="w-full sm:w-auto"
             >
-              {isChangingPassword ? "Actualizando..." : (isAdminChangingOther ? "Actualizar Contraseña" : "Actualizar Contraseña")}
+              {isChangingPassword
+                ? "Actualizando..."
+                : isAdminChangingOther
+                  ? "Actualizar Contraseña"
+                  : "Actualizar Contraseña"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2123,7 +2317,8 @@ export default function UserDetailsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar contacto?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Se eliminará permanentemente el contacto {user.displayName}.
+              Esta acción no se puede deshacer. Se eliminará permanentemente el contacto{" "}
+              {user.displayName}.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -2138,7 +2333,6 @@ export default function UserDetailsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
     </AdminLayout>
   );
 }
