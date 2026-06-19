@@ -10,9 +10,8 @@ import { Input } from "@/components_shadcn/ui/input";
 import { Label } from "@/components_shadcn/ui/label";
 import { Skeleton } from "@/components_shadcn/ui/skeleton";
 import { Separator } from "@/components_shadcn/ui/separator";
-import { 
-  ArrowLeft, 
-  MoreVertical, 
+import {
+  MoreVertical,
   Edit,
   Trash2,
   Banknote,
@@ -50,6 +49,7 @@ import {
 } from "@/components_shadcn/ui/alert-dialog";
 import { spacing, typography } from "@/lib/design-system";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { BackButton } from "@/components/admin/back-button";
 import { toast } from "@/lib/toast";
 import { formatCurrency } from "@/lib/format";
 import type { ServiceCard, ServiceCoverage, InventoryItemRaw } from "@/validations/types";
@@ -69,7 +69,7 @@ export default function AdmServicesDetailsPage() {
   const router = useRouter();
   const params = useParams();
   const serviceId = params.id as string;
-  
+
   const [service, setService] = useState<ServiceCard | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -104,7 +104,9 @@ export default function AdmServicesDetailsPage() {
   const [inventoryError, setInventoryError] = useState<string | null>(null);
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const [templateSelectValue, setTemplateSelectValue] = useState("none");
-  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved" | "error">(
+    "idle"
+  );
   const hasUserModifiedTemplate = useRef(false);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -189,7 +191,9 @@ export default function AdmServicesDetailsPage() {
       }
     }
     loadUserRole();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Cargar inventario para la plantilla
@@ -214,41 +218,44 @@ export default function AdmServicesDetailsPage() {
       }
     }
     loadInventory();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const availableInventory = useMemo(() => {
     const usedIds = new Set(templateItems.map((i) => i.inventoryItemId));
-    return inventoryOptions.filter(
-      (opt) => !usedIds.has(String(opt.documentId ?? opt.id))
-    );
+    return inventoryOptions.filter((opt) => !usedIds.has(String(opt.documentId ?? opt.id)));
   }, [inventoryOptions, templateItems]);
 
-  const handleAddTemplateItem = useCallback((inventoryItemId: string) => {
-    const inv = inventoryOptions.find(
-      (i) => String(i.id) === inventoryItemId || String(i.documentId) === inventoryItemId
-    );
-    if (!inv) return;
+  const handleAddTemplateItem = useCallback(
+    (inventoryItemId: string) => {
+      const inv = inventoryOptions.find(
+        (i) => String(i.id) === inventoryItemId || String(i.documentId) === inventoryItemId
+      );
+      if (!inv) return;
 
-    hasUserModifiedTemplate.current = true;
-    setTemplateItems((prev) => {
-      const exists = prev.find((p) => p.inventoryItemId === String(inv.documentId ?? inv.id));
-      if (exists) return prev;
-      return [
-        ...prev,
-        {
-          id: `tmp-${Date.now()}`,
-          inventoryItemId: String(inv.documentId ?? inv.id),
-          code: inv.code || "",
-          description: inv.description || "",
-          salePrice: Number(inv.salePrice ?? inv.unitCost ?? 0),
-          quantity: 1,
-        },
-      ];
-    });
-    // Resetear el selector para que vuelva a mostrar el placeholder
-    setTemplateSelectValue("none");
-  }, [inventoryOptions]);
+      hasUserModifiedTemplate.current = true;
+      setTemplateItems((prev) => {
+        const exists = prev.find((p) => p.inventoryItemId === String(inv.documentId ?? inv.id));
+        if (exists) return prev;
+        return [
+          ...prev,
+          {
+            id: `tmp-${Date.now()}`,
+            inventoryItemId: String(inv.documentId ?? inv.id),
+            code: inv.code || "",
+            description: inv.description || "",
+            salePrice: Number(inv.salePrice ?? inv.unitCost ?? 0),
+            quantity: 1,
+          },
+        ];
+      });
+      // Resetear el selector para que vuelva a mostrar el placeholder
+      setTemplateSelectValue("none");
+    },
+    [inventoryOptions]
+  );
 
   const handleRemoveTemplateItem = useCallback((id: string) => {
     hasUserModifiedTemplate.current = true;
@@ -276,10 +283,10 @@ export default function AdmServicesDetailsPage() {
     if (autoSaveTimeoutRef.current) {
       clearTimeout(autoSaveTimeoutRef.current);
     }
-    setAutoSaveStatus('idle');
+    setAutoSaveStatus("idle");
 
     autoSaveTimeoutRef.current = setTimeout(async () => {
-      setAutoSaveStatus('saving');
+      setAutoSaveStatus("saving");
       try {
         const defaultTemplate = templateItems.map((item) => ({
           inventoryItemId: item.inventoryItemId,
@@ -302,11 +309,11 @@ export default function AdmServicesDetailsPage() {
 
         const { data } = await res.json();
         setService(data);
-        setAutoSaveStatus('saved');
-        setTimeout(() => setAutoSaveStatus((prev) => (prev === 'saved' ? 'idle' : prev)), 2000);
+        setAutoSaveStatus("saved");
+        setTimeout(() => setAutoSaveStatus((prev) => (prev === "saved" ? "idle" : prev)), 2000);
       } catch (e) {
         console.error(e);
-        setAutoSaveStatus('error');
+        setAutoSaveStatus("error");
       }
     }, 800);
 
@@ -321,7 +328,7 @@ export default function AdmServicesDetailsPage() {
   const handleSaveTemplate = async (silent = false) => {
     if (!service) return;
     if (!silent) setIsSavingTemplate(true);
-    if (silent) setAutoSaveStatus('saving');
+    if (silent) setAutoSaveStatus("saving");
     try {
       const defaultTemplate = templateItems.map((item) => ({
         inventoryItemId: item.inventoryItemId,
@@ -347,31 +354,22 @@ export default function AdmServicesDetailsPage() {
       if (!silent) {
         toast.success("Plantilla de repuestos guardada exitosamente");
       } else {
-        setAutoSaveStatus('saved');
-        setTimeout(() => setAutoSaveStatus((prev) => (prev === 'saved' ? 'idle' : prev)), 2000);
+        setAutoSaveStatus("saved");
+        setTimeout(() => setAutoSaveStatus((prev) => (prev === "saved" ? "idle" : prev)), 2000);
       }
     } catch (e) {
       console.error(e);
       if (!silent) {
         toast.error(e instanceof Error ? e.message : "No se pudo guardar la plantilla");
       } else {
-        setAutoSaveStatus('error');
+        setAutoSaveStatus("error");
       }
     } finally {
       if (!silent) setIsSavingTemplate(false);
     }
   };
 
-  const backButton = (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => router.back()}
-      className="h-10 w-10 flex items-center justify-center rounded-full"
-    >
-      <ArrowLeft className="h-5 w-5" />
-    </Button>
-  );
+  const backButton = <BackButton fallbackHref="/adm-services" />;
 
   const handleSaveChanges = async () => {
     if (!formData.name.trim()) {
@@ -469,11 +467,11 @@ export default function AdmServicesDetailsPage() {
   if (!service) {
     return (
       <AdminLayout title="Servicio no encontrado" showFilterAction leftActions={backButton}>
-        <section className={`flex flex-col items-center justify-center ${spacing.gap.base} min-h-[400px]`}>
+        <section
+          className={`flex flex-col items-center justify-center ${spacing.gap.base} min-h-[400px]`}
+        >
           <p className={typography.body.large}>El servicio solicitado no existe.</p>
-          <Button onClick={() => router.push("/adm-services")}>
-            Volver a Servicios
-          </Button>
+          <Button onClick={() => router.push("/adm-services")}>Volver a Servicios</Button>
         </section>
       </AdminLayout>
     );
@@ -485,19 +483,16 @@ export default function AdmServicesDetailsPage() {
         {/* Información del Servicio */}
         <Card className="shadow-sm ring-1 ring-inset ring-border/50">
           <CardContent className={`flex flex-col items-center ${spacing.gap.base} p-6 relative`}>
-            {/* Botones de navegación */}
-            <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-10 w-10 rounded-full flex items-center justify-center"
-                onClick={() => router.back()}
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
+            {/* Acciones del servicio. La navegación "volver" vive en el menú
+                (header), no en la tarjeta, para no duplicar el control. */}
+            <div className="absolute top-4 right-4 flex items-center justify-end z-10">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full flex items-center justify-center">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 rounded-full flex items-center justify-center"
+                  >
                     <MoreVertical className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -505,8 +500,8 @@ export default function AdmServicesDetailsPage() {
                   <DropdownMenuItem className="cursor-pointer" onClick={() => setIsEditing(true)}>
                     Editar Servicio
                   </DropdownMenuItem>
-                    <DropdownMenuItem 
-                    variant="destructive" 
+                  <DropdownMenuItem
+                    variant="destructive"
                     className="cursor-pointer"
                     onClick={() => setShowDeleteDialog(true)}
                   >
@@ -523,18 +518,18 @@ export default function AdmServicesDetailsPage() {
 
             {/* Nombre y Badge */}
             <div className="flex flex-col items-center text-center">
-              <h2 className={`${typography.h3} text-center`}>
-                {service.name}
-              </h2>
+              <h2 className={`${typography.h3} text-center`}>{service.name}</h2>
               {service.category && (
                 <p className={`${typography.body.small} mt-1 text-muted-foreground`}>
                   {service.category}
                 </p>
               )}
               <div className="mt-2">
-                <Badge className={`rounded-full px-3 py-1 text-xs font-medium ${
-                  service.isFree ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
-                }`}>
+                <Badge
+                  className={`rounded-full px-3 py-1 text-xs font-medium ${
+                    service.isFree ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
+                  }`}
+                >
                   {service.coverageLabel}
                 </Badge>
               </div>
@@ -610,9 +605,11 @@ export default function AdmServicesDetailsPage() {
                 </div>
                 <div className={`flex flex-col ${spacing.gap.small}`}>
                   <Label htmlFor="coverage">Cobertura del coste</Label>
-                  <Select 
-                    value={formData.coverage} 
-                    onValueChange={(value: ServiceCoverage) => setFormData({ ...formData, coverage: value })}
+                  <Select
+                    value={formData.coverage}
+                    onValueChange={(value: ServiceCoverage) =>
+                      setFormData({ ...formData, coverage: value })
+                    }
                     disabled={isSaving}
                   >
                     <SelectTrigger id="coverage">
@@ -690,9 +687,11 @@ export default function AdmServicesDetailsPage() {
                   <Banknote className="h-5 w-5 text-muted-foreground shrink-0" />
                   <div className="flex-1">
                     <p className={`${typography.body.small} text-muted-foreground`}>Precio</p>
-                    <p className={`${typography.body.large} font-semibold ${
-                      service.isFree ? "text-green-600" : ""
-                    }`}>
+                    <p
+                      className={`${typography.body.large} font-semibold ${
+                        service.isFree ? "text-green-600" : ""
+                      }`}
+                    >
                       {service.priceLabel}
                     </p>
                   </div>
@@ -716,7 +715,9 @@ export default function AdmServicesDetailsPage() {
                 {service.description && (
                   <div className={`flex items-start ${spacing.gap.medium} pt-2`}>
                     <div className="flex-1">
-                      <p className={`${typography.body.small} text-muted-foreground`}>Descripción</p>
+                      <p className={`${typography.body.small} text-muted-foreground`}>
+                        Descripción
+                      </p>
                       <p className={typography.body.base}>{service.description}</p>
                     </div>
                   </div>
@@ -732,19 +733,19 @@ export default function AdmServicesDetailsPage() {
             <div className="flex items-center justify-between">
               <CardTitle className={typography.h4}>Plantilla de Repuestos</CardTitle>
               <div className="flex items-center gap-3">
-                {autoSaveStatus === 'saving' && (
+                {autoSaveStatus === "saving" && (
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <Loader2 className="h-3 w-3 animate-spin" />
                     Guardando...
                   </span>
                 )}
-                {autoSaveStatus === 'saved' && (
+                {autoSaveStatus === "saved" && (
                   <span className="text-xs text-green-600 flex items-center gap-1">
                     <Check className="h-3 w-3" />
                     Guardado
                   </span>
                 )}
-                {autoSaveStatus === 'error' && (
+                {autoSaveStatus === "error" && (
                   <span className="text-xs text-destructive flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     Error al guardar
@@ -773,10 +774,10 @@ export default function AdmServicesDetailsPage() {
                       isLoadingInventory
                         ? "Cargando inventario..."
                         : inventoryError
-                        ? "Error al cargar"
-                        : availableInventory.length === 0
-                        ? "Sin repuestos disponibles"
-                        : "Añadir repuesto del inventario..."
+                          ? "Error al cargar"
+                          : availableInventory.length === 0
+                            ? "Sin repuestos disponibles"
+                            : "Añadir repuesto del inventario..."
                     }
                   />
                 </SelectTrigger>
@@ -836,7 +837,10 @@ export default function AdmServicesDetailsPage() {
                         <p className="text-sm font-medium truncate" title={item.code}>
                           {item.code}
                         </p>
-                        <p className="text-xs text-muted-foreground truncate" title={item.description}>
+                        <p
+                          className="text-xs text-muted-foreground truncate"
+                          title={item.description}
+                        >
                           {item.description}
                         </p>
                       </div>
@@ -894,9 +898,7 @@ export default function AdmServicesDetailsPage() {
 
                 {/* Totales de la plantilla */}
                 <div className="flex items-center justify-between px-1">
-                  <span className="text-sm text-muted-foreground">
-                    Subtotal repuestos
-                  </span>
+                  <span className="text-sm text-muted-foreground">Subtotal repuestos</span>
                   <span className="text-sm font-semibold">
                     {formatCurrency(
                       templateItems.reduce((sum, i) => sum + i.salePrice * i.quantity, 0)
@@ -987,14 +989,14 @@ export default function AdmServicesDetailsPage() {
                 unitPriceAtMoment: t.salePrice,
               }))
             : service?.maintenanceKits?.[0]?.kitItems
-            ? service.maintenanceKits[0].kitItems.map((ki) => ({
-                inventoryItemId: ki.inventoryItem.id,
-                code: ki.inventoryItem.code,
-                description: ki.inventoryItem.description,
-                quantity: ki.quantity,
-                unitPriceAtMoment: ki.inventoryItem.salePrice,
-              }))
-            : undefined)
+              ? service.maintenanceKits[0].kitItems.map((ki) => ({
+                  inventoryItemId: ki.inventoryItem.id,
+                  code: ki.inventoryItem.code,
+                  description: ki.inventoryItem.description,
+                  quantity: ki.quantity,
+                  unitPriceAtMoment: ki.inventoryItem.salePrice,
+                }))
+              : undefined)
         }
       />
 
@@ -1004,7 +1006,7 @@ export default function AdmServicesDetailsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar servicio?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Se eliminará permanentemente el servicio 
+              Esta acción no se puede deshacer. Se eliminará permanentemente el servicio
               <strong> {service.name}</strong>.
             </AlertDialogDescription>
           </AlertDialogHeader>

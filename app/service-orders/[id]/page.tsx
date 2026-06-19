@@ -10,8 +10,8 @@ import { Textarea } from "@/ui/textarea";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
 import { Separator } from "@/ui/separator";
+import { BackButton } from "@/components/admin/back-button";
 import {
-  ArrowLeft,
   Car,
   Wrench,
   Loader2,
@@ -313,10 +313,7 @@ export default function ServiceOrderDetailPage() {
   if (!order) {
     return (
       <div className="max-w-4xl mx-auto p-4">
-        <Button variant="ghost" onClick={() => router.back()} className="mb-4">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Volver
-        </Button>
+        <BackButton label="Volver" className="mb-4 -ml-2 px-2" fallbackHref="/service-orders" />
         <Card>
           <CardContent className="p-8 text-center">
             <AlertTriangle className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
@@ -339,10 +336,7 @@ export default function ServiceOrderDetailPage() {
     <div className="max-w-4xl mx-auto p-4 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
-        <Button variant="ghost" size="sm" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Volver
-        </Button>
+        <BackButton label="Volver" className="-ml-2 px-2" fallbackHref="/service-orders" />
         <div className="flex items-center gap-2">
           <Badge className={cn("text-xs border", getStatusBadge(order.status))}>
             {getStatusLabel(order.status)}
@@ -358,12 +352,7 @@ export default function ServiceOrderDetailPage() {
               Editar
             </Button>
           ) : (
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleUpdateNotes}
-              disabled={isProcessing}
-            >
+            <Button variant="default" size="sm" onClick={handleUpdateNotes} disabled={isProcessing}>
               {isProcessing ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
               ) : (
@@ -384,9 +373,7 @@ export default function ServiceOrderDetailPage() {
         </div>
       </div>
 
-      <h1 className="text-xl font-semibold">
-        {order.code || `Orden #${order.id}`}
-      </h1>
+      <h1 className="text-xl font-semibold">{order.code || `Orden #${order.id}`}</h1>
 
       {/* Info general */}
       <Card>
@@ -410,17 +397,13 @@ export default function ServiceOrderDetailPage() {
           <div className="flex items-center gap-2 text-sm">
             <Clock className="h-4 w-4 text-muted-foreground" />
             <span className="font-medium">Programada:</span>
-            <span className="text-muted-foreground">
-              {formatDateTime(order.scheduledAt)}
-            </span>
+            <span className="text-muted-foreground">{formatDateTime(order.scheduledAt)}</span>
           </div>
           {order.completedAt && (
             <div className="flex items-center gap-2 text-sm">
               <CheckCircle2 className="h-4 w-4 text-green-500" />
               <span className="font-medium">Completada:</span>
-              <span className="text-muted-foreground">
-                {formatDateTime(order.completedAt)}
-              </span>
+              <span className="text-muted-foreground">{formatDateTime(order.completedAt)}</span>
             </div>
           )}
           {order.services && order.services.length > 0 && (
@@ -469,9 +452,7 @@ export default function ServiceOrderDetailPage() {
                 className="max-w-xs"
               />
             ) : (
-              <p className="text-sm text-muted-foreground">
-                {formatCurrency(order.laborCost)}
-              </p>
+              <p className="text-sm text-muted-foreground">{formatCurrency(order.laborCost)}</p>
             )}
           </div>
         </CardContent>
@@ -552,9 +533,7 @@ export default function ServiceOrderDetailPage() {
                   <tbody>
                     {order.usedItems.map((item, idx) => {
                       const inventoryItem = item.inventoryItem;
-                      const lineTotal =
-                        item.totalLine ??
-                        item.quantity * item.unitPriceAtMoment;
+                      const lineTotal = item.totalLine ?? item.quantity * item.unitPriceAtMoment;
                       return (
                         <tr
                           key={item.id ?? idx}
@@ -566,9 +545,7 @@ export default function ServiceOrderDetailPage() {
                           <td className="py-2 px-3">
                             {inventoryItem?.description || "Sin descripción"}
                           </td>
-                          <td className="py-2 px-3 text-right">
-                            {item.quantity}
-                          </td>
+                          <td className="py-2 px-3 text-right">{item.quantity}</td>
                           <td className="py-2 px-3 text-right">
                             {formatCurrency(item.unitPriceAtMoment)}
                           </td>
@@ -587,9 +564,7 @@ export default function ServiceOrderDetailPage() {
             {order.usedItems && order.usedItems.length > 0 && (
               <div className="flex justify-between text-sm pl-0">
                 <span className="text-muted-foreground">Subtotal Repuestos</span>
-                <span className="font-medium">
-                  {formatCurrency(order.partsCost)}
-                </span>
+                <span className="font-medium">{formatCurrency(order.partsCost)}</span>
               </div>
             )}
           </div>
@@ -603,8 +578,8 @@ export default function ServiceOrderDetailPage() {
               <span className="font-medium">
                 {formatCurrency(
                   (order.laborCost || 0) +
-                  (order.partsCost || 0) +
-                  (order.services?.reduce((sum, s) => sum + (s.price || 0), 0) || 0)
+                    (order.partsCost || 0) +
+                    (order.services?.reduce((sum, s) => sum + (s.price || 0), 0) || 0)
                 )}
               </span>
             </div>
@@ -669,9 +644,8 @@ export default function ServiceOrderDetailPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Finalizar Orden de Servicio</AlertDialogTitle>
             <AlertDialogDescription>
-              Al finalizar la orden, se deducirá el stock de los items de inventario
-              utilizados y se registrará un movimiento de salida. Esta acción no se
-              puede deshacer.
+              Al finalizar la orden, se deducirá el stock de los items de inventario utilizados y se
+              registrará un movimiento de salida. Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-3 py-2">
@@ -742,8 +716,8 @@ export default function ServiceOrderDetailPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Eliminar Orden</AlertDialogTitle>
             <AlertDialogDescription>
-              ¿Estás seguro de que deseas eliminar permanentemente esta orden de
-              servicio? Esta acción no se puede deshacer.
+              ¿Estás seguro de que deseas eliminar permanentemente esta orden de servicio? Esta
+              acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

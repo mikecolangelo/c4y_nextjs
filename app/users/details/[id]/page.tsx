@@ -59,6 +59,7 @@ import {
 } from "@/components_shadcn/ui/select";
 import { spacing, typography } from "@/lib/design-system";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { BackButton } from "@/components/admin/back-button";
 import { strapiImages } from "@/lib/strapi-images";
 import { Skeleton } from "@/components_shadcn/ui/skeleton";
 import { toast } from "@/lib/toast";
@@ -695,16 +696,7 @@ export default function UserDetailsPage() {
     }
   };
 
-  const backButton = (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => router.back()}
-      className="h-10 w-10 flex items-center justify-center rounded-full"
-    >
-      <ArrowLeft className="h-5 w-5" />
-    </Button>
-  );
+  const backButton = <BackButton fallbackHref="/users" />;
 
   if (isLoading) {
     return (
@@ -744,16 +736,9 @@ export default function UserDetailsPage() {
         {/* Información del Contacto */}
         <Card className="shadow-sm ring-1 ring-inset ring-border/50">
           <CardContent className={`flex flex-col items-center ${spacing.gap.base} p-6 relative`}>
-            {/* Botones de navegación en la parte superior */}
-            <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-10 w-10 rounded-full flex items-center justify-center"
-                onClick={() => router.back()}
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
+            {/* Acciones del contacto. La navegación "volver" vive en el menú
+                (header), no en la tarjeta, para no duplicar el control. */}
+            <div className="absolute top-4 right-4 flex items-center justify-end z-10">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
