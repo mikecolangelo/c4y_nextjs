@@ -1,7 +1,16 @@
+/**
+ * Services data layer.
+ *
+ * Server-side functions that talk to Strapi's REST API for the Service catalog
+ * (list, read, create, update, delete) and normalize the responses into the
+ * `ServiceCard` view model consumed by the UI. All requests are authenticated
+ * with the current user's JWT.
+ */
 import qs from "qs";
-import { getCurrentUserJwt } from "./auth";
-import { STRAPI_BASE_URL } from "./config";
-import { formatCurrency } from "./format";
+import { getCurrentUserJwt } from "@/lib/auth";
+import { STRAPI_BASE_URL } from "@/lib/config";
+import { formatCurrency } from "@/lib/format";
+import { logger } from "@/lib/logger";
 import type {
   ServiceCard,
   ServiceRaw,
@@ -164,12 +173,15 @@ export async function fetchServicesFromStrapi(): Promise<ServiceCard[]> {
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("Strapi Services request failed:", {
-      status: response.status,
-      statusText: response.statusText,
-      error: errorText,
-      url,
-    });
+    logger.error(
+      {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText,
+        url,
+      },
+      "Strapi Services request failed"
+    );
     throw new Error(`Strapi Services request failed with status ${response.status}: ${errorText}`);
   }
 
