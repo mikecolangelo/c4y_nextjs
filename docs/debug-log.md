@@ -11,6 +11,7 @@
 **Severidad:** Crítica
 
 ### Problema
+
 Strapi tiene configurado CASCADE DELETE en la relación financing↔billing-records. Al eliminar un billing record, Strapi elimina TODOS los del mismo financing.
 
 ### Solución implementada: NO refetch + estado local
@@ -19,7 +20,7 @@ Strapi tiene configurado CASCADE DELETE en la relación financing↔billing-reco
 
 ```typescript
 // 1. Actualizar estado local inmediatamente
-const updatedPayments = payments.filter(p => p.documentId !== payment.id);
+const updatedPayments = payments.filter((p) => p.documentId !== payment.id);
 setPayments(updatedPayments);
 
 // 2. Llamar al servidor (ignoramos el cascade delete)
@@ -40,26 +41,28 @@ setFinancing({
 ```
 
 ### Verificación
+
 ✅ Usuario confirmó que funciona correctamente  
 ✅ Las cuotas se eliminan individualmente  
 ✅ Las demás cuotas permanecen visibles  
 ✅ Totales del financing se actualizan correctamente
 
 ### Archivos modificados
+
 - `app/billing/financing/[id]/page.tsx`: Eliminación sin refetch
 
 ---
 
 ## Historial de Implementaciones
 
-| Fecha | Tipo | Descripción | Estado |
-|-------|------|-------------|--------|
+| Fecha      | Tipo    | Descripción                           | Estado       |
+| ---------- | ------- | ------------------------------------- | ------------ |
 | 2026-02-12 | Bug #12 | Cascade delete - solución sin refetch | ✅ CORREGIDO |
-| 2026-02-12 | Feature | Filtros toggle en timeline | ✅ |
-| 2026-02-12 | Feature | Eliminar ítems con refresh | ✅ |
-| 2026-02-12 | Feature | Info de adelantos (faltante/cuota) | ✅ |
-| 2026-02-12 | Fix | Ocultar valores 0 | ✅ |
+| 2026-02-12 | Feature | Filtros toggle en timeline            | ✅           |
+| 2026-02-12 | Feature | Eliminar ítems con refresh            | ✅           |
+| 2026-02-12 | Feature | Info de adelantos (faltante/cuota)    | ✅           |
+| 2026-02-12 | Fix     | Ocultar valores 0                     | ✅           |
 
 ---
 
-*Última actualización: 2026-02-12*
+_Última actualización: 2026-02-12_

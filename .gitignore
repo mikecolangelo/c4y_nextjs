@@ -51,3 +51,10 @@ next-env.d.ts
 
 *.log
 
+# Backup / scratch files
+*.bak
+*.bak.*
+*.old
+*.orig
+*.tmp
+
