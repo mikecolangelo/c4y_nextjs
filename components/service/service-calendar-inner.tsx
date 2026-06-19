@@ -215,7 +215,7 @@ export function ServiceCalendarInner({ onEventClick, className }: ServiceCalenda
           classNames: [apt.status === "cancelada" ? "opacity-40" : ""].filter(Boolean),
         };
       })
-      .filter(Boolean);
+      .filter((event): event is NonNullable<typeof event> => event !== null);
   }, [maintenanceAppointments]);
 
   // Estadísticas (incluyen citas y órdenes de servicio)
@@ -709,23 +709,21 @@ export function ServiceCalendarInner({ onEventClick, className }: ServiceCalenda
                               {apt.durationMinutes && <span>({apt.durationMinutes} min)</span>}
                             </div>
 
-                            {apt.fleetVehiclePlate && (
+                            {apt.vehiclePlaca && (
                               <div
                                 className="flex items-center gap-1 text-xs mt-1.5 p-1.5 bg-muted/50 rounded cursor-pointer hover:bg-muted transition-colors"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  if (apt.fleetVehicleDocumentId) {
-                                    router.push(`/fleet/details/${apt.fleetVehicleDocumentId}`);
+                                  if (apt.vehicleDocumentId) {
+                                    router.push(`/fleet/details/${apt.vehicleDocumentId}`);
                                   }
                                 }}
                               >
                                 <Car className="h-3 w-3 text-primary" />
-                                <span className="font-medium truncate">
-                                  {apt.fleetVehicleBrand} {apt.fleetVehicleModel}
-                                </span>
-                                <span className="text-muted-foreground">
-                                  • {apt.fleetVehiclePlate}
-                                </span>
+                                {apt.vehicleName && (
+                                  <span className="font-medium truncate">{apt.vehicleName}</span>
+                                )}
+                                <span className="text-muted-foreground">• {apt.vehiclePlaca}</span>
                               </div>
                             )}
 
