@@ -1472,7 +1472,9 @@ export default function UserDetailsPage() {
                         {format(new Date(vehicle.createdAt), "dd/MM/yyyy", { locale: es })}
                       </p>
                       {vehicle.currentDrivers && vehicle.currentDrivers.length > 0 && (
-                        <p className={`${typography.body.small} text-xs text-green-600 mt-1`}>
+                        <p
+                          className={`${typography.body.small} text-xs text-green-600 dark:text-green-400 mt-1`}
+                        >
                           Conductor actual: {vehicle.currentDrivers[0].displayName}
                         </p>
                       )}
@@ -1533,10 +1535,10 @@ export default function UserDetailsPage() {
                         <Badge
                           className={
                             history.status === "active"
-                              ? "bg-green-100 text-green-800"
+                              ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"
                               : history.status === "completed"
-                                ? "bg-blue-100 text-blue-800"
-                                : "bg-yellow-100 text-yellow-800"
+                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
+                                : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300"
                           }
                         >
                           {history.status === "active"
@@ -1604,8 +1606,8 @@ export default function UserDetailsPage() {
                         <div
                           className={`w-8 h-8 rounded-full flex items-center justify-center ${
                             "salePrice" in item
-                              ? "bg-green-100 text-green-600"
-                              : "bg-blue-100 text-blue-600"
+                              ? "bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-400"
+                              : "bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400"
                           }`}
                         >
                           {"salePrice" in item ? (
@@ -1901,7 +1903,7 @@ export default function UserDetailsPage() {
                 </Button>
               </div>
               {convertPassword.trim().length > 0 && convertPassword.trim().length < 6 && (
-                <p className="text-xs text-red-500 mt-1">
+                <p className="text-xs text-red-500 dark:text-red-400 mt-1">
                   La contraseña debe tener al menos 6 caracteres.
                 </p>
               )}
@@ -1976,7 +1978,7 @@ export default function UserDetailsPage() {
                 </Button>
               </div>
               {resetPasswordValue.trim().length > 0 && resetPasswordValue.trim().length < 6 && (
-                <p className="text-xs text-red-500 mt-1">
+                <p className="text-xs text-red-500 dark:text-red-400 mt-1">
                   La contraseña debe tener al menos 6 caracteres.
                 </p>
               )}
@@ -2084,7 +2086,7 @@ export default function UserDetailsPage() {
                         >
                           {copiedToClipboard ? (
                             <>
-                              <Check className="mr-2 h-4 w-4 text-green-600" />
+                              <Check className="mr-2 h-4 w-4 text-green-600 dark:text-green-400" />
                               Copiado
                             </>
                           ) : (

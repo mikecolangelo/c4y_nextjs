@@ -9,10 +9,7 @@ import { Badge } from "@/components_shadcn/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components_shadcn/ui/avatar";
 import { Separator } from "@/components_shadcn/ui/separator";
 import {
-  MoreVertical,
   ArrowUpDown,
-  Tag,
-  User as UserIcon,
   ChevronRight,
   Plus,
   Shield,
@@ -106,9 +103,14 @@ export default function UsersPage() {
         const response = await fetch("/api/user-profiles", { cache: "no-store" });
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          const apiError = errorData.error?.message || errorData.error || `Error ${response.status}: ${response.statusText}`;
+          const apiError =
+            errorData.error?.message ||
+            errorData.error ||
+            `Error ${response.status}: ${response.statusText}`;
           if (response.status === 403) {
-            throw new Error(`Permisos insuficientes: ${apiError}. Verifica los permisos de la colección "user-profiles" en Strapi.`);
+            throw new Error(
+              `Permisos insuficientes: ${apiError}. Verifica los permisos de la colección "user-profiles" en Strapi.`
+            );
           }
           throw new Error(apiError);
         }
@@ -222,14 +224,18 @@ export default function UsersPage() {
     const config = roleConfig[role];
     const Icon = config.icon;
     return (
-      <Badge className={`${config.className} rounded-full px-3 py-1 text-xs font-medium flex items-center gap-1`}>
+      <Badge
+        className={`${config.className} rounded-full px-3 py-1 text-xs font-medium flex items-center gap-1`}
+      >
         <Icon className="h-3 w-3" />
         {config.label}
       </Badge>
     );
   };
 
-  const isAllSelected = filteredUsers.length > 0 && filteredUsers.every((u) => selectedIds.has(u.documentId || String(u.id)));
+  const isAllSelected =
+    filteredUsers.length > 0 &&
+    filteredUsers.every((u) => selectedIds.has(u.documentId || String(u.id)));
   const selectionCount = selectedIds.size;
 
   if (isLoading) {
@@ -237,7 +243,10 @@ export default function UsersPage() {
       <AdminLayout title="Contactos" showFilterAction>
         <section className={`flex flex-col ${spacing.gap.base} pb-24`}>
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="flex items-center gap-4 min-h-[88px] py-4 border-b border-border">
+            <div
+              key={i}
+              className="flex items-center gap-4 min-h-[88px] py-4 border-b border-border"
+            >
               <Skeleton className="h-14 w-14 rounded-full" />
               <div className="flex-1 space-y-2">
                 <Skeleton className="h-4 w-48" />
@@ -254,7 +263,9 @@ export default function UsersPage() {
   if (error) {
     return (
       <AdminLayout title="Contactos" showFilterAction>
-        <section className={`flex flex-col items-center justify-center ${spacing.gap.base} min-h-[400px]`}>
+        <section
+          className={`flex flex-col items-center justify-center ${spacing.gap.base} min-h-[400px]`}
+        >
           <p className={typography.body.large}>{error}</p>
           <Button onClick={() => setRefreshKey((k) => k + 1)}>Reintentar</Button>
         </section>
@@ -310,7 +321,9 @@ export default function UsersPage() {
                       className={`h-8 shrink-0 whitespace-nowrap flex items-center justify-center gap-2 px-3 rounded-lg ${isActive ? "bg-primary/10 text-primary border-none hover:bg-primary/20" : "bg-muted border-none"}`}
                       onClick={() => setActiveFilter(isActive ? null : role)}
                     >
-                      <Icon className={`h-4 w-4 shrink-0 ${isActive ? "" : "text-muted-foreground"}`} />
+                      <Icon
+                        className={`h-4 w-4 shrink-0 ${isActive ? "" : "text-muted-foreground"}`}
+                      />
                       <span className={typography.body.base}>{config.label}</span>
                       {isActive && <span className="ml-1 shrink-0">×</span>}
                     </Button>
@@ -420,26 +433,30 @@ export default function UsersPage() {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col justify-center min-w-0 flex-1">
-                    <p className={`${typography.body.large} line-clamp-1 text-base`}>{user.displayName}</p>
-                    <p className={`${typography.body.small} line-clamp-2 text-sm text-muted-foreground`}>
+                    <p className={`${typography.body.large} line-clamp-1 text-base`}>
+                      {user.displayName}
+                    </p>
+                    <p
+                      className={`${typography.body.small} line-clamp-2 text-sm text-muted-foreground`}
+                    >
                       {user.email || user.phone || "Sin contacto"}
                     </p>
                     {/* Indicadores de actividad */}
                     <div className="flex items-center gap-3 mt-1">
-                      {user.assignedVehiclesCount > 0 && (
-                        <span className="flex items-center gap-1 text-xs text-green-600">
+                      {(user.assignedVehiclesCount ?? 0) > 0 && (
+                        <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
                           <Car className="h-3 w-3" />
                           {user.assignedVehiclesCount}
                         </span>
                       )}
-                      {user.driverHistoriesCount > 0 && (
-                        <span className="flex items-center gap-1 text-xs text-blue-600">
+                      {(user.driverHistoriesCount ?? 0) > 0 && (
+                        <span className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
                           <History className="h-3 w-3" />
                           {user.driverHistoriesCount}
                         </span>
                       )}
-                      {user.registeredVehiclesCount > 0 && (
-                        <span className="flex items-center gap-1 text-xs text-purple-600">
+                      {(user.registeredVehiclesCount ?? 0) > 0 && (
+                        <span className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400">
                           <FolderPlus className="h-3 w-3" />
                           {user.registeredVehiclesCount}
                         </span>
@@ -475,7 +492,8 @@ export default function UsersPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar {selectionCount} contacto(s)?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Los contactos seleccionados serán eliminados permanentemente del sistema.
+              Esta acción no se puede deshacer. Los contactos seleccionados serán eliminados
+              permanentemente del sistema.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
