@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import qs from "qs";
-import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
-import { requireAdmin } from "@/lib/admin-guard";
+import { STRAPI_BASE_URL } from "@/lib/config";
+import { getCurrentUserJwt, getCurrentUserProfileViaJwt } from "@/lib/auth";
+import { isAdminRole } from "@/lib/admin-guard";
 import { logger } from "@/lib/logger";
 
 interface RouteContext {
@@ -17,15 +18,15 @@ const COMMENT_FIELDS = [
   "createdAt",
 ] as const;
 
-/** Resolve the numeric id of a user-profile from its documentId. */
-async function resolveProfileId(documentId: string): Promise<number | null> {
+/** Resolve the numeric id of a user-profile from its documentId, via JWT. */
+async function resolveProfileId(documentId: string, jwt: string): Promise<number | null> {
   const query = qs.stringify({
     filters: { documentId: { $eq: documentId } },
     fields: ["id"],
   });
 
   const response = await fetch(`${STRAPI_BASE_URL}/api/user-profiles?${query}`, {
-    headers: { Authorization: `Bearer ${STRAPI_API_TOKEN}` },
+    headers: { Authorization: `Bearer ${jwt}` },
     cache: "no-store",
   });
 
@@ -36,18 +37,14 @@ async function resolveProfileId(documentId: string): Promise<number | null> {
 
 // GET - List the comment timeline of a contact (newest first).
 export async function GET(_: Request, context: RouteContext) {
-  try {
-    await requireAdmin();
-  } catch {
-    return NextResponse.json(
-      { error: "Acceso restringido: se requieren permisos de administrador." },
-      { status: 403 }
-    );
+  const jwt = await getCurrentUserJwt();
+  if (!jwt) {
+    return NextResponse.json({ error: "No autenticado." }, { status: 401 });
   }
 
   try {
     const { id } = await context.params;
-    const profileId = await resolveProfileId(id);
+    const profileId = await resolveProfileId(id, jwt);
     if (!profileId) {
       return NextResponse.json({ error: "Contacto no encontrado." }, { status: 404 });
     }
@@ -60,7 +57,7 @@ export async function GET(_: Request, context: RouteContext) {
     });
 
     const response = await fetch(`${STRAPI_BASE_URL}/api/user-comments?${query}`, {
-      headers: { Authorization: `Bearer ${STRAPI_API_TOKEN}` },
+      headers: { Authorization: `Bearer ${jwt}` },
       cache: "no-store",
     });
 
@@ -77,12 +74,15 @@ export async function GET(_: Request, context: RouteContext) {
   }
 }
 
-// POST - Add a comment to a contact's timeline, attributed to the current user.
+// POST - Add a comment to a contact's timeline, attributed to the current admin.
 export async function POST(request: Request, context: RouteContext) {
-  let author;
-  try {
-    ({ profile: author } = await requireAdmin());
-  } catch {
+  const jwt = await getCurrentUserJwt();
+  if (!jwt) {
+    return NextResponse.json({ error: "No autenticado." }, { status: 401 });
+  }
+
+  const author = await getCurrentUserProfileViaJwt();
+  if (!author || !isAdminRole(author.role)) {
     return NextResponse.json(
       { error: "Acceso restringido: se requieren permisos de administrador." },
       { status: 403 }
@@ -97,7 +97,7 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     const { id } = await context.params;
-    const profileId = await resolveProfileId(id);
+    const profileId = await resolveProfileId(id, jwt);
     if (!profileId) {
       return NextResponse.json({ error: "Contacto no encontrado." }, { status: 404 });
     }
@@ -105,7 +105,7 @@ export async function POST(request: Request, context: RouteContext) {
     const response = await fetch(`${STRAPI_BASE_URL}/api/user-comments`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        Authorization: `Bearer ${jwt}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

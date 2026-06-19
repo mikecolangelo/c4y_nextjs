@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
-import { requireAdmin } from "@/lib/admin-guard";
+import { STRAPI_BASE_URL } from "@/lib/config";
+import { getCurrentUserJwt, getCurrentUserProfileViaJwt } from "@/lib/auth";
+import { isAdminRole } from "@/lib/admin-guard";
 import { logger } from "@/lib/logger";
 
 interface RouteContext {
@@ -9,9 +10,13 @@ interface RouteContext {
 
 // DELETE - Remove a single contact comment by its documentId.
 export async function DELETE(_: Request, context: RouteContext) {
-  try {
-    await requireAdmin();
-  } catch {
+  const jwt = await getCurrentUserJwt();
+  if (!jwt) {
+    return NextResponse.json({ error: "No autenticado." }, { status: 401 });
+  }
+
+  const author = await getCurrentUserProfileViaJwt();
+  if (!author || !isAdminRole(author.role)) {
     return NextResponse.json(
       { error: "Acceso restringido: se requieren permisos de administrador." },
       { status: 403 }
@@ -23,7 +28,7 @@ export async function DELETE(_: Request, context: RouteContext) {
 
     const response = await fetch(`${STRAPI_BASE_URL}/api/user-comments/${commentId}`, {
       method: "DELETE",
-      headers: { Authorization: `Bearer ${STRAPI_API_TOKEN}` },
+      headers: { Authorization: `Bearer ${jwt}` },
       cache: "no-store",
     });
 
