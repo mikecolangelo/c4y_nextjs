@@ -62,7 +62,7 @@ const normalizeMaintenanceKitItem = (item: any): MaintenanceKitItemCard | null =
 const normalizeMaintenanceKit = (kit: any): MaintenanceKitCard | null => {
   if (!kit) return null;
   const kitItems = Array.isArray(kit.kitItems)
-    ? kit.kitItems.map(normalizeMaintenanceKitItem).filter(Boolean) as MaintenanceKitItemCard[]
+    ? (kit.kitItems.map(normalizeMaintenanceKitItem).filter(Boolean) as MaintenanceKitItemCard[])
     : [];
   return {
     id: String(kit.id ?? kit.documentId ?? ""),
@@ -89,7 +89,7 @@ const normalizeService = (entry: ServiceRaw): ServiceCard | null => {
 
   const rawKits = (entry as any).maintenanceKits;
   const maintenanceKits = Array.isArray(rawKits)
-    ? rawKits.map(normalizeMaintenanceKit).filter(Boolean) as MaintenanceKitCard[]
+    ? (rawKits.map(normalizeMaintenanceKit).filter(Boolean) as MaintenanceKitCard[])
     : undefined;
 
   const rawTemplate = (entry as any).defaultTemplate || attributes.defaultTemplate;
@@ -126,7 +126,16 @@ export async function fetchServicesFromStrapi(): Promise<ServiceCard[]> {
   const jwt = await getCurrentUserJwt();
   const url = `${STRAPI_BASE_URL}/api/services?${qs.stringify(
     {
-      fields: ["name", "price", "coverage", "description", "category", "basePrice", "agencyCost", "defaultTemplate"],
+      fields: [
+        "name",
+        "price",
+        "coverage",
+        "description",
+        "category",
+        "basePrice",
+        "agencyCost",
+        "defaultTemplate",
+      ],
       sort: ["name:asc"],
       pagination: { pageSize: 100 },
       populate: {
@@ -150,7 +159,7 @@ export async function fetchServicesFromStrapi(): Promise<ServiceCard[]> {
       Authorization: `Bearer ${jwt ?? ""}`,
     },
     cache: "force-cache",
-    next: { revalidate: 300, tags: ['services'] },
+    next: { revalidate: 300, tags: ["services"] },
   });
 
   if (!response.ok) {
@@ -181,10 +190,7 @@ const buildServiceDetailQuery = (id: string | number) => {
   const normalizedId = String(id);
   const filters = isNumericId(id)
     ? {
-        $or: [
-          { id: { $eq: Number(id) } },
-          { documentId: { $eq: normalizedId } },
-        ],
+        $or: [{ id: { $eq: Number(id) } }, { documentId: { $eq: normalizedId } }],
       }
     : {
         documentId: { $eq: normalizedId },
@@ -193,7 +199,16 @@ const buildServiceDetailQuery = (id: string | number) => {
   return qs.stringify(
     {
       filters,
-      fields: ["name", "price", "coverage", "description", "category", "basePrice", "agencyCost", "defaultTemplate"],
+      fields: [
+        "name",
+        "price",
+        "coverage",
+        "description",
+        "category",
+        "basePrice",
+        "agencyCost",
+        "defaultTemplate",
+      ],
       populate: {
         maintenanceKits: {
           populate: {
@@ -213,9 +228,7 @@ const buildServiceDetailQuery = (id: string | number) => {
   );
 };
 
-export async function fetchServiceByIdFromStrapi(
-  id: string | number
-): Promise<ServiceCard | null> {
+export async function fetchServiceByIdFromStrapi(id: string | number): Promise<ServiceCard | null> {
   const jwt = await getCurrentUserJwt();
   const detailQuery = buildServiceDetailQuery(id);
   const response = await fetch(`${STRAPI_BASE_URL}/api/services?${detailQuery}`, {
@@ -223,7 +236,7 @@ export async function fetchServiceByIdFromStrapi(
       Authorization: `Bearer ${jwt ?? ""}`,
     },
     cache: "force-cache",
-    next: { revalidate: 300, tags: ['services'] },
+    next: { revalidate: 300, tags: ["services"] },
   });
 
   if (response.status === 404) {
@@ -248,9 +261,7 @@ const resolveServiceDocumentId = async (id: string | number) => {
   return service?.documentId ?? null;
 };
 
-export async function createServiceInStrapi(
-  data: ServiceCreatePayload
-): Promise<ServiceCard> {
+export async function createServiceInStrapi(data: ServiceCreatePayload): Promise<ServiceCard> {
   const jwt = await getCurrentUserJwt();
   const url = `${STRAPI_BASE_URL}/api/services`;
   const response = await fetch(url, {
