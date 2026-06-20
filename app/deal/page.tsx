@@ -2,22 +2,23 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { optimizeUpload } from "@/lib/image-compression";
 import { Card, CardContent } from "@/components_shadcn/ui/card";
 import { Button } from "@/components_shadcn/ui/button";
 import { Badge } from "@/components_shadcn/ui/badge";
 import { SearchInput } from "@/components/ui/search-input";
 import { Separator } from "@/components_shadcn/ui/separator";
 import { Skeleton } from "@/components_shadcn/ui/skeleton";
-import { 
-  MoreVertical, 
-  Plus, 
-  Upload, 
-  Bell, 
-  Eye, 
-  Archive, 
+import {
+  MoreVertical,
+  Plus,
+  Upload,
+  Bell,
+  Eye,
+  Archive,
   CheckCircle,
   ChevronRight,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -27,7 +28,11 @@ import {
 } from "@/components_shadcn/ui/dropdown-menu";
 import { spacing, typography, commonClasses } from "@/lib/design-system";
 import { AdminLayout } from "@/components/admin/admin-layout";
-import { CreateDealDialog, UploadContractDialog, CreateDealFormData } from "./components/deal-dialogs";
+import {
+  CreateDealDialog,
+  UploadContractDialog,
+  CreateDealFormData,
+} from "./components/deal-dialogs";
 import { toast } from "@/lib/toast";
 import type { DealCard, DealStatus } from "@/validations/types";
 
@@ -288,8 +293,8 @@ export default function DealPage() {
     try {
       // Primero subir el archivo
       const uploadForm = new FormData();
-      uploadForm.append("files", selectedFile);
-      
+      uploadForm.append("files", await optimizeUpload(selectedFile));
+
       const uploadResponse = await fetch("/api/strapi/upload", {
         method: "POST",
         body: uploadForm,
@@ -397,7 +402,9 @@ export default function DealPage() {
           </>
         ) : filteredDeals.length === 0 ? (
           <Card className={commonClasses.card}>
-            <CardContent className={`flex flex-col items-center justify-center ${spacing.card.padding} py-12`}>
+            <CardContent
+              className={`flex flex-col items-center justify-center ${spacing.card.padding} py-12`}
+            >
               <p className={`${typography.body.large} text-muted-foreground`}>
                 {searchQuery ? "No se encontraron contratos" : "No hay contratos registrados"}
               </p>
@@ -441,12 +448,19 @@ export default function DealPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/deal/details/${deal.documentId}`); }}>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/deal/details/${deal.documentId}`);
+                          }}
+                        >
                           Ver detalles
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => e.stopPropagation()}>Editar</DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="text-destructive" 
+                        <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive"
                           onClick={(e) => handleDelete(deal.documentId, e)}
                         >
                           Eliminar
@@ -460,9 +474,7 @@ export default function DealPage() {
                   <p className={`${typography.body.small} text-muted-foreground`}>
                     {getDateLabel(deal)}
                   </p>
-                  <div onClick={(e) => e.stopPropagation()}>
-                    {getActionButton(deal.status)}
-                  </div>
+                  <div onClick={(e) => e.stopPropagation()}>{getActionButton(deal.status)}</div>
                 </div>
               </CardContent>
             </Card>

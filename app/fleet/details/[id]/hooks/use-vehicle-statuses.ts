@@ -17,7 +17,12 @@ interface UseVehicleStatesReturn {
   handleStatusImageChange: (event: ChangeEvent<HTMLInputElement>) => void;
   handleRemoveStatusImage: (index: number) => void;
   handleSaveStatus: (currentUserDocumentId: string | null) => Promise<void>;
-  handleEditStatus: (statusId: number | string, editComment: string, _imageIds?: number[], newImages?: File[]) => Promise<void>;
+  handleEditStatus: (
+    statusId: number | string,
+    editComment: string,
+    _imageIds?: number[],
+    newImages?: File[]
+  ) => Promise<void>;
   handleDeleteStatus: (statusId: number | string) => Promise<void>;
   handleOpenStatusForm: () => void;
   handleCancelStatusForm: () => void;
@@ -26,7 +31,10 @@ interface UseVehicleStatesReturn {
 
 const MAX_IMAGES = 10;
 
-export function useVehicleStatuses(vehicleId: string): UseVehicleStatesReturn {
+export function useVehicleStatuses(
+  vehicleId: string,
+  currentMileage?: number
+): UseVehicleStatesReturn {
   const [vehicleStates, setVehicleStates] = useState<VehicleState[]>([]);
   const [isLoadingStatuses, setIsLoadingStatuses] = useState(false);
   const [isSavingStatus, setIsSavingStatus] = useState(false);
@@ -151,12 +159,18 @@ export function useVehicleStatuses(vehicleId: string): UseVehicleStatesReturn {
         imageIds = await uploadImages(statusImages);
       }
 
-      const requestBody: { data: { comment?: string; images?: number[]; authorDocumentId?: string } } = {
+      const requestBody: {
+        data: { comment?: string; images?: number[]; authorDocumentId?: string; mileage?: number };
+      } = {
         data: {},
       };
       if (statusComment.trim()) requestBody.data.comment = statusComment.trim();
       if (imageIds.length > 0) requestBody.data.images = imageIds;
       if (currentUserDocumentId) requestBody.data.authorDocumentId = currentUserDocumentId;
+      // Anclar el estado al kilometraje actual del vehículo
+      if (typeof currentMileage === "number" && !isNaN(currentMileage)) {
+        requestBody.data.mileage = currentMileage;
+      }
 
       const response = await fetch(`/api/fleet/${vehicleId}/vehicle-states`, {
         method: "POST",
@@ -223,7 +237,9 @@ export function useVehicleStatuses(vehicleId: string): UseVehicleStatesReturn {
       }
 
       const { data } = (await response.json()) as { data: VehicleState };
-      setVehicleStates((prev) => prev.map((s) => (s.id === data.id || s.documentId === data.documentId ? data : s)));
+      setVehicleStates((prev) =>
+        prev.map((s) => (s.id === data.id || s.documentId === data.documentId ? data : s))
+      );
       toast.success("Estado actualizado");
     } catch (error) {
       console.error("Error editando estado:", error);
@@ -244,7 +260,9 @@ export function useVehicleStatuses(vehicleId: string): UseVehicleStatesReturn {
         throw new Error(err.error || `Error ${response.status}`);
       }
 
-      setVehicleStates((prev) => prev.filter((s) => s.id !== statusId && s.documentId !== statusId));
+      setVehicleStates((prev) =>
+        prev.filter((s) => s.id !== statusId && s.documentId !== statusId)
+      );
       toast.success("Estado eliminado");
     } catch (error) {
       console.error("Error eliminando estado:", error);

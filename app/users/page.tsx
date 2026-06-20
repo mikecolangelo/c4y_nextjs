@@ -10,6 +10,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components_shadcn/ui/avat
 import { Separator } from "@/components_shadcn/ui/separator";
 import {
   ArrowUpDown,
+  ChevronLeft,
   ChevronRight,
   Plus,
   Shield,
@@ -27,6 +28,14 @@ import { AdminLayout } from "@/components/admin/admin-layout";
 import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
 import { strapiImages } from "@/lib/strapi-images";
 import { Skeleton } from "@/components_shadcn/ui/skeleton";
+import { Label } from "@/components_shadcn/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components_shadcn/ui/select";
 import { toast } from "@/lib/toast";
 import {
   AlertDialog,
@@ -87,6 +96,10 @@ export default function UsersPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  // Paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Callback cuando se crea un nuevo contacto
   const handleUserCreated = (user: CreatedUser) => {
@@ -150,6 +163,15 @@ export default function UsersPage() {
 
     return matchesSearch && matchesFilter;
   });
+
+  // ─── Paginación ───
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / pageSize));
+  const paginatedUsers = filteredUsers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  // Volver a la página 1 cuando cambian filtros, búsqueda o tamaño de página
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, activeFilter, pageSize]);
 
   // ─── Selección múltiple ───
   const toggleSelection = (documentId: string, e?: React.MouseEvent | React.ChangeEvent) => {
@@ -287,14 +309,6 @@ export default function UsersPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Button
-              variant="secondary"
-              className="rounded-lg h-12 text-base font-semibold flex items-center justify-center gap-2 px-4 shrink-0"
-              onClick={() => router.push("/users/import")}
-            >
-              <Upload className="h-5 w-5" />
-              Importar Leads
-            </Button>
           </div>
 
           <ScrollAreaPrimitive.Root className="relative w-full overflow-hidden">
@@ -339,6 +353,53 @@ export default function UsersPage() {
             </ScrollAreaPrimitive.ScrollAreaScrollbar>
             <ScrollAreaPrimitive.Corner />
           </ScrollAreaPrimitive.Root>
+
+          {/* Acciones: crear / importar + selector de cantidad por página */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <QuickUserCreate
+                onUserCreated={handleUserCreated}
+                trigger={
+                  <Button className="rounded-lg h-9 gap-2 font-semibold">
+                    <Plus className="h-4 w-4" />
+                    Crear Contacto
+                  </Button>
+                }
+              />
+              <Button
+                variant="secondary"
+                className="rounded-lg h-9 gap-2 font-semibold"
+                onClick={() => router.push("/users/import")}
+              >
+                <Upload className="h-4 w-4" />
+                Importar Contactos
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label
+                htmlFor="users-per-page"
+                className={`${typography.body.small} text-muted-foreground whitespace-nowrap`}
+              >
+                Mostrar:
+              </Label>
+              <Select value={pageSize.toString()} onValueChange={(v) => setPageSize(Number(v))}>
+                <SelectTrigger
+                  id="users-per-page"
+                  className="h-8 w-20 rounded-lg"
+                  suppressHydrationWarning
+                >
+                  <SelectValue>{pageSize}</SelectValue>
+                </SelectTrigger>
+                <SelectContent align="end">
+                  {[10, 20, 50, 100].map((n) => (
+                    <SelectItem key={n} value={n.toString()}>
+                      {n}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
 
         <Separator className="my-3" />
@@ -395,7 +456,7 @@ export default function UsersPage() {
             <p className={typography.body.large}>No se encontraron contactos</p>
           </div>
         ) : (
-          filteredUsers.map((user) => {
+          paginatedUsers.map((user) => {
             const userKey = user.documentId || String(user.id);
             const isSelected = selectedIds.has(userKey);
             return (
@@ -472,19 +533,36 @@ export default function UsersPage() {
             );
           })
         )}
-      </section>
 
-      <QuickUserCreate
-        onUserCreated={handleUserCreated}
-        trigger={
-          <Button
-            className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-primary text-white hover:bg-primary/90"
-            size="icon"
-          >
-            <Plus className="h-6 w-6" />
-          </Button>
-        }
-      />
+        {/* Controles de paginación */}
+        {!isLoading && !error && filteredUsers.length > 0 && totalPages > 1 && (
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1 rounded-lg"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Anterior
+            </Button>
+            <span className={`${typography.body.small} text-muted-foreground whitespace-nowrap`}>
+              Página {currentPage} de {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1 rounded-lg"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Siguiente
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </section>
 
       {/* Diálogo de confirmación de eliminación masiva */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

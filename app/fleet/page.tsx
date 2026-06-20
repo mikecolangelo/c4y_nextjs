@@ -6,10 +6,7 @@ import { useRouter } from "next/navigation";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import type { FleetVehicleCard, FleetVehicleCondition } from "@/validations/types";
 import { toast } from "@/lib/toast";
-import {
-  FleetHeaderActions,
-  FleetViewMode,
-} from "./components/fleet-header-actions";
+import { FleetHeaderActions, FleetViewMode } from "./components/fleet-header-actions";
 import { FleetFiltersSheet } from "./components/fleet-filters-sheet";
 import { FleetVehiclesSection } from "./components/fleet-vehicles-section";
 import {
@@ -18,8 +15,8 @@ import {
   DeleteMultipleVehiclesDialog,
   DeleteVehicleDialog,
   CreateVehicleFormData,
-  MaintenanceRecurrencePattern,
 } from "./components/fleet-dialogs";
+import { compressImage } from "@/lib/image-compression";
 
 const conditions: FleetVehicleCondition[] = ["nuevo", "usado", "seminuevo"];
 
@@ -33,6 +30,7 @@ const createInitialFormData = (): CreateVehicleFormData => ({
   year: "",
   color: "",
   currentMileage: "",
+  oilChangeInterval: "",
   fuelType: "",
   transmission: "",
   imageAlt: "",
@@ -52,42 +50,44 @@ export default function FleetPage() {
   const [selectedCondition, setSelectedCondition] = useState<FleetVehicleCondition | null>(null);
   const [filterSelectedResponsables, setFilterSelectedResponsables] = useState<number[]>([]);
   const [filterSelectedDrivers, setFilterSelectedDrivers] = useState<number[]>([]);
-  
+
   // Estados para paginación
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [currentPage, setCurrentPage] = useState(1);
-  
+
   // Estados para vista y filtros
   const [viewMode, setViewMode] = useState<FleetViewMode>("list");
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
-  
+
   // Estados para selección múltiple
   const [selectedVehicles, setSelectedVehicles] = useState<Set<string>>(new Set());
   const [isSelectMode, setIsSelectMode] = useState(false);
-  
+
   // Estados para el diálogo de agregar vehículo
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [formData, setFormData] = useState<CreateVehicleFormData>(() => createInitialFormData());
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  
-  // Estados para los nuevos campos
-  const [maintenanceScheduledDate, setMaintenanceScheduledDate] = useState("");
-  const [maintenanceScheduledTime, setMaintenanceScheduledTime] = useState("");
-  const [maintenanceIsAllDay, setMaintenanceIsAllDay] = useState(false);
-  const [maintenanceRecurrencePattern, setMaintenanceRecurrencePattern] = useState<MaintenanceRecurrencePattern>("monthly");
-  const [maintenanceRecurrenceEndDate, setMaintenanceRecurrenceEndDate] = useState("");
+
   const [selectedResponsables, setSelectedResponsables] = useState<number[]>([]);
   const [selectedAssignedDrivers, setSelectedAssignedDrivers] = useState<number[]>([]);
-  const [availableUsers, setAvailableUsers] = useState<Array<{ id: number; documentId?: string; displayName?: string; email?: string; avatar?: { url?: string; alternativeText?: string } }>>([]);
+  const [availableUsers, setAvailableUsers] = useState<
+    Array<{
+      id: number;
+      documentId?: string;
+      displayName?: string;
+      email?: string;
+      avatar?: { url?: string; alternativeText?: string };
+    }>
+  >([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
-  
+
   // Estados para el diálogo de eliminar vehículo
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [vehicleToDelete, setVehicleToDelete] = useState<FleetVehicleCard | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  
+
   // Estados para el diálogo de eliminar múltiples vehículos
   const [deleteMultipleDialogOpen, setDeleteMultipleDialogOpen] = useState(false);
 
@@ -144,9 +144,18 @@ export default function FleetPage() {
       if (!response.ok) {
         throw new Error("No pudimos obtener los usuarios");
       }
-      const { data } = (await response.json()) as { data: Array<{ id: number; documentId?: string; displayName?: string; email?: string; role?: string; avatar?: { url?: string; alternativeText?: string } }> };
+      const { data } = (await response.json()) as {
+        data: Array<{
+          id: number;
+          documentId?: string;
+          displayName?: string;
+          email?: string;
+          role?: string;
+          avatar?: { url?: string; alternativeText?: string };
+        }>;
+      };
       // Filtrar Leads: no pueden ser asignados como conductores o responsables de vehículos
-      setAvailableUsers((data || []).filter((u) => u.role !== 'lead'));
+      setAvailableUsers((data || []).filter((u) => u.role !== "lead"));
     } catch (error) {
       console.error("Error cargando usuarios:", error);
     } finally {
@@ -171,16 +180,16 @@ export default function FleetPage() {
   useEffect(() => {
     const calculateSkeletonCount = () => {
       if (typeof window === "undefined") return;
-      
+
       // Altura aproximada de cada tarjeta (incluyendo gap): ~120px en mobile, ~140px en desktop
       const cardHeight = window.innerWidth < 640 ? 120 : 140;
       const gap = 12; // spacing.gap.medium = 12px (gap-3)
-      
+
       // Altura disponible aproximada (viewport height menos header, search, filtros, separadores)
       // Header: ~64px, Search: ~48px, Filtros: ~48px, Separador: ~1px, Padding: ~32px
       const reservedHeight = 64 + 48 + 48 + 1 + 32;
       const availableHeight = window.innerHeight - reservedHeight;
-      
+
       // Calcular cuántas tarjetas caben
       const count = Math.max(Math.floor(availableHeight / (cardHeight + gap)), 3);
       setSkeletonCount(Math.min(count, 10)); // Máximo 10 skeletons
@@ -213,13 +222,41 @@ export default function FleetPage() {
       const matchesModel = !selectedModel || vehicle.model === selectedModel;
       const matchesYear = !selectedYear || vehicle.year === selectedYear;
       const matchesCondition = !selectedCondition || vehicle.condition === selectedCondition;
-      const matchesResponsable = filterSelectedResponsables.length === 0 || 
-        (vehicle.responsables && vehicle.responsables.some(r => filterSelectedResponsables.includes(r.id) || filterSelectedResponsables.includes(Number(r.id))));
-      const matchesDriver = filterSelectedDrivers.length === 0 || 
-        (vehicle.assignedDrivers && vehicle.assignedDrivers.some(d => filterSelectedDrivers.includes(d.id) || filterSelectedDrivers.includes(Number(d.id))));
-      return matchesSearch && matchesBrand && matchesModel && matchesYear && matchesCondition && matchesResponsable && matchesDriver;
+      const matchesResponsable =
+        filterSelectedResponsables.length === 0 ||
+        (vehicle.responsables &&
+          vehicle.responsables.some(
+            (r) =>
+              filterSelectedResponsables.includes(r.id) ||
+              filterSelectedResponsables.includes(Number(r.id))
+          ));
+      const matchesDriver =
+        filterSelectedDrivers.length === 0 ||
+        (vehicle.assignedDrivers &&
+          vehicle.assignedDrivers.some(
+            (d) =>
+              filterSelectedDrivers.includes(d.id) || filterSelectedDrivers.includes(Number(d.id))
+          ));
+      return (
+        matchesSearch &&
+        matchesBrand &&
+        matchesModel &&
+        matchesYear &&
+        matchesCondition &&
+        matchesResponsable &&
+        matchesDriver
+      );
     });
-  }, [vehicles, searchQuery, selectedBrand, selectedModel, selectedYear, selectedCondition, filterSelectedResponsables, filterSelectedDrivers]);
+  }, [
+    vehicles,
+    searchQuery,
+    selectedBrand,
+    selectedModel,
+    selectedYear,
+    selectedCondition,
+    filterSelectedResponsables,
+    filterSelectedDrivers,
+  ]);
 
   // Calcular paginación
   const totalPages = Math.ceil(filteredVehicles.length / itemsPerPage);
@@ -232,8 +269,16 @@ export default function FleetPage() {
   // Resetear a página 1 cuando cambian los filtros o itemsPerPage
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, selectedBrand, selectedModel, selectedYear, selectedCondition, filterSelectedResponsables, filterSelectedDrivers, itemsPerPage]);
-
+  }, [
+    searchQuery,
+    selectedBrand,
+    selectedModel,
+    selectedYear,
+    selectedCondition,
+    filterSelectedResponsables,
+    filterSelectedDrivers,
+    itemsPerPage,
+  ]);
 
   const clearFilters = () => {
     setSelectedBrand(null);
@@ -257,7 +302,7 @@ export default function FleetPage() {
   const isFormValid = useMemo(() => {
     const year = Number(formData.year);
     const price = Number(formData.price);
-    
+
     return (
       formData.name.trim() !== "" &&
       formData.vin.trim() !== "" &&
@@ -279,11 +324,6 @@ export default function FleetPage() {
     setFormData(createInitialFormData());
     setSelectedImageFile(null);
     setImagePreview(null);
-    setMaintenanceScheduledDate("");
-    setMaintenanceScheduledTime("");
-    setMaintenanceIsAllDay(false);
-    setMaintenanceRecurrencePattern("monthly");
-    setMaintenanceRecurrenceEndDate("");
     setSelectedResponsables([]);
     setSelectedAssignedDrivers([]);
   };
@@ -334,7 +374,7 @@ export default function FleetPage() {
   };
 
   const handleToggleVehicleSelection = (vehicleId: string) => {
-    setSelectedVehicles(prev => {
+    setSelectedVehicles((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(vehicleId)) {
         newSet.delete(vehicleId);
@@ -358,7 +398,7 @@ export default function FleetPage() {
     if (selectedVehicles.size === paginatedVehicles.length) {
       setSelectedVehicles(new Set());
     } else {
-      setSelectedVehicles(new Set(paginatedVehicles.map(v => v.documentId ?? v.id)));
+      setSelectedVehicles(new Set(paginatedVehicles.map((v) => v.documentId ?? v.id)));
     }
   };
 
@@ -398,18 +438,18 @@ export default function FleetPage() {
     try {
       // Obtener los datos raw del vehículo para acceder al imageId
       const targetId = vehicle.documentId ?? vehicle.id;
-      
+
       // Hacer una llamada a la API para obtener los datos raw con la imagen
       const vehicleResponse = await fetch(`/api/fleet/${targetId}?includeRaw=true`);
       if (!vehicleResponse.ok) {
         throw new Error("No se pudo obtener los datos del vehículo");
       }
       const vehicleData = (await vehicleResponse.json()) as { data?: any };
-      
+
       // Generar un nuevo VIN único agregando un sufijo
       const timestamp = Date.now().toString().slice(-4);
       const newVin = `${vehicle.vin}-COPY-${timestamp}`;
-      
+
       // Extraer el imageId del vehículo original si existe
       // La estructura puede ser: attributes.image.data.id o image.data.id dependiendo de cómo Strapi devuelva los datos
       let imageId: number | null = null;
@@ -422,12 +462,12 @@ export default function FleetPage() {
             imageId = imageData.data.id;
           } else if (imageData.id) {
             imageId = imageData.id;
-          } else if (typeof imageData === 'number') {
+          } else if (typeof imageData === "number") {
             imageId = imageData;
           }
         }
       }
-      
+
       // Crear el payload con los datos del vehículo original
       const payload = {
         name: `${vehicle.name} (Copia)`,
@@ -460,7 +500,10 @@ export default function FleetPage() {
       await loadVehicles();
     } catch (error) {
       console.error("Error duplicating vehicle:", error);
-      const errorMessage = error instanceof Error ? error.message : "No pudimos duplicar el vehículo. Intenta nuevamente.";
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "No pudimos duplicar el vehículo. Intenta nuevamente.";
       toast.error(errorMessage);
     }
   };
@@ -480,7 +523,14 @@ export default function FleetPage() {
 
   const handleCreateVehicle = async () => {
     // Validar campos requeridos
-    if (!formData.name || !formData.vin || !formData.price || !formData.brand || !formData.model || !formData.year) {
+    if (
+      !formData.name ||
+      !formData.vin ||
+      !formData.price ||
+      !formData.brand ||
+      !formData.model ||
+      !formData.year
+    ) {
       toast.error("Por favor completa todos los campos requeridos");
       return;
     }
@@ -500,7 +550,10 @@ export default function FleetPage() {
     }
 
     // Validar currentMileage si está presente
-    if (formData.currentMileage && (isNaN(Number(formData.currentMileage)) || Number(formData.currentMileage) < 0)) {
+    if (
+      formData.currentMileage &&
+      (isNaN(Number(formData.currentMileage)) || Number(formData.currentMileage) < 0)
+    ) {
       toast.error("El kilometraje debe ser un número válido mayor o igual a 0");
       return;
     }
@@ -508,23 +561,25 @@ export default function FleetPage() {
     setIsCreating(true);
     try {
       let uploadedImageId: number | null = null;
-      
+
       // Subir imagen si hay una seleccionada
       if (selectedImageFile) {
         // Validar tipo de archivo
-        const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        const validImageTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
         if (!validImageTypes.includes(selectedImageFile.type)) {
-          throw new Error(`Tipo de archivo no válido. Solo se permiten imágenes: ${validImageTypes.join(', ')}`);
+          throw new Error(
+            `Tipo de archivo no válido. Solo se permiten imágenes: ${validImageTypes.join(", ")}`
+          );
         }
-        
+
         // Validar tamaño (máximo 10MB)
         const maxSize = 10 * 1024 * 1024; // 10MB en bytes
         if (selectedImageFile.size > maxSize) {
           throw new Error(`La imagen es demasiado grande. El tamaño máximo permitido es 10MB.`);
         }
-        
+
         const uploadForm = new FormData();
-        uploadForm.append("files", selectedImageFile);
+        uploadForm.append("files", await compressImage(selectedImageFile));
         const uploadResponse = await fetch("/api/strapi/upload", {
           method: "POST",
           body: uploadForm,
@@ -556,15 +611,12 @@ export default function FleetPage() {
         year: year,
         color: formData.color || null,
         currentMileage: formData.currentMileage ? Number(formData.currentMileage) : null,
+        oilChangeInterval: formData.oilChangeInterval ? Number(formData.oilChangeInterval) : null,
         fuelType: formData.fuelType || null,
         transmission: formData.transmission || null,
         image: uploadedImageId,
         imageAlt: formData.imageAlt || null,
         placa: formData.placa || null,
-        nextMaintenanceDate: maintenanceScheduledDate ? (() => {
-          const timeToUse = maintenanceIsAllDay ? "00:00" : (maintenanceScheduledTime || "00:00");
-          return `${maintenanceScheduledDate}T${timeToUse}:00`;
-        })() : null,
         responsables: selectedResponsables.length > 0 ? selectedResponsables : [],
         assignedDrivers: selectedAssignedDrivers.length > 0 ? selectedAssignedDrivers : [],
       };
@@ -581,55 +633,10 @@ export default function FleetPage() {
       }
 
       const { data } = (await response.json()) as { data: FleetVehicleCard };
-      
-      // Sincronizar fecha de mantenimiento con recordatorios si existe
-      if (maintenanceScheduledDate && data.documentId) {
-        try {
-          const maintenanceTitle = "Mantenimiento completo del vehículo";
-          const timeToUse = maintenanceIsAllDay ? "00:00" : (maintenanceScheduledTime || "00:00");
-          const scheduledDateTime = `${maintenanceScheduledDate}T${timeToUse}:00`;
-          
-          // Obtener el usuario actual
-          const userResponse = await fetch("/api/user-profile/me", { cache: "no-store" });
-          if (userResponse.ok) {
-            const { data: userData } = (await userResponse.json()) as { data: { documentId?: string } };
-            
-            if (userData?.documentId) {
-              // Asignar a responsables y conductores si existen
-              const assignedUserIds = [
-                ...selectedResponsables,
-                ...selectedAssignedDrivers,
-              ].filter((id, index, self) => self.indexOf(id) === index); // Eliminar duplicados
-              
-              const createData: any = {
-                title: maintenanceTitle,
-                description: `Mantenimiento completo programado para el vehículo ${formData.name}`,
-                reminderType: "recurring",
-                scheduledDate: scheduledDateTime,
-                recurrencePattern: maintenanceRecurrencePattern,
-                assignedUserIds: assignedUserIds.length > 0 ? assignedUserIds : undefined,
-                authorDocumentId: userData.documentId,
-              };
-              
-              if (maintenanceRecurrenceEndDate) {
-                createData.recurrenceEndDate = `${maintenanceRecurrenceEndDate}T00:00:00`;
-              }
-              
-              await fetch(`/api/fleet/${data.documentId}/reminders`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  data: createData,
-                }),
-              });
-            }
-          }
-        } catch (error) {
-          console.error("Error creando recordatorio de mantenimiento:", error);
-          // No mostrar error al usuario, solo loguear
-        }
-      }
-      
+
+      // El mantenimiento se gestiona por kilometraje (oilChangeInterval), no por
+      // fecha: no se crea ningún recordatorio programado al alta del vehículo.
+
       toast.success("Vehículo creado exitosamente");
       setIsDialogOpen(false);
       resetForm();
@@ -645,8 +652,8 @@ export default function FleetPage() {
   };
 
   return (
-    <AdminLayout 
-      title="Flota" 
+    <AdminLayout
+      title="Flota"
       showFilterAction
       onFilterActionClick={() => setIsFilterSheetOpen(true)}
     >
@@ -727,16 +734,6 @@ export default function FleetPage() {
         isFormValid={isFormValid}
         onConfirm={handleCreateVehicle}
         onCancel={handleCancelCreateDialog}
-        maintenanceScheduledDate={maintenanceScheduledDate}
-        setMaintenanceScheduledDate={setMaintenanceScheduledDate}
-        maintenanceScheduledTime={maintenanceScheduledTime}
-        setMaintenanceScheduledTime={setMaintenanceScheduledTime}
-        maintenanceIsAllDay={maintenanceIsAllDay}
-        setMaintenanceIsAllDay={setMaintenanceIsAllDay}
-        maintenanceRecurrencePattern={maintenanceRecurrencePattern}
-        setMaintenanceRecurrencePattern={setMaintenanceRecurrencePattern}
-        maintenanceRecurrenceEndDate={maintenanceRecurrenceEndDate}
-        setMaintenanceRecurrenceEndDate={setMaintenanceRecurrenceEndDate}
         availableUsers={availableUsers}
         isLoadingUsers={isLoadingUsers}
         selectedResponsables={selectedResponsables}

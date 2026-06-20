@@ -5,6 +5,7 @@ import type { ChangeEvent } from "react";
 import Image from "next/image";
 import { ContactCommentsTimeline } from "./components/contact-comments-timeline";
 import { useRouter, useParams } from "next/navigation";
+import { compressImage } from "@/lib/image-compression";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components_shadcn/ui/card";
 import { Button } from "@/components_shadcn/ui/button";
 import { Badge } from "@/components_shadcn/ui/badge";
@@ -442,7 +443,7 @@ export default function UserDetailsPage() {
     setIsUploadingImage(true);
     try {
       const uploadFormData = new FormData();
-      uploadFormData.append("files", file);
+      uploadFormData.append("files", await compressImage(file));
 
       const uploadResponse = await fetch("/api/strapi/upload", {
         method: "POST",
@@ -511,7 +512,7 @@ export default function UserDetailsPage() {
         setIsUploadingImage(true);
         try {
           const uploadFormData = new FormData();
-          uploadFormData.append("files", selectedImageFile);
+          uploadFormData.append("files", await compressImage(selectedImageFile));
 
           const uploadResponse = await fetch("/api/strapi/upload", {
             method: "POST",

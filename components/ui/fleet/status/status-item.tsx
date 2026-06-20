@@ -4,7 +4,17 @@ import { useState, useEffect, useRef } from "react";
 import type { ChangeEvent } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Camera, Edit2, Trash2, X, Check, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Camera,
+  Edit2,
+  Trash2,
+  X,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Gauge,
+  History,
+} from "lucide-react";
 import Image from "next/image";
 import useEmblaCarousel from "embla-carousel-react";
 import { Card } from "@/components_shadcn/ui/card";
@@ -17,16 +27,12 @@ import { strapiImages } from "@/lib/strapi-images";
 import { StatusItemSkeleton } from "./status-item-skeleton";
 import type { StatusItemProps } from "./types";
 
-export function StatusItem({
-  status,
-  isLast,
-  isLoading,
-  onEdit,
-  onDelete,
-}: StatusItemProps) {
+export function StatusItem({ status, isLast, isLoading, onEdit, onDelete }: StatusItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editComment, setEditComment] = useState(status.comment || "");
-  const [editImages, setEditImages] = useState<Array<{ id?: number; url?: string; alternativeText?: string }>>(status.images || []);
+  const [editImages, setEditImages] = useState<
+    Array<{ id?: number; url?: string; alternativeText?: string }>
+  >(status.images || []);
   const [newImages, setNewImages] = useState<File[]>([]);
   const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -41,7 +47,9 @@ export function StatusItem({
   const updatedDate = new Date(status.updatedAt || Date.now());
   const isEdited = status.createdAt !== status.updatedAt && !!status.updatedAt;
   const formattedDate = format(date, "d 'de' MMMM, yyyy 'a las' HH:mm", { locale: es });
-  const formattedUpdatedDate = format(updatedDate, "d 'de' MMMM, yyyy 'a las' HH:mm", { locale: es });
+  const formattedUpdatedDate = format(updatedDate, "d 'de' MMMM, yyyy 'a las' HH:mm", {
+    locale: es,
+  });
   const authorName = status.author?.displayName || status.author?.email || "Usuario";
   const statusId = status.documentId || String(status.id);
   const images = status.images || [];
@@ -103,7 +111,7 @@ export function StatusItem({
       emblaApi.off("reInit", onSelect);
     };
   }, [emblaApi, isLoading]);
-  
+
   if (isLoading) {
     return <StatusItemSkeleton isLast={isLast} />;
   }
@@ -113,8 +121,15 @@ export function StatusItem({
     if (!onEdit) return;
     setIsSaving(true);
     try {
-      const imageIds = editImages.map(img => img.id).filter((id): id is number => id !== undefined);
-      await onEdit(statusId, editComment.trim(), imageIds, newImages.length > 0 ? newImages : undefined);
+      const imageIds = editImages
+        .map((img) => img.id)
+        .filter((id): id is number => id !== undefined);
+      await onEdit(
+        statusId,
+        editComment.trim(),
+        imageIds,
+        newImages.length > 0 ? newImages : undefined
+      );
       setIsEditing(false);
     } catch (error) {
       console.error("Error guardando edición:", error);
@@ -136,15 +151,15 @@ export function StatusItem({
   };
 
   const handleRemoveImage = (index: number) => {
-    setEditImages(prev => prev.filter((_, i) => i !== index));
+    setEditImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleRemoveNewImage = (index: number) => {
     const urlToRevoke = newImagePreviewRefs.current[index];
     if (urlToRevoke) URL.revokeObjectURL(urlToRevoke);
     newImagePreviewRefs.current = newImagePreviewRefs.current.filter((_, i) => i !== index);
-    setNewImages(prev => prev.filter((_, i) => i !== index));
-    setNewImagePreviews(prev => prev.filter((_, i) => i !== index));
+    setNewImages((prev) => prev.filter((_, i) => i !== index));
+    setNewImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleNewImageChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -158,9 +173,9 @@ export function StatusItem({
       newImagePreviewRefs.current.push(objectUrl);
     });
 
-    setNewImages(prev => [...prev, ...files]);
-    setNewImagePreviews(prev => [...prev, ...newPreviews]);
-    event.target.value = '';
+    setNewImages((prev) => [...prev, ...files]);
+    setNewImagePreviews((prev) => [...prev, ...newPreviews]);
+    event.target.value = "";
   };
 
   const handleDelete = async () => {
@@ -177,10 +192,8 @@ export function StatusItem({
 
   return (
     <div className="relative flex gap-4 items-start">
-      {!isLast && (
-        <div className="absolute left-[9px] top-6 bottom-0 w-px bg-border" />
-      )}
-      
+      {!isLast && <div className="absolute left-[9px] top-6 bottom-0 w-px bg-border" />}
+
       <div className="relative z-10 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 ring-2 ring-background mt-2">
         <div className="h-1.5 w-1.5 rounded-full bg-primary" />
       </div>
@@ -233,135 +246,155 @@ export function StatusItem({
                   </span>
                 </div>
               )}
-              
+
               <div className="flex-1 min-w-0">
-                <p className={`${typography.body.small} font-semibold`}>
-                  {authorName}
-                </p>
+                <p className={`${typography.body.small} font-semibold`}>{authorName}</p>
                 <p className={`${typography.body.small} text-muted-foreground`}>
                   {formattedDate}
                   {isEdited && (
-                    <span className="ml-2 text-xs italic">
-                      (editado el {formattedUpdatedDate})
-                    </span>
+                    <span className="ml-2 text-xs italic">(editado el {formattedUpdatedDate})</span>
                   )}
                 </p>
+                {typeof status.mileage === "number" && (
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                      <Gauge className="h-3 w-3" />
+                      {status.mileage.toLocaleString("es-PA")} km
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        window.dispatchEvent(
+                          new CustomEvent("c4y:open-mileage-history", {
+                            detail: { mileage: status.mileage },
+                          })
+                        )
+                      }
+                      className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                    >
+                      <History className="h-3 w-3" />
+                      Ver en historial
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
-            {isEditing ? (
-              (editImages.length > 0 || newImagePreviews.length > 0) && (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {editImages.map((image, index) => (
-                    <div key={`existing-${index}`} className="relative">
-                      <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted">
-                        {image.url ? (
+            {isEditing
+              ? (editImages.length > 0 || newImagePreviews.length > 0) && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {editImages.map((image, index) => (
+                      <div key={`existing-${index}`} className="relative">
+                        <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted">
+                          {image.url ? (
+                            <Image
+                              src={strapiImages.getURL(image.url)}
+                              alt={
+                                image.alternativeText ||
+                                `Imagen ${index + 1} del estado del vehículo`
+                              }
+                              fill
+                              className="object-cover"
+                              sizes="(max-width: 768px) 50vw, 33vw"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                              <Camera className="h-12 w-12" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {newImagePreviews.map((preview, index) => (
+                      <div key={`new-${index}`} className="relative group">
+                        <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted">
                           <Image
-                            src={strapiImages.getURL(image.url)}
-                            alt={image.alternativeText || `Imagen ${index + 1} del estado del vehículo`}
+                            src={preview}
+                            alt={`Nueva imagen ${index + 1}`}
                             fill
                             className="object-cover"
                             sizes="(max-width: 768px) 50vw, 33vw"
+                            unoptimized
                           />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                            <Camera className="h-12 w-12" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  {newImagePreviews.map((preview, index) => (
-                    <div key={`new-${index}`} className="relative group">
-                      <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted">
-                        <Image
-                          src={preview}
-                          alt={`Nueva imagen ${index + 1}`}
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 768px) 50vw, 33vw"
-                          unoptimized
-                        />
-                      </div>
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => handleRemoveNewImage(index)}
-                        disabled={isSaving}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )
-            ) : (
-              hasImages && (
-                <div className="relative w-full">
-                  <div className="overflow-hidden rounded-lg" ref={emblaRef}>
-                    <div className="flex">
-                      {images.map((image, index) => (
-                        <div key={index} className="relative min-w-0 flex-[0_0_100%]">
-                          <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted">
-                            {image.url ? (
-                              <Image
-                                src={strapiImages.getURL(image.url)}
-                                alt={image.alternativeText || `Imagen ${index + 1} del estado del vehículo`}
-                                fill
-                                className="object-cover"
-                                sizes="(max-width: 768px) 100vw, 800px"
-                              />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-                                <Camera className="h-12 w-12" />
-                              </div>
-                            )}
-                          </div>
                         </div>
-                      ))}
-                    </div>
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => handleRemoveNewImage(index)}
+                          disabled={isSaving}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
                   </div>
-                  
-                  {images.length > 1 && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm"
-                        onClick={scrollPrev}
-                        disabled={prevBtnDisabled}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm"
-                        onClick={scrollNext}
-                        disabled={nextBtnDisabled}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                      
-                      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                        {images.map((_, index) => (
-                          <div
-                            key={index}
-                            className={`h-1.5 w-1.5 rounded-full transition-all ${
-                              index === selectedIndex
-                                ? "bg-background w-4"
-                                : "bg-background/60"
-                            }`}
-                          />
+                )
+              : hasImages && (
+                  <div className="relative w-full">
+                    <div className="overflow-hidden rounded-lg" ref={emblaRef}>
+                      <div className="flex">
+                        {images.map((image, index) => (
+                          <div key={index} className="relative min-w-0 flex-[0_0_100%]">
+                            <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted">
+                              {image.url ? (
+                                <Image
+                                  src={strapiImages.getURL(image.url)}
+                                  alt={
+                                    image.alternativeText ||
+                                    `Imagen ${index + 1} del estado del vehículo`
+                                  }
+                                  fill
+                                  className="object-cover"
+                                  sizes="(max-width: 768px) 100vw, 800px"
+                                />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                                  <Camera className="h-12 w-12" />
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         ))}
                       </div>
-                    </>
-                  )}
-                </div>
-              )
-            )}
-            
+                    </div>
+
+                    {images.length > 1 && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="absolute left-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm"
+                          onClick={scrollPrev}
+                          disabled={prevBtnDisabled}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm"
+                          onClick={scrollNext}
+                          disabled={nextBtnDisabled}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+
+                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                          {images.map((_, index) => (
+                            <div
+                              key={index}
+                              className={`h-1.5 w-1.5 rounded-full transition-all ${
+                                index === selectedIndex ? "bg-background w-4" : "bg-background/60"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
             {isEditing ? (
               <div className={`flex flex-col ${spacing.gap.small}`}>
                 <div className={`flex flex-col ${spacing.gap.small}`}>
@@ -370,7 +403,9 @@ export function StatusItem({
                     className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-dashed border-primary/40 px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary/10"
                   >
                     <Camera className="mr-2 h-4 w-4" />
-                    {newImages.length > 0 ? `Agregar más imágenes (${newImages.length} nuevas seleccionadas)` : "Agregar imágenes"}
+                    {newImages.length > 0
+                      ? `Agregar más imágenes (${newImages.length} nuevas seleccionadas)`
+                      : "Agregar imágenes"}
                   </Label>
                   <Input
                     id={`status-edit-images-${statusId}`}
@@ -404,7 +439,10 @@ export function StatusItem({
                     variant="default"
                     size="sm"
                     onClick={handleSaveEdit}
-                    disabled={(!editComment.trim() && editImages.length === 0 && newImages.length === 0) || isSaving}
+                    disabled={
+                      (!editComment.trim() && editImages.length === 0 && newImages.length === 0) ||
+                      isSaving
+                    }
                   >
                     <Check className="h-4 w-4 mr-1" />
                     {isSaving ? "Guardando..." : "Guardar"}
@@ -424,20 +462,3 @@ export function StatusItem({
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

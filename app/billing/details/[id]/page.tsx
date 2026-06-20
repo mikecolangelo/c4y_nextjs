@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { optimizeUpload } from "@/lib/image-compression";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components_shadcn/ui/card";
 import { Button } from "@/components_shadcn/ui/button";
 import { Input } from "@/components_shadcn/ui/input";
@@ -241,7 +242,7 @@ export default function BillingDetailsPage() {
 
       // First upload the file to Strapi
       const formData = new FormData();
-      formData.append("files", file);
+      formData.append("files", await optimizeUpload(file));
 
       const uploadResponse = await fetch("/api/strapi/upload", {
         method: "POST",
@@ -340,7 +341,7 @@ export default function BillingDetailsPage() {
         setIsUploading(true);
 
         const formData = new FormData();
-        formData.append("files", file);
+        formData.append("files", await optimizeUpload(file));
 
         const uploadResponse = await fetch("/api/strapi/upload", {
           method: "POST",

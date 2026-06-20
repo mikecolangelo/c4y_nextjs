@@ -1,7 +1,13 @@
 import { useCallback, useState, useEffect, useRef } from "react";
 import type { ChangeEvent } from "react";
 import { toast } from "@/lib/toast";
-import type { FleetVehicleCard, FleetVehicleCondition, FleetVehicleUpdatePayload, RecurrencePattern } from "@/validations/types";
+import { compressImage } from "@/lib/image-compression";
+import type {
+  FleetVehicleCard,
+  FleetVehicleCondition,
+  FleetVehicleUpdatePayload,
+  RecurrencePattern,
+} from "@/validations/types";
 
 interface FormData {
   name: string;
@@ -58,7 +64,13 @@ interface UseVehicleFormReturn {
     vehicleData: FleetVehicleCard | null,
     vehicleId: string,
     loadVehicle: () => Promise<FleetVehicleCard | null>,
-    syncMaintenanceReminder: (date: string, time: string, isAllDay: boolean, pattern: RecurrencePattern, endDate?: string) => Promise<void>,
+    syncMaintenanceReminder: (
+      date: string,
+      time: string,
+      isAllDay: boolean,
+      pattern: RecurrencePattern,
+      endDate?: string
+    ) => Promise<void>,
     vehicleReminders: any[],
     loadVehicleReminders: () => Promise<any>,
     setErrorMessage: (msg: string | null) => void
@@ -93,7 +105,8 @@ export function useVehicleForm(vehicleId: string): UseVehicleFormReturn {
   const [maintenanceScheduledDate, setMaintenanceScheduledDate] = useState("");
   const [maintenanceScheduledTime, setMaintenanceScheduledTime] = useState("");
   const [maintenanceIsAllDay, setMaintenanceIsAllDay] = useState(false);
-  const [maintenanceRecurrencePattern, setMaintenanceRecurrencePattern] = useState<RecurrencePattern>("monthly");
+  const [maintenanceRecurrencePattern, setMaintenanceRecurrencePattern] =
+    useState<RecurrencePattern>("monthly");
   const [maintenanceRecurrenceEndDate, setMaintenanceRecurrenceEndDate] = useState("");
   const [selectedResponsables, setSelectedResponsables] = useState<number[]>([]);
   const [selectedAssignedDrivers, setSelectedAssignedDrivers] = useState<number[]>([]);
@@ -130,11 +143,13 @@ export function useVehicleForm(vehicleId: string): UseVehicleFormReturn {
         model: data.model,
         year: data.year.toString(),
         imageAlt: data.imageAlt ?? "",
-        nextMaintenanceDate: data.nextMaintenanceDate ? new Date(data.nextMaintenanceDate).toISOString().split('T')[0] : "",
+        nextMaintenanceDate: data.nextMaintenanceDate
+          ? new Date(data.nextMaintenanceDate).toISOString().split("T")[0]
+          : "",
         placa: (data as any).placa ?? "",
         billingInitials: data.billingInitials ?? "",
       });
-      
+
       // Establecer valores de mantenimiento desde nextMaintenanceDate
       // Nota: Cuando se está editando, estos valores pueden ser sobrescritos por el recordatorio
       // en el useEffect de la página principal
@@ -144,7 +159,7 @@ export function useVehicleForm(vehicleId: string): UseVehicleFormReturn {
         const month = String(maintenanceDate.getMonth() + 1).padStart(2, "0");
         const day = String(maintenanceDate.getDate()).padStart(2, "0");
         setMaintenanceScheduledDate(`${year}-${month}-${day}`);
-        
+
         const hours = String(maintenanceDate.getHours()).padStart(2, "0");
         const minutes = String(maintenanceDate.getMinutes()).padStart(2, "0");
         const timeValue = `${hours}:${minutes}`;
@@ -162,13 +177,13 @@ export function useVehicleForm(vehicleId: string): UseVehicleFormReturn {
       updateImagePreview(data.imageUrl ?? null);
       setSelectedImageFile(null);
       setShouldRemoveImage(false);
-      
+
       // Sincronizar responsables, conductores asignados e interesados
       // Primero intentar con los datos normalizados
       if (data.responsables && data.responsables.length > 0) {
         const responsablesIds = data.responsables
           .map((r) => r.id)
-          .filter((id): id is number => typeof id === 'number' && !isNaN(id));
+          .filter((id): id is number => typeof id === "number" && !isNaN(id));
         if (responsablesIds.length > 0) {
           setSelectedResponsables(responsablesIds);
         } else {
@@ -177,11 +192,11 @@ export function useVehicleForm(vehicleId: string): UseVehicleFormReturn {
       } else {
         setSelectedResponsables([]);
       }
-      
+
       if (data.assignedDrivers && data.assignedDrivers.length > 0) {
         const assignedDriversIds = data.assignedDrivers
           .map((d) => d.id)
-          .filter((id): id is number => typeof id === 'number' && !isNaN(id));
+          .filter((id): id is number => typeof id === "number" && !isNaN(id));
         if (assignedDriversIds.length > 0) {
           setSelectedAssignedDrivers(assignedDriversIds);
         } else {
@@ -190,11 +205,11 @@ export function useVehicleForm(vehicleId: string): UseVehicleFormReturn {
       } else {
         setSelectedAssignedDrivers([]);
       }
-      
+
       if (data.interestedDrivers && data.interestedDrivers.length > 0) {
         const interestedDriversIds = data.interestedDrivers
           .map((d) => d.id)
-          .filter((id): id is number => typeof id === 'number' && !isNaN(id));
+          .filter((id): id is number => typeof id === "number" && !isNaN(id));
         if (interestedDriversIds.length > 0) {
           setSelectedInterestedDrivers(interestedDriversIds);
         } else {
@@ -203,11 +218,11 @@ export function useVehicleForm(vehicleId: string): UseVehicleFormReturn {
       } else {
         setSelectedInterestedDrivers([]);
       }
-      
+
       if ((data as any).currentDrivers && (data as any).currentDrivers.length > 0) {
         const currentDriversIds = (data as any).currentDrivers
           .map((d: any) => d.id)
-          .filter((id: any): id is number => typeof id === 'number' && !isNaN(id));
+          .filter((id: any): id is number => typeof id === "number" && !isNaN(id));
         if (currentDriversIds.length > 0) {
           setSelectedCurrentDrivers(currentDriversIds);
         } else {
@@ -255,7 +270,13 @@ export function useVehicleForm(vehicleId: string): UseVehicleFormReturn {
     vehicleData: FleetVehicleCard | null,
     vehicleIdParam: string,
     loadVehicle: () => Promise<FleetVehicleCard | null>,
-    syncMaintenanceReminder: (date: string, time: string, isAllDay: boolean, pattern: RecurrencePattern, endDate?: string) => Promise<void>,
+    syncMaintenanceReminder: (
+      date: string,
+      time: string,
+      isAllDay: boolean,
+      pattern: RecurrencePattern,
+      endDate?: string
+    ) => Promise<void>,
     vehicleReminders: any[],
     loadVehicleReminders: () => Promise<any>,
     setErrorMessage: (msg: string | null) => void
@@ -268,18 +289,26 @@ export function useVehicleForm(vehicleId: string): UseVehicleFormReturn {
       if (selectedImageFile) {
         setIsUploadingImage(true);
         try {
-          const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+          const validImageTypes = [
+            "image/jpeg",
+            "image/jpg",
+            "image/png",
+            "image/gif",
+            "image/webp",
+          ];
           if (!validImageTypes.includes(selectedImageFile.type)) {
-            throw new Error(`Tipo de archivo no válido. Solo se permiten imágenes: ${validImageTypes.join(', ')}`);
+            throw new Error(
+              `Tipo de archivo no válido. Solo se permiten imágenes: ${validImageTypes.join(", ")}`
+            );
           }
-          
+
           const maxSize = 10 * 1024 * 1024;
           if (selectedImageFile.size > maxSize) {
             throw new Error(`La imagen es demasiado grande. El tamaño máximo permitido es 10MB.`);
           }
-          
+
           const uploadForm = new FormData();
-          uploadForm.append("files", selectedImageFile);
+          uploadForm.append("files", await compressImage(selectedImageFile));
           const uploadResponse = await fetch("/api/strapi/upload", {
             method: "POST",
             body: uploadForm,
@@ -319,10 +348,12 @@ export function useVehicleForm(vehicleId: string): UseVehicleFormReturn {
         imageAlt: formData.imageAlt || null,
         placa: formData.placa || null,
         billingInitials: formData.billingInitials || null,
-        nextMaintenanceDate: maintenanceScheduledDate ? (() => {
-          const timeToUse = maintenanceIsAllDay ? "00:00" : (maintenanceScheduledTime || "00:00");
-          return `${maintenanceScheduledDate}T${timeToUse}:00`;
-        })() : null,
+        nextMaintenanceDate: maintenanceScheduledDate
+          ? (() => {
+              const timeToUse = maintenanceIsAllDay ? "00:00" : maintenanceScheduledTime || "00:00";
+              return `${maintenanceScheduledDate}T${timeToUse}:00`;
+            })()
+          : null,
         responsables: selectedResponsables,
         assignedDrivers: selectedAssignedDrivers,
         interestedDrivers: selectedInterestedDrivers,
@@ -354,12 +385,20 @@ export function useVehicleForm(vehicleId: string): UseVehicleFormReturn {
       }
 
       if (maintenanceScheduledDate) {
-        await syncMaintenanceReminder(maintenanceScheduledDate, maintenanceScheduledTime, maintenanceIsAllDay, maintenanceRecurrencePattern, maintenanceRecurrenceEndDate);
+        await syncMaintenanceReminder(
+          maintenanceScheduledDate,
+          maintenanceScheduledTime,
+          maintenanceIsAllDay,
+          maintenanceRecurrencePattern,
+          maintenanceRecurrenceEndDate
+        );
       } else {
         const maintenanceReminder = vehicleReminders.find(
-          (r: any) => r.title.toLowerCase().includes("mantenimiento") || r.title === "Mantenimiento completo del vehículo"
+          (r: any) =>
+            r.title.toLowerCase().includes("mantenimiento") ||
+            r.title === "Mantenimiento completo del vehículo"
         );
-        
+
         if (maintenanceReminder) {
           const reminderId = maintenanceReminder.documentId || String(maintenanceReminder.id);
           try {
@@ -374,17 +413,23 @@ export function useVehicleForm(vehicleId: string): UseVehicleFormReturn {
       }
 
       // Forzar recarga del vehículo con un pequeño delay para asegurar que Strapi procesó todo
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 300));
       await loadVehicle();
       // Pequeño delay adicional para asegurar que los datos se actualizaron en el estado
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 200));
       setIsEditing(false);
       toast.success("Vehículo actualizado correctamente");
     } catch (error) {
       console.error("Error guardando vehículo:", error);
-      const errorMessage = error instanceof Error ? error.message : "No pudimos guardar los cambios. Intenta nuevamente.";
-      const isUploadError = errorMessage.includes("imagen") || errorMessage.includes("archivo") || errorMessage.includes("subir");
-      
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "No pudimos guardar los cambios. Intenta nuevamente.";
+      const isUploadError =
+        errorMessage.includes("imagen") ||
+        errorMessage.includes("archivo") ||
+        errorMessage.includes("subir");
+
       if (isUploadError) {
         setErrorMessage(errorMessage);
         toast.error("Error al subir imagen", {
@@ -446,4 +491,3 @@ export function useVehicleForm(vehicleId: string): UseVehicleFormReturn {
     handleSaveChanges,
   };
 }
-

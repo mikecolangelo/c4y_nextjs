@@ -703,8 +703,10 @@ export default function NotificationsPage() {
     };
     window.addEventListener("focus", handleFocus);
 
-    // Recargar cada minuto como respaldo, pero solo si el usuario no está interactuando
+    // Recargar cada minuto como respaldo: solo con la pestaña visible y si el
+    // usuario no está interactuando (no consultar en segundo plano).
     const interval = setInterval(() => {
+      if (document.hidden) return;
       const timeSinceLastAction = Date.now() - lastUserActionRef.current;
       // Solo recargar si no hay interacción reciente (últimos 5 segundos)
       if (!isUserInteractingRef.current && timeSinceLastAction > 5000) {

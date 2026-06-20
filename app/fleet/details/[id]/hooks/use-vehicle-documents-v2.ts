@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { ChangeEvent } from "react";
 import { toast } from "@/lib/toast";
+import { optimizeUpload } from "@/lib/image-compression";
 import type { VehicleDocument, VehicleDocumentCategory } from "@/validations/types";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -52,7 +53,12 @@ interface UseVehicleDocumentsV2Return {
   isCreatingCategory: boolean;
   isUpdatingCategory: boolean;
   isDeletingCategory: boolean;
-  createCategory: (data: { name: string; description?: string; isActive: boolean; order: number }) => Promise<void>;
+  createCategory: (data: {
+    name: string;
+    description?: string;
+    isActive: boolean;
+    order: number;
+  }) => Promise<void>;
   updateCategory: (id: string | number, data: Partial<VehicleDocumentCategory>) => Promise<void>;
   deleteCategory: (id: string | number) => Promise<void>;
 }
@@ -216,7 +222,7 @@ export function useVehicleDocumentsV2(vehicleId: string): UseVehicleDocumentsV2R
     const ids: number[] = [];
     for (const file of files) {
       const formData = new FormData();
-      formData.append("files", file);
+      formData.append("files", await optimizeUpload(file));
       const res = await fetch("/api/strapi/upload", {
         method: "POST",
         body: formData,

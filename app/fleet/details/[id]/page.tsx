@@ -84,7 +84,7 @@ export default function FleetDetailsPage() {
     handleDeleteStatus,
     handleOpenStatusForm,
     handleCancelStatusForm,
-  } = useVehicleStatuses(vehicleId);
+  } = useVehicleStatuses(vehicleId, vehicleData?.currentMileage);
 
   const {
     documents: vehicleDocumentsV2,

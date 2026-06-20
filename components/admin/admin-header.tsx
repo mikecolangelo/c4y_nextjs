@@ -202,14 +202,22 @@ export function AdminHeader({
     window.addEventListener(REMINDER_EVENTS.TOGGLE_COMPLETED, handleReminderChange);
     window.addEventListener(REMINDER_EVENTS.TOGGLE_ACTIVE, handleReminderChange);
 
-    // Recargar cada minuto
-    const interval = setInterval(loadNotifications, 60000);
+    // Red de seguridad cada minuto, pero SOLO con la pestaña visible: evita
+    // consultar en segundo plano. Las actualizaciones en tiempo real llegan por
+    // REMINDER_EVENTS y por foco/visibilidad.
+    const interval = setInterval(() => {
+      if (!document.hidden) loadNotifications();
+    }, 60000);
 
-    // Recargar cuando la ventana vuelve a tener foco
+    // Recargar cuando la ventana vuelve a tener foco o la pestaña se hace visible
     const handleFocus = () => {
       loadNotifications();
     };
+    const handleVisibility = () => {
+      if (!document.hidden) loadNotifications();
+    };
     window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
       clearInterval(interval);
@@ -219,6 +227,7 @@ export function AdminHeader({
       window.removeEventListener(REMINDER_EVENTS.TOGGLE_COMPLETED, handleReminderChange);
       window.removeEventListener(REMINDER_EVENTS.TOGGLE_ACTIVE, handleReminderChange);
       window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, []);
 

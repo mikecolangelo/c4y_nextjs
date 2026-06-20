@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components_shadcn/ui/button";
-import { Checkbox } from "@/components_shadcn/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +19,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components_shadcn/ui/alert-dialog";
-import { Calendar as CalendarComponent } from "@/components_shadcn/ui/calendar";
 import { Input } from "@/components_shadcn/ui/input";
 import { Label } from "@/components_shadcn/ui/label";
 import { Separator } from "@/components_shadcn/ui/separator";
@@ -33,11 +31,8 @@ import {
 } from "@/components_shadcn/ui/select";
 import { MultiSelectCombobox } from "@/components_shadcn/ui/multi-select-combobox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components_shadcn/ui/tabs";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components_shadcn/ui/popover";
 import Image from "next/image";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
-import { Calendar, Plus, Upload } from "lucide-react";
+import { Plus, Upload } from "lucide-react";
 import { spacing, typography } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
 import type { Dispatch, SetStateAction, ChangeEvent } from "react";
@@ -66,6 +61,7 @@ export interface CreateVehicleFormData {
   year: string;
   color: string;
   currentMileage: string;
+  oilChangeInterval: string;
   fuelType: string;
   transmission: string;
   imageAlt: string;
@@ -83,16 +79,6 @@ interface CreateVehicleDialogProps {
   isFormValid: boolean;
   onConfirm: () => Promise<void>;
   onCancel: () => void;
-  maintenanceScheduledDate: string;
-  setMaintenanceScheduledDate: Dispatch<SetStateAction<string>>;
-  maintenanceScheduledTime: string;
-  setMaintenanceScheduledTime: Dispatch<SetStateAction<string>>;
-  maintenanceIsAllDay: boolean;
-  setMaintenanceIsAllDay: Dispatch<SetStateAction<boolean>>;
-  maintenanceRecurrencePattern: MaintenanceRecurrencePattern;
-  setMaintenanceRecurrencePattern: Dispatch<SetStateAction<MaintenanceRecurrencePattern>>;
-  maintenanceRecurrenceEndDate: string;
-  setMaintenanceRecurrenceEndDate: Dispatch<SetStateAction<string>>;
   availableUsers: UserProfile[];
   isLoadingUsers: boolean;
   selectedResponsables: number[];
@@ -142,16 +128,6 @@ export function CreateVehicleDialog({
   isFormValid,
   onConfirm,
   onCancel,
-  maintenanceScheduledDate,
-  setMaintenanceScheduledDate,
-  maintenanceScheduledTime,
-  setMaintenanceScheduledTime,
-  maintenanceIsAllDay,
-  setMaintenanceIsAllDay,
-  maintenanceRecurrencePattern,
-  setMaintenanceRecurrencePattern,
-  maintenanceRecurrenceEndDate,
-  setMaintenanceRecurrenceEndDate,
   availableUsers,
   isLoadingUsers,
   selectedResponsables,
@@ -166,13 +142,6 @@ export function CreateVehicleDialog({
     email: user.email,
     avatar: user.avatar,
   }));
-
-  const resolveMeridiemValue = () => {
-    if (!maintenanceScheduledTime) return "AM";
-    const [hours] = maintenanceScheduledTime.split(":");
-    const hour24 = parseInt(hours, 10);
-    return hour24 >= 12 ? "PM" : "AM";
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -406,325 +375,25 @@ export function CreateVehicleDialog({
                 />
               </div>
 
-              <div className={`flex flex-col ${spacing.gap.base}`}>
-                <h3 className={typography.h4}>Mantenimiento Recurrente</h3>
-                <div className={`flex flex-col ${spacing.gap.small}`}>
-                  <Label>Fecha y Hora Programada</Label>
-                  <div className="flex flex-col gap-2">
-                    <div className="flex flex-col lg:flex-row gap-2">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full lg:flex-1 justify-start text-left font-normal h-10 pl-3 rounded-lg",
-                              !maintenanceScheduledDate && "text-muted-foreground"
-                            )}
-                          >
-                            <Calendar className="mr-2 h-4 w-4" />
-                            {maintenanceScheduledDate ? (
-                              format(
-                                new Date(`${maintenanceScheduledDate}T00:00:00`),
-                                "d 'de' MMMM, yyyy",
-                                { locale: es }
-                              )
-                            ) : (
-                              <span>Selecciona una fecha</span>
-                            )}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <CalendarComponent
-                            mode="single"
-                            selected={
-                              maintenanceScheduledDate
-                                ? new Date(`${maintenanceScheduledDate}T00:00:00`)
-                                : undefined
-                            }
-                            onSelect={(date) => {
-                              if (date) {
-                                const year = date.getFullYear();
-                                const month = String(date.getMonth() + 1).padStart(2, "0");
-                                const day = String(date.getDate()).padStart(2, "0");
-                                setMaintenanceScheduledDate(`${year}-${month}-${day}`);
-                              }
-                            }}
-                            disabled={{ before: new Date(new Date().setHours(0, 0, 0, 0)) }}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <div className="flex flex-col sm:flex-row gap-2 lg:flex-1 items-center">
-                        <Input
-                          type="number"
-                          min="1"
-                          max="12"
-                          value={
-                            maintenanceScheduledTime
-                              ? String(
-                                  (() => {
-                                    const [hours] = maintenanceScheduledTime.split(":");
-                                    const hour24 = parseInt(hours, 10);
-                                    return hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
-                                  })()
-                                )
-                              : ""
-                          }
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (
-                              value === "" ||
-                              (parseInt(value, 10) >= 1 && parseInt(value, 10) <= 12)
-                            ) {
-                              const currentMinutes = maintenanceScheduledTime
-                                ? maintenanceScheduledTime.split(":")[1] || "00"
-                                : "00";
-                              const currentHour24 = maintenanceScheduledTime
-                                ? parseInt(maintenanceScheduledTime.split(":")[0], 10)
-                                : 0;
-                              const isPM = currentHour24 >= 12;
-
-                              if (value === "") {
-                                setMaintenanceScheduledTime(`00:${currentMinutes}`);
-                              } else {
-                                const hour12 = parseInt(value, 10);
-                                const hour24 =
-                                  hour12 === 12 ? (isPM ? 12 : 0) : isPM ? hour12 + 12 : hour12;
-                                const newTime = `${String(hour24).padStart(2, "0")}:${currentMinutes}`;
-
-                                // Validar si la fecha es hoy y la hora es menor a 30 minutos después de ahora
-                                if (
-                                  maintenanceScheduledDate ===
-                                  new Date().toISOString().split("T")[0]
-                                ) {
-                                  const now = new Date();
-                                  const minTime = new Date(now.getTime() + 30 * 60000); // 30 minutos después
-                                  const selectedDateTime = new Date(
-                                    `${maintenanceScheduledDate}T${newTime}`
-                                  );
-
-                                  if (selectedDateTime < minTime) {
-                                    // Ajustar a la hora mínima permitida
-                                    const minHours = String(minTime.getHours()).padStart(2, "0");
-                                    const minMinutes = String(minTime.getMinutes()).padStart(
-                                      2,
-                                      "0"
-                                    );
-                                    setMaintenanceScheduledTime(`${minHours}:${minMinutes}`);
-                                    return;
-                                  }
-                                }
-
-                                setMaintenanceScheduledTime(newTime);
-                              }
-                              if (!maintenanceScheduledTime) {
-                                setMaintenanceIsAllDay(false);
-                              }
-                            }
-                          }}
-                          disabled={maintenanceIsAllDay}
-                          className="w-full sm:w-20 h-10 rounded-lg"
-                          placeholder="12"
-                        />
-                        <span className="text-muted-foreground hidden sm:inline">:</span>
-                        <Input
-                          type="number"
-                          min="0"
-                          max="59"
-                          value={
-                            maintenanceScheduledTime
-                              ? maintenanceScheduledTime.split(":")[1] || "00"
-                              : ""
-                          }
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            if (
-                              value === "" ||
-                              (parseInt(value, 10) >= 0 && parseInt(value, 10) <= 59)
-                            ) {
-                              const currentHours = maintenanceScheduledTime
-                                ? maintenanceScheduledTime.split(":")[0] || "00"
-                                : "00";
-                              const minutes =
-                                value === "" ? "00" : String(parseInt(value, 10)).padStart(2, "0");
-                              const newTime = `${currentHours}:${minutes}`;
-
-                              // Validar si la fecha es hoy y la hora es menor a 30 minutos después de ahora
-                              if (
-                                maintenanceScheduledDate === new Date().toISOString().split("T")[0]
-                              ) {
-                                const now = new Date();
-                                const minTime = new Date(now.getTime() + 30 * 60000); // 30 minutos después
-                                const selectedDateTime = new Date(
-                                  `${maintenanceScheduledDate}T${newTime}`
-                                );
-
-                                if (selectedDateTime < minTime) {
-                                  // Ajustar a la hora mínima permitida
-                                  const minHours = String(minTime.getHours()).padStart(2, "0");
-                                  const minMinutes = String(minTime.getMinutes()).padStart(2, "0");
-                                  setMaintenanceScheduledTime(`${minHours}:${minMinutes}`);
-                                  return;
-                                }
-                              }
-
-                              setMaintenanceScheduledTime(newTime);
-                              if (!maintenanceScheduledTime) {
-                                setMaintenanceIsAllDay(false);
-                              }
-                            }
-                          }}
-                          disabled={maintenanceIsAllDay}
-                          className="w-full sm:w-20 h-10 rounded-lg"
-                          placeholder="00"
-                        />
-                        <Select
-                          value={resolveMeridiemValue()}
-                          onValueChange={(value) => {
-                            const [hours, minutes] = (maintenanceScheduledTime || "00:00").split(
-                              ":"
-                            );
-                            const hour24 = parseInt(hours, 10);
-                            let newHour24 = hour24;
-
-                            if (value === "PM" && hour24 < 12) {
-                              newHour24 = hour24 + 12;
-                            } else if (value === "AM" && hour24 >= 12) {
-                              newHour24 = hour24 - 12;
-                            }
-
-                            const newTime = `${String(newHour24).padStart(2, "0")}:${minutes}`;
-
-                            // Validar si la fecha es hoy y la hora es menor a 30 minutos después de ahora
-                            if (
-                              maintenanceScheduledDate === new Date().toISOString().split("T")[0]
-                            ) {
-                              const now = new Date();
-                              const minTime = new Date(now.getTime() + 30 * 60000); // 30 minutos después
-                              const selectedDateTime = new Date(
-                                `${maintenanceScheduledDate}T${newTime}`
-                              );
-
-                              if (selectedDateTime < minTime) {
-                                // Ajustar a la hora mínima permitida
-                                const minHours = String(minTime.getHours()).padStart(2, "0");
-                                const minMinutes = String(minTime.getMinutes()).padStart(2, "0");
-                                setMaintenanceScheduledTime(`${minHours}:${minMinutes}`);
-                                return;
-                              }
-                            }
-
-                            setMaintenanceScheduledTime(newTime);
-                            if (!maintenanceScheduledTime) {
-                              setMaintenanceIsAllDay(false);
-                            }
-                          }}
-                          disabled={maintenanceIsAllDay}
-                        >
-                          <SelectTrigger className="w-full sm:w-24 h-10 rounded-lg">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="AM">AM</SelectItem>
-                            <SelectItem value="PM">PM</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="maintenance-all-day-create"
-                        checked={maintenanceIsAllDay}
-                        onCheckedChange={(checked) => {
-                          setMaintenanceIsAllDay(checked === true);
-                          if (checked === true) {
-                            setMaintenanceScheduledTime("00:00");
-                          }
-                        }}
-                      />
-                      <Label htmlFor="maintenance-all-day-create" className="cursor-pointer">
-                        Todo el día
-                      </Label>
-                    </div>
-                  </div>
-                </div>
-
-                <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${spacing.gap.small}`}>
-                  <div className={`flex flex-col ${spacing.gap.small}`}>
-                    <Label htmlFor="maintenance-recurrence-pattern-create">
-                      Patrón de Recurrencia
-                    </Label>
-                    <Select
-                      value={maintenanceRecurrencePattern}
-                      onValueChange={(value) =>
-                        setMaintenanceRecurrencePattern(value as MaintenanceRecurrencePattern)
-                      }
-                    >
-                      <SelectTrigger
-                        id="maintenance-recurrence-pattern-create"
-                        className="rounded-lg"
-                      >
-                        <SelectValue placeholder="Selecciona el patrón" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="daily">Diario</SelectItem>
-                        <SelectItem value="weekly">Semanal</SelectItem>
-                        <SelectItem value="biweekly">Bisemanal</SelectItem>
-                        <SelectItem value="monthly">Mensual</SelectItem>
-                        <SelectItem value="yearly">Anual</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className={`flex flex-col ${spacing.gap.small}`}>
-                    <Label htmlFor="maintenance-recurrence-end-date-create">
-                      Fecha de Fin (opcional)
-                    </Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal h-10 pl-3 rounded-lg",
-                            !maintenanceRecurrenceEndDate && "text-muted-foreground"
-                          )}
-                        >
-                          <Calendar className="mr-2 h-4 w-4" />
-                          {maintenanceRecurrenceEndDate ? (
-                            format(
-                              new Date(`${maintenanceRecurrenceEndDate}T00:00:00`),
-                              "d 'de' MMMM, yyyy",
-                              { locale: es }
-                            )
-                          ) : (
-                            <span>Sin fecha de fin</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CalendarComponent
-                          mode="single"
-                          selected={
-                            maintenanceRecurrenceEndDate
-                              ? new Date(`${maintenanceRecurrenceEndDate}T00:00:00`)
-                              : undefined
-                          }
-                          onSelect={(date) => {
-                            if (date) {
-                              const year = date.getFullYear();
-                              const month = String(date.getMonth() + 1).padStart(2, "0");
-                              const day = String(date.getDate()).padStart(2, "0");
-                              setMaintenanceRecurrenceEndDate(`${year}-${month}-${day}`);
-                            } else {
-                              setMaintenanceRecurrenceEndDate("");
-                            }
-                          }}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
+              <div className={`flex flex-col ${spacing.gap.small}`}>
+                <Label htmlFor="oilChangeInterval" className={typography.label}>
+                  Mantenimiento cada (km)
+                </Label>
+                <Input
+                  id="oilChangeInterval"
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  value={formData.oilChangeInterval}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, oilChangeInterval: e.target.value }))
+                  }
+                  placeholder="Ej: 5000"
+                  className="rounded-lg"
+                />
+                <p className={`${typography.body.small} text-muted-foreground`}>
+                  El mantenimiento se controla por kilometraje, no por fecha.
+                </p>
               </div>
 
               <div className="flex flex-col gap-2">
