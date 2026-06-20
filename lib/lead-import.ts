@@ -457,7 +457,7 @@ export interface ParseResult {
   unmappedColumns: UnmappedColumn[];
 }
 
-export function parseLeadImportFile(arrayBuffer: ArrayBuffer, fileName: string): ParseResult {
+export function parseLeadImportFile(arrayBuffer: ArrayBuffer, _fileName: string): ParseResult {
   const workbook = XLSX.read(arrayBuffer, { type: "array" });
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
@@ -620,7 +620,7 @@ export function checkIntraFileDuplicates(rows: LeadImportRow[]): void {
     }
   });
 
-  phoneMap.forEach((indices, phone) => {
+  phoneMap.forEach((indices) => {
     if (indices.length > 1) {
       indices.forEach((idx) => {
         const row = rows[idx];
@@ -632,7 +632,7 @@ export function checkIntraFileDuplicates(rows: LeadImportRow[]): void {
     }
   });
 
-  emailMap.forEach((indices, email) => {
+  emailMap.forEach((indices) => {
     if (indices.length > 1) {
       indices.forEach((idx) => {
         const row = rows[idx];
