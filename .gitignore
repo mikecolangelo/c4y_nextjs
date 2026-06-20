@@ -58,3 +58,6 @@ next-env.d.ts
 *.orig
 *.tmp
 
+
+# Local env with secrets (token) — never commit
+.env.development
