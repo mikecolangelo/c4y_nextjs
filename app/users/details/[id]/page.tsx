@@ -43,7 +43,6 @@ import {
   UserPlus,
   Copy,
   Check,
-  Lock,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -242,22 +241,6 @@ export default function UserDetailsPage() {
   const [showResetPasswordInput, setShowResetPasswordInput] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
 
-  // Cambio de contraseña por el usuario mismo
-  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  // Usuario autenticado (para saber si está viendo su propio perfil y su rol)
-  const [currentUser, setCurrentUser] = useState<{ documentId?: string; role?: string } | null>(
-    null
-  );
-  const [isAdminChangingOther, setIsAdminChangingOther] = useState(false);
-
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [shouldRemoveImage, setShouldRemoveImage] = useState(false);
@@ -306,11 +289,6 @@ export default function UserDetailsPage() {
     } else if (userId === "new") {
       setIsLoading(false);
     }
-    // Cargar usuario autenticado para comparar si está viendo su propio perfil
-    fetch("/api/user-profile/me", { cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => setCurrentUser(data?.data || null))
-      .catch(() => setCurrentUser(null));
     return () => {
       if (previewObjectUrlRef.current) {
         URL.revokeObjectURL(previewObjectUrlRef.current);
@@ -1088,30 +1066,6 @@ export default function UserDetailsPage() {
                     Cancelar
                   </Button>
                 </div>
-                {user.role !== "lead" &&
-                  user.userAccount &&
-                  (currentUser?.documentId === user.documentId ||
-                    currentUser?.role === "admin") && (
-                    <Button
-                      onClick={() => {
-                        const isOther =
-                          currentUser?.documentId !== user.documentId &&
-                          currentUser?.role === "admin";
-                        setIsAdminChangingOther(isOther);
-                        setCurrentPassword("");
-                        setNewPassword("");
-                        setConfirmPassword("");
-                        setShowCurrentPassword(false);
-                        setShowNewPassword(false);
-                        setShowConfirmPassword(false);
-                        setShowPasswordDialog(true);
-                      }}
-                      className="w-full bg-slate-200 dark:bg-slate-800 text-[#0d141b] dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-700 font-medium min-h-[44px]"
-                    >
-                      <Lock className="h-4 w-4 mr-2" />
-                      Cambiar Contraseña
-                    </Button>
-                  )}
               </div>
             ) : (
               <>
@@ -1156,31 +1110,6 @@ export default function UserDetailsPage() {
                     Restablecer Contraseña
                   </Button>
                 )}
-
-                {user.role !== "lead" &&
-                  user.userAccount &&
-                  (currentUser?.documentId === user.documentId ||
-                    currentUser?.role === "admin") && (
-                    <Button
-                      onClick={() => {
-                        const isOther =
-                          currentUser?.documentId !== user.documentId &&
-                          currentUser?.role === "admin";
-                        setIsAdminChangingOther(isOther);
-                        setCurrentPassword("");
-                        setNewPassword("");
-                        setConfirmPassword("");
-                        setShowCurrentPassword(false);
-                        setShowNewPassword(false);
-                        setShowConfirmPassword(false);
-                        setShowPasswordDialog(true);
-                      }}
-                      className="mt-2 bg-slate-200 dark:bg-slate-800 text-[#0d141b] dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-700 font-medium"
-                    >
-                      <Lock className="h-4 w-4 mr-2" />
-                      Cambiar Contraseña
-                    </Button>
-                  )}
 
                 {/* Información adicional */}
                 {(user.phone || user.department) && (
@@ -2116,184 +2045,6 @@ export default function UserDetailsPage() {
               className="w-full sm:w-auto"
             >
               Cerrar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Diálogo de cambio de contraseña por el usuario */}
-      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Lock className="h-5 w-5" />
-              {isAdminChangingOther
-                ? `Cambiar Contraseña de ${user?.displayName}`
-                : "Cambiar Contraseña"}
-            </DialogTitle>
-            <DialogDescription>
-              {isAdminChangingOther
-                ? `Como administrador, puedes establecer una nueva contraseña para ${user?.displayName}.`
-                : "Ingresa tu contraseña actual y la nueva contraseña para actualizar tu cuenta."}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            {!isAdminChangingOther && (
-              <div className="flex flex-col space-y-2">
-                <Label htmlFor="currentPassword">Contraseña Actual</Label>
-                <div className="relative">
-                  <Input
-                    id="currentPassword"
-                    type={showCurrentPassword ? "text" : "password"}
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="Ingresa tu contraseña actual"
-                    className="h-12 pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    {showCurrentPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-            )}
-            <div className="flex flex-col space-y-2">
-              <Label htmlFor="newPassword">Nueva Contraseña</Label>
-              <div className="relative">
-                <Input
-                  id="newPassword"
-                  type={showNewPassword ? "text" : "password"}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Mínimo 8 caracteres"
-                  className="h-12 pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-            <div className="flex flex-col space-y-2">
-              <Label htmlFor="confirmPassword">Confirmar Nueva Contraseña</Label>
-              <div className="relative">
-                <Input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Repite la nueva contraseña"
-                  className="h-12 pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-          <DialogFooter className="flex flex-col gap-2 sm:flex-row">
-            <Button
-              variant="outline"
-              onClick={() => setShowPasswordDialog(false)}
-              disabled={isChangingPassword}
-              className="w-full sm:w-auto"
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={async () => {
-                if (!isAdminChangingOther && !currentPassword) {
-                  toast.error("Todos los campos son obligatorios");
-                  return;
-                }
-                if (!newPassword || !confirmPassword) {
-                  toast.error("Todos los campos son obligatorios");
-                  return;
-                }
-                if (newPassword.length < 8) {
-                  toast.error("La nueva contraseña debe tener al menos 8 caracteres");
-                  return;
-                }
-                if (newPassword !== confirmPassword) {
-                  toast.error("Las contraseñas no coinciden");
-                  return;
-                }
-                setIsChangingPassword(true);
-                try {
-                  let response;
-                  if (isAdminChangingOther) {
-                    response = await fetch(
-                      `/api/user-profiles/${user?.documentId}/reset-password`,
-                      {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ newPassword }),
-                      }
-                    );
-                  } else {
-                    response = await fetch("/api/auth/change-password", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        currentPassword,
-                        password: newPassword,
-                        passwordConfirmation: confirmPassword,
-                      }),
-                    });
-                  }
-                  if (!response.ok) {
-                    const data = await response.json();
-                    throw new Error(data.error || "Error al cambiar la contraseña");
-                  }
-                  toast.success(
-                    isAdminChangingOther
-                      ? `Contraseña de ${user?.displayName} actualizada correctamente`
-                      : "Contraseña actualizada correctamente"
-                  );
-                  setShowPasswordDialog(false);
-                  setCurrentPassword("");
-                  setNewPassword("");
-                  setConfirmPassword("");
-                } catch (err) {
-                  console.error("Error cambiando contraseña:", err);
-                  toast.error(
-                    err instanceof Error ? err.message : "Error al cambiar la contraseña"
-                  );
-                } finally {
-                  setIsChangingPassword(false);
-                }
-              }}
-              disabled={
-                isChangingPassword ||
-                (!isAdminChangingOther && !currentPassword) ||
-                !newPassword ||
-                !confirmPassword
-              }
-              className="w-full sm:w-auto"
-            >
-              {isChangingPassword
-                ? "Actualizando..."
-                : isAdminChangingOther
-                  ? "Actualizar Contraseña"
-                  : "Actualizar Contraseña"}
             </Button>
           </DialogFooter>
         </DialogContent>
