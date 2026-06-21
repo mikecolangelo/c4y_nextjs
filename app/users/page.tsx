@@ -188,8 +188,10 @@ export default function UsersPage() {
   };
 
   const selectAll = () => {
-    const allIds = filteredUsers.map((u) => u.documentId || String(u.id));
-    setSelectedIds(new Set(allIds));
+    // Select only the rows visible on the current pagination page.
+    // Union with the existing selection so toggling across pages accumulates.
+    const pageIds = paginatedUsers.map((u) => u.documentId || String(u.id));
+    setSelectedIds((prev) => new Set([...prev, ...pageIds]));
   };
 
   const clearSelection = () => {
@@ -255,10 +257,21 @@ export default function UsersPage() {
     );
   };
 
+  // Reflects whether every row on the CURRENT page is selected (not all filtered).
   const isAllSelected =
-    filteredUsers.length > 0 &&
-    filteredUsers.every((u) => selectedIds.has(u.documentId || String(u.id)));
+    paginatedUsers.length > 0 &&
+    paginatedUsers.every((u) => selectedIds.has(u.documentId || String(u.id)));
   const selectionCount = selectedIds.size;
+
+  // Deselect only the rows on the current page, preserving selections on other pages.
+  const clearCurrentPageSelection = () => {
+    const pageIds = new Set(paginatedUsers.map((u) => u.documentId || String(u.id)));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      pageIds.forEach((id) => next.delete(id));
+      return next;
+    });
+  };
 
   if (isLoading) {
     return (
@@ -412,7 +425,7 @@ export default function UsersPage() {
                 {selectionCount} seleccionado{selectionCount !== 1 ? "s" : ""}
               </span>
               <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={selectAll}>
-                Seleccionar todos
+                Seleccionar todos en esta página ({paginatedUsers.length})
               </Button>
               <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={clearSelection}>
                 <X className="h-3 w-3 mr-1" />
@@ -440,11 +453,11 @@ export default function UsersPage() {
               checked={isAllSelected}
               onCheckedChange={(checked) => {
                 if (checked) selectAll();
-                else clearSelection();
+                else clearCurrentPageSelection();
               }}
             />
             <label htmlFor="select-all" className="text-sm text-muted-foreground cursor-pointer">
-              Seleccionar todos ({filteredUsers.length})
+              Seleccionar todos en esta página ({paginatedUsers.length})
             </label>
           </div>
         )}

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { STRAPI_BASE_URL } from "@/lib/config";
 import { getCurrentUserJwt } from "@/lib/auth";
+import { logger } from "@/lib/logger";
 
 // POST - Eliminar múltiples perfiles de contacto
 export async function POST(request: Request) {
@@ -25,16 +26,13 @@ export async function POST(request: Request) {
 
     const results = await Promise.allSettled(
       body.ids.map(async (id: string) => {
-        const response = await fetch(
-          `${STRAPI_BASE_URL}/api/user-profiles/${id}`,
-          {
-            method: "DELETE",
-            headers: {
-              Authorization: authHeader,
-            },
-            cache: "no-store",
-          }
-        );
+        const response = await fetch(`${STRAPI_BASE_URL}/api/user-profiles/${id}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: authHeader,
+          },
+          cache: "no-store",
+        });
 
         if (!response.ok) {
           const errorText = await response.text().catch(() => response.statusText);
@@ -46,7 +44,10 @@ export async function POST(request: Request) {
     );
 
     const succeeded = results
-      .filter((r): r is PromiseFulfilledResult<{ id: string; success: boolean }> => r.status === "fulfilled")
+      .filter(
+        (r): r is PromiseFulfilledResult<{ id: string; success: boolean }> =>
+          r.status === "fulfilled"
+      )
       .map((r) => r.value.id);
 
     const failed = results
@@ -54,9 +55,10 @@ export async function POST(request: Request) {
       .filter(({ r }) => r.status === "rejected")
       .map(({ r, index }) => ({
         id: body.ids[index],
-        error: (r as PromiseRejectedResult).reason instanceof Error
-          ? (r as PromiseRejectedResult).reason.message
-          : String((r as PromiseRejectedResult).reason),
+        error:
+          (r as PromiseRejectedResult).reason instanceof Error
+            ? (r as PromiseRejectedResult).reason.message
+            : String((r as PromiseRejectedResult).reason),
       }));
 
     if (failed.length > 0 && succeeded.length === 0) {
@@ -77,11 +79,8 @@ export async function POST(request: Request) {
       failed,
     });
   } catch (error) {
-    console.error("Error en batch-delete de contactos:", error);
+    logger.error({ error }, "Failed to batch-delete contacts");
     const errorMessage = error instanceof Error ? error.message : "Error desconocido";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
