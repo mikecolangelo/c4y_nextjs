@@ -18,6 +18,7 @@ import {
 } from "./components/fleet-dialogs";
 import { compressImage } from "@/lib/image-compression";
 import { usePaginatedSelection } from "@/hooks/use-paginated-selection";
+import { useBatchDelete } from "@/hooks/use-batch-delete";
 
 const conditions: FleetVehicleCondition[] = ["nuevo", "usado", "seminuevo"];
 
@@ -408,31 +409,35 @@ export default function FleetPage() {
     setDeleteMultipleDialogOpen(true);
   };
 
-  const handleConfirmDeleteMultiple = async () => {
-    if (selectedVehicles.size === 0) return;
-
-    setIsDeleting(true);
-    try {
-      const deletePromises = Array.from(selectedVehicles).map(async (vehicleId) => {
-        const response = await fetch(`/api/fleet/${vehicleId}`, { method: "DELETE" });
-        if (!response.ok) {
-          throw new Error(`Error eliminando vehículo ${vehicleId}`);
-        }
-        return vehicleId;
-      });
-
-      await Promise.all(deletePromises);
-      toast.success(`${selectedVehicles.size} vehículo(s) eliminado(s) exitosamente`);
+  // Batch delete via shared hook: it owns isDeleting + success/partial/error toasts.
+  // Transport deletes each vehicle individually; count fulfilled vs rejected.
+  const { isDeleting: isBatchDeleting, runDelete: runBatchDelete } = useBatchDelete({
+    deleteBatch: async (ids) => {
+      const results = await Promise.allSettled(
+        ids.map(async (vehicleId) => {
+          const response = await fetch(`/api/fleet/${vehicleId}`, { method: "DELETE" });
+          if (!response.ok) {
+            throw new Error(`Error eliminando vehículo ${vehicleId}`);
+          }
+          return vehicleId;
+        })
+      );
+      const deletedCount = results.filter((r) => r.status === "fulfilled").length;
+      const failedCount = results.length - deletedCount;
+      return { deletedCount, failedCount };
+    },
+    labels: { singular: "vehículo", plural: "vehículos" },
+    onSuccess: () => {
       selection.clearAll();
       setIsSelectMode(false);
       setDeleteMultipleDialogOpen(false);
-      await loadVehicles();
-    } catch (error) {
-      console.error("Error deleting vehicles:", error);
-      toast.error("No pudimos eliminar algunos vehículos. Intenta nuevamente.");
-    } finally {
-      setIsDeleting(false);
-    }
+      loadVehicles();
+    },
+  });
+
+  const handleConfirmDeleteMultiple = async () => {
+    if (selectedVehicles.size === 0) return;
+    await runBatchDelete(Array.from(selectedVehicles));
   };
 
   const handleDuplicateVehicle = async (vehicle: FleetVehicleCard) => {
@@ -667,7 +672,7 @@ export default function FleetPage() {
         toggleSelectMode={toggleSelectMode}
         selectedVehiclesCount={selectedVehicles.size}
         onDeleteMultiple={handleDeleteMultiple}
-        isDeleting={isDeleting}
+        isDeleting={isBatchDeleting}
         hasActiveFilters={hasActiveFilters}
         activeFiltersCount={activeFiltersCount}
         onOpenFilters={() => setIsFilterSheetOpen(true)}
@@ -759,7 +764,7 @@ export default function FleetPage() {
         open={deleteMultipleDialogOpen}
         onOpenChange={setDeleteMultipleDialogOpen}
         selectedCount={selectedVehicles.size}
-        isDeleting={isDeleting}
+        isDeleting={isBatchDeleting}
         onConfirm={handleConfirmDeleteMultiple}
       />
     </AdminLayout>
