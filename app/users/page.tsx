@@ -20,8 +20,11 @@ import {
   FolderPlus,
   Upload,
   Trash2,
-  X,
+  Loader2,
 } from "lucide-react";
+import { usePaginatedSelection } from "@/hooks/use-paginated-selection";
+import { BulkActionBar } from "@/components/ui/selection/bulk-action-bar";
+import { SelectAllAcrossPagesBanner } from "@/components/ui/selection/select-all-across-pages-banner";
 import { QuickUserCreate, type CreatedUser } from "@/components/ui/billing";
 import { spacing, typography } from "@/lib/design-system";
 import { AdminLayout } from "@/components/admin/admin-layout";
@@ -65,6 +68,53 @@ interface UserProfile {
   assignedVehiclesCount?: number;
 }
 
+// Shape returned by POST /api/user-profiles/deletion-impact (forwarded from Strapi).
+interface DeletionImpact {
+  contacts: number;
+  accounts: number;
+  totalRelated: number;
+  related: {
+    deals: number;
+    clients: number;
+    appointments: number;
+    userComments: number;
+    communicationLogs: number;
+    serviceOrders: number;
+    serviceNotes: number;
+    inventoryNotes: number;
+    notifications: number;
+    driverHistory: number;
+    financings: number;
+    weeklyCollections: number;
+    billingRecords: number;
+    invoices: number;
+    fleetReminders: number;
+    inventoryRequests: number;
+    supplyRequests: number;
+  };
+}
+
+// Human-readable labels for the related-record breakdown in the delete dialog.
+const RELATED_LABELS: Record<keyof DeletionImpact["related"], string> = {
+  deals: "Deals",
+  clients: "Clientes",
+  appointments: "Citas",
+  userComments: "Comentarios",
+  communicationLogs: "Registros de comunicación",
+  serviceOrders: "Órdenes de servicio",
+  serviceNotes: "Notas de servicio",
+  inventoryNotes: "Notas de inventario",
+  notifications: "Notificaciones",
+  driverHistory: "Historial de conductor",
+  financings: "Financiamientos",
+  weeklyCollections: "Cobros semanales",
+  billingRecords: "Registros de facturación",
+  invoices: "Facturas",
+  fleetReminders: "Recordatorios de flota",
+  inventoryRequests: "Solicitudes de inventario",
+  supplyRequests: "Solicitudes de suministro",
+};
+
 const roleConfig = {
   admin: {
     label: "Administrador",
@@ -92,10 +142,15 @@ export default function UsersPage() {
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Estados para selección múltiple
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // Selección múltiple (patrón reutilizable)
+  const selection = usePaginatedSelection();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  // Vista previa del impacto de la eliminación (registros relacionados afectados)
+  const [impact, setImpact] = useState<DeletionImpact | null>(null);
+  const [impactLoading, setImpactLoading] = useState(false);
+  const [impactFailed, setImpactFailed] = useState(false);
 
   // Paginación
   const [currentPage, setCurrentPage] = useState(1);
@@ -173,40 +228,23 @@ export default function UsersPage() {
     setCurrentPage(1);
   }, [searchQuery, activeFilter, pageSize]);
 
-  // ─── Selección múltiple ───
-  const toggleSelection = (documentId: string, e?: React.MouseEvent | React.ChangeEvent) => {
-    e?.stopPropagation();
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(documentId)) {
-        next.delete(documentId);
-      } else {
-        next.add(documentId);
-      }
-      return next;
-    });
-  };
-
-  const selectAll = () => {
-    // Select only the rows visible on the current pagination page.
-    // Union with the existing selection so toggling across pages accumulates.
-    const pageIds = paginatedUsers.map((u) => u.documentId || String(u.id));
-    setSelectedIds((prev) => new Set([...prev, ...pageIds]));
-  };
-
-  const clearSelection = () => {
-    setSelectedIds(new Set());
-  };
+  // ─── Selección múltiple (vía hook reutilizable) ───
+  const userKey = (u: UserProfile) => u.documentId || String(u.id);
+  const pageIds = paginatedUsers.map(userKey);
+  const allFilteredIds = filteredUsers.map(userKey);
+  const selectionCount = selection.selectionCount;
+  const isAllSelected = selection.isCurrentPageAllSelected(pageIds);
+  const banner = selection.getAcrossPagesBanner(pageIds, allFilteredIds);
 
   const handleBatchDelete = async () => {
-    if (selectedIds.size === 0) return;
+    if (selection.selectionCount === 0) return;
     setIsDeleting(true);
     try {
       const response = await fetch("/api/user-profiles/batch-delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+        body: JSON.stringify({ ids: Array.from(selection.selectedIds) }),
       });
 
       const result = await response.json();
@@ -223,7 +261,7 @@ export default function UsersPage() {
         toast.success(`${result.deletedCount} contacto(s) eliminado(s) correctamente`);
       }
 
-      setSelectedIds(new Set());
+      selection.clearAll();
       setRefreshKey((k) => k + 1);
     } catch (err) {
       console.error("Error eliminando contactos:", err);
@@ -232,6 +270,30 @@ export default function UsersPage() {
     } finally {
       setIsDeleting(false);
       setShowDeleteDialog(false);
+    }
+  };
+
+  // Fetch the deletion impact preview whenever the dialog opens.
+  const openDeleteDialog = async () => {
+    setShowDeleteDialog(true);
+    setImpact(null);
+    setImpactFailed(false);
+    setImpactLoading(true);
+    try {
+      const response = await fetch("/api/user-profiles/deletion-impact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ ids: Array.from(selection.selectedIds) }),
+      });
+      if (!response.ok) throw new Error("No se pudo calcular el impacto");
+      const data: DeletionImpact = await response.json();
+      setImpact(data);
+    } catch (err) {
+      console.error("Error calculando impacto de eliminación:", err);
+      setImpactFailed(true);
+    } finally {
+      setImpactLoading(false);
     }
   };
 
@@ -255,22 +317,6 @@ export default function UsersPage() {
         {config.label}
       </Badge>
     );
-  };
-
-  // Reflects whether every row on the CURRENT page is selected (not all filtered).
-  const isAllSelected =
-    paginatedUsers.length > 0 &&
-    paginatedUsers.every((u) => selectedIds.has(u.documentId || String(u.id)));
-  const selectionCount = selectedIds.size;
-
-  // Deselect only the rows on the current page, preserving selections on other pages.
-  const clearCurrentPageSelection = () => {
-    const pageIds = new Set(paginatedUsers.map((u) => u.documentId || String(u.id)));
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      pageIds.forEach((id) => next.delete(id));
-      return next;
-    });
   };
 
   if (isLoading) {
@@ -417,33 +463,34 @@ export default function UsersPage() {
 
         <Separator className="my-3" />
 
-        {/* Barra de selección */}
-        {selectionCount > 0 && (
-          <div className="flex items-center justify-between bg-primary/5 border border-primary/10 rounded-lg px-4 py-2 mb-2">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-primary">
-                {selectionCount} seleccionado{selectionCount !== 1 ? "s" : ""}
-              </span>
-              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={selectAll}>
-                Seleccionar todos en esta página ({paginatedUsers.length})
-              </Button>
-              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={clearSelection}>
-                <X className="h-3 w-3 mr-1" />
-                Limpiar
-              </Button>
-            </div>
-            <Button
-              variant="destructive"
-              size="sm"
-              className="h-8 text-xs"
-              onClick={() => setShowDeleteDialog(true)}
-              disabled={isDeleting}
-            >
-              <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-              Eliminar
-            </Button>
-          </div>
-        )}
+        {/* Barra de acciones masivas */}
+        <BulkActionBar
+          selectionCount={selectionCount}
+          onClear={selection.clearAll}
+          onSelectCurrentPage={() => selection.selectCurrentPage(pageIds)}
+          currentPageCount={paginatedUsers.length}
+        >
+          <Button
+            variant="destructive"
+            size="sm"
+            className="h-8 text-xs"
+            onClick={openDeleteDialog}
+            disabled={isDeleting}
+          >
+            <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+            Eliminar
+          </Button>
+        </BulkActionBar>
+
+        {/* Banner "seleccionar en todas las páginas" (estilo Gmail) */}
+        <SelectAllAcrossPagesBanner
+          show={banner.show}
+          isAllFilteredSelected={banner.isAllFilteredSelected}
+          pageCount={banner.pageCount}
+          totalFiltered={banner.totalFiltered}
+          onSelectAll={() => selection.selectAllAcrossPages(allFilteredIds)}
+          onRevert={() => selection.setSelectedIds(new Set(pageIds))}
+        />
 
         {/* Checkbox "Seleccionar todos" cuando no hay selección pero sí resultados */}
         {selectionCount === 0 && filteredUsers.length > 0 && (
@@ -452,8 +499,8 @@ export default function UsersPage() {
               id="select-all"
               checked={isAllSelected}
               onCheckedChange={(checked) => {
-                if (checked) selectAll();
-                else clearCurrentPageSelection();
+                if (checked) selection.selectCurrentPage(pageIds);
+                else selection.clearCurrentPage(pageIds);
               }}
             />
             <label htmlFor="select-all" className="text-sm text-muted-foreground cursor-pointer">
@@ -470,14 +517,14 @@ export default function UsersPage() {
           </div>
         ) : (
           paginatedUsers.map((user) => {
-            const userKey = user.documentId || String(user.id);
-            const isSelected = selectedIds.has(userKey);
+            const key = userKey(user);
+            const isSelected = selection.isSelected(key);
             return (
               <article
                 key={user.id}
                 onClick={() => {
-                  if (selectedIds.size === 0) {
-                    router.push(`/users/details/${userKey}`);
+                  if (selection.selectionCount === 0) {
+                    router.push(`/users/details/${key}`);
                   }
                 }}
                 className={`flex items-center ${spacing.gap.medium} min-h-[88px] py-4 justify-between border-b border-border cursor-pointer transition-colors hover:bg-muted/50 active:bg-muted ${isSelected ? "bg-primary/5" : ""}`}
@@ -488,7 +535,7 @@ export default function UsersPage() {
                     className="shrink-0"
                     onClick={(e) => {
                       e.stopPropagation();
-                      toggleSelection(userKey);
+                      selection.toggle(key);
                     }}
                   >
                     <Checkbox checked={isSelected} />
@@ -577,16 +624,54 @@ export default function UsersPage() {
         )}
       </section>
 
-      {/* Diálogo de confirmación de eliminación masiva */}
+      {/* Diálogo de confirmación de eliminación masiva con vista previa del impacto */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar {selectionCount} contacto(s)?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción no se puede deshacer. Los contactos seleccionados serán eliminados
-              permanentemente del sistema.
+            <AlertDialogDescription asChild>
+              {impactLoading ? (
+                <span className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Calculando el impacto de la eliminación…
+                </span>
+              ) : impact ? (
+                <span>
+                  Vas a eliminar <strong>{impact.contacts} contacto(s)</strong> y su(s){" "}
+                  <strong>{impact.accounts} cuenta(s) de acceso</strong>. Esto afecta{" "}
+                  <strong>{impact.totalRelated} registro(s) relacionados</strong> (historial,
+                  comentarios, deals, etc.). No volverás a tener acceso a estos usuarios ni a su
+                  historial. Esta acción no se puede deshacer.
+                </span>
+              ) : (
+                <span>
+                  Vas a eliminar <strong>{selectionCount} contacto(s)</strong>. No volverás a tener
+                  acceso a estos usuarios ni a su historial. Esta acción no se puede deshacer.
+                  {impactFailed && (
+                    <span className="block mt-1 text-xs text-muted-foreground">
+                      No se pudo calcular el impacto completo; aún puedes continuar con la
+                      eliminación.
+                    </span>
+                  )}
+                </span>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
+
+          {/* Desglose compacto de los registros relacionados no vacíos */}
+          {impact && impact.totalRelated > 0 && (
+            <ul className="max-h-40 overflow-y-auto rounded-md border border-border bg-muted/40 px-3 py-2 text-xs">
+              {(Object.keys(RELATED_LABELS) as Array<keyof DeletionImpact["related"]>)
+                .filter((k) => impact.related[k] > 0)
+                .map((k) => (
+                  <li key={k} className="flex items-center justify-between py-0.5">
+                    <span className="text-muted-foreground">{RELATED_LABELS[k]}</span>
+                    <span className="font-medium tabular-nums">{impact.related[k]}</span>
+                  </li>
+                ))}
+            </ul>
+          )}
+
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
