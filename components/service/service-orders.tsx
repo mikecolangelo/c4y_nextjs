@@ -35,6 +35,7 @@ import { cn } from "@/lib/utils";
 import { CreateServiceOrderDialog } from "./create-service-order-dialog";
 import { Checkbox } from "@/components_shadcn/ui/checkbox";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
+import { useBatchDelete } from "@/hooks/use-batch-delete";
 
 type ServiceOrderStatus = "pendiente" | "en_progreso" | "completado" | "cancelado";
 
@@ -80,7 +81,6 @@ export function ServiceOrders({ compact = false, tall = false }: ServiceOrdersTi
   const [statusFilter, setStatusFilter] = useState<ServiceOrderStatus | "all">("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set());
-  const [isDeleting, setIsDeleting] = useState(false);
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
 
   const loadOrders = useCallback(async () => {
@@ -138,6 +138,38 @@ export function ServiceOrders({ compact = false, tall = false }: ServiceOrdersTi
     setSelectedOrderIds(new Set());
   }, []);
 
+  // Batch delete via shared hook: it owns isDeleting + success/partial/error toasts.
+  // Deletes are performed sequentially (preserving prior semantics); count ok vs failed.
+  const { isDeleting, runDelete } = useBatchDelete({
+    deleteBatch: async (ids) => {
+      let deletedCount = 0;
+      let failedCount = 0;
+      for (const orderId of ids) {
+        try {
+          const res = await fetch(`/api/service-orders/${orderId}`, {
+            method: "DELETE",
+            cache: "no-store",
+          });
+          if (res.ok) {
+            deletedCount++;
+          } else {
+            failedCount++;
+            clientLogger.error(`Error deleting order ${orderId}:`, res.status);
+          }
+        } catch (err) {
+          failedCount++;
+          clientLogger.error(`Error deleting order ${orderId}:`, err);
+        }
+      }
+      return { deletedCount, failedCount };
+    },
+    labels: { singular: "orden", plural: "órdenes" },
+    onSuccess: () => {
+      setSelectedOrderIds(new Set());
+      loadOrders();
+    },
+  });
+
   const handleDeleteSelected = useCallback(async () => {
     if (selectedOrderIds.size === 0) return;
 
@@ -151,43 +183,8 @@ export function ServiceOrders({ compact = false, tall = false }: ServiceOrdersTi
 
     if (!confirmed) return;
 
-    setIsDeleting(true);
-    const idsToDelete = Array.from(selectedOrderIds);
-    let successCount = 0;
-    let errorCount = 0;
-
-    for (const orderId of idsToDelete) {
-      try {
-        const res = await fetch(`/api/service-orders/${orderId}`, {
-          method: "DELETE",
-          cache: "no-store",
-        });
-        if (res.ok) {
-          successCount++;
-        } else {
-          errorCount++;
-          clientLogger.error(`Error deleting order ${orderId}:`, res.status);
-        }
-      } catch (err) {
-        errorCount++;
-        clientLogger.error(`Error deleting order ${orderId}:`, err);
-      }
-    }
-
-    setIsDeleting(false);
-    setSelectedOrderIds(new Set());
-
-    if (successCount > 0) {
-      toast.success(
-        `${successCount} orden${successCount > 1 ? "es" : ""} eliminada${successCount > 1 ? "s" : ""} correctamente`
-      );
-    }
-    if (errorCount > 0) {
-      toast.error(`No se pudieron eliminar ${errorCount} orden${errorCount > 1 ? "es" : ""}`);
-    }
-
-    loadOrders();
-  }, [selectedOrderIds, confirm, loadOrders]);
+    await runDelete(Array.from(selectedOrderIds));
+  }, [selectedOrderIds, confirm, runDelete]);
 
   // Filtrar órdenes
   useEffect(() => {
