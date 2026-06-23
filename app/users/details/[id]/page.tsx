@@ -929,6 +929,15 @@ export default function UserDetailsPage() {
                       placeholder="Lunes a Viernes 9:00 - 18:00"
                     />
                   </div>
+                  <div className="w-full">
+                    <Label>Especialidades</Label>
+                    <Input
+                      value={formData.specialties}
+                      onChange={(e) => setFormData({ ...formData, specialties: e.target.value })}
+                      className="mt-1"
+                      placeholder="e.g. Ventas, Mecánica, Financiamiento"
+                    />
+                  </div>
                   {user.role === "driver" && (
                     <div className="w-full">
                       <Label>Licencia de Conducir</Label>
@@ -1587,7 +1596,8 @@ export default function UserDetailsPage() {
               user.dateOfBirth ||
               user.identificationNumber ||
               user.hireDate ||
-              user.workSchedule) && (
+              user.workSchedule ||
+              user.specialties) && (
               <Card className="shadow-sm ring-1 ring-inset ring-border/50">
                 <CardHeader className="px-6 pt-6 pb-4">
                   <CardTitle className={`${typography.h4} flex items-center gap-2`}>
@@ -1642,6 +1652,17 @@ export default function UserDetailsPage() {
                             Horario de Trabajo
                           </p>
                           <p className={typography.body.base}>{user.workSchedule}</p>
+                        </div>
+                      </div>
+                    )}
+                    {user.specialties && (
+                      <div className="flex items-center gap-3">
+                        <Briefcase className="h-5 w-5 text-muted-foreground shrink-0" />
+                        <div>
+                          <p className={`${typography.body.small} text-muted-foreground`}>
+                            Especialidades
+                          </p>
+                          <p className={typography.body.base}>{user.specialties}</p>
                         </div>
                       </div>
                     )}
