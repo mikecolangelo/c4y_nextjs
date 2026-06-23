@@ -10,7 +10,6 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components_shadcn/ui/avat
 import { Separator } from "@/components_shadcn/ui/separator";
 import {
   ArrowUpDown,
-  ChevronLeft,
   ChevronRight,
   Plus,
   Shield,
@@ -23,6 +22,11 @@ import {
   Loader2,
 } from "lucide-react";
 import { usePaginatedSelection } from "@/hooks/use-paginated-selection";
+import { useBatchDelete } from "@/hooks/use-batch-delete";
+import { DataPagination } from "@/components/ui/data-pagination";
+import { PageSizeSelect } from "@/components/ui/page-size-select";
+import { getInitials } from "@/lib/format";
+import { clientLogger } from "@/lib/client-logger";
 import { BulkActionBar } from "@/components/ui/selection/bulk-action-bar";
 import { SelectAllAcrossPagesBanner } from "@/components/ui/selection/select-all-across-pages-banner";
 import { QuickUserCreate, type CreatedUser } from "@/components/ui/billing";
@@ -31,14 +35,6 @@ import { AdminLayout } from "@/components/admin/admin-layout";
 import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
 import { strapiImages } from "@/lib/strapi-images";
 import { Skeleton } from "@/components_shadcn/ui/skeleton";
-import { Label } from "@/components_shadcn/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components_shadcn/ui/select";
 import { toast } from "@/lib/toast";
 import {
   AlertDialog,
@@ -144,8 +140,29 @@ export default function UsersPage() {
 
   // Selección múltiple (patrón reutilizable)
   const selection = usePaginatedSelection();
-  const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
+  // Batch delete via shared hook: it owns isDeleting + success/partial/error toasts.
+  const { isDeleting, runDelete } = useBatchDelete({
+    deleteBatch: async (ids) => {
+      const response = await fetch("/api/user-profiles/batch-delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ ids }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || "Error eliminando contactos");
+      }
+      return { deletedCount: result.deletedCount, failedCount: result.failedCount };
+    },
+    labels: { singular: "contacto", plural: "contactos" },
+    onSuccess: () => {
+      selection.clearAll();
+      setRefreshKey((k) => k + 1);
+    },
+  });
 
   // Vista previa del impacto de la eliminación (registros relacionados afectados)
   const [impact, setImpact] = useState<DeletionImpact | null>(null);
@@ -192,7 +209,7 @@ export default function UsersPage() {
         }));
         setUsers(usersWithCounts);
       } catch (err) {
-        console.error("Error cargando contactos:", err);
+        clientLogger.error("Error cargando contactos:", err);
         const errorMsg = err instanceof Error ? err.message : "Error desconocido";
         setError(`No se pudieron cargar los contactos: ${errorMsg}`);
         toast.error(`Error al cargar contactos: ${errorMsg}`);
@@ -236,41 +253,10 @@ export default function UsersPage() {
   const isAllSelected = selection.isCurrentPageAllSelected(pageIds);
   const banner = selection.getAcrossPagesBanner(pageIds, allFilteredIds);
 
+  // Run the batch delete via the shared hook, then close the dialog.
   const handleBatchDelete = async () => {
-    if (selection.selectionCount === 0) return;
-    setIsDeleting(true);
-    try {
-      const response = await fetch("/api/user-profiles/batch-delete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ ids: Array.from(selection.selectedIds) }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Error eliminando contactos");
-      }
-
-      if (result.failedCount > 0) {
-        toast.warning(
-          `Se eliminaron ${result.deletedCount} contactos. ${result.failedCount} no se pudieron eliminar.`
-        );
-      } else {
-        toast.success(`${result.deletedCount} contacto(s) eliminado(s) correctamente`);
-      }
-
-      selection.clearAll();
-      setRefreshKey((k) => k + 1);
-    } catch (err) {
-      console.error("Error eliminando contactos:", err);
-      const msg = err instanceof Error ? err.message : "Error desconocido";
-      toast.error(`Error al eliminar: ${msg}`);
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
-    }
+    await runDelete(Array.from(selection.selectedIds));
+    setShowDeleteDialog(false);
   };
 
   // Fetch the deletion impact preview whenever the dialog opens.
@@ -290,20 +276,11 @@ export default function UsersPage() {
       const data: DeletionImpact = await response.json();
       setImpact(data);
     } catch (err) {
-      console.error("Error calculando impacto de eliminación:", err);
+      clientLogger.error("Error calculando impacto de eliminación:", err);
       setImpactFailed(true);
     } finally {
       setImpactLoading(false);
     }
-  };
-
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
   };
 
   const getRoleBadge = (role: UserProfile["role"]) => {
@@ -434,30 +411,7 @@ export default function UsersPage() {
                 Importar Contactos
               </Button>
             </div>
-            <div className="flex items-center gap-2">
-              <Label
-                htmlFor="users-per-page"
-                className={`${typography.body.small} text-muted-foreground whitespace-nowrap`}
-              >
-                Mostrar:
-              </Label>
-              <Select value={pageSize.toString()} onValueChange={(v) => setPageSize(Number(v))}>
-                <SelectTrigger
-                  id="users-per-page"
-                  className="h-8 w-20 rounded-lg"
-                  suppressHydrationWarning
-                >
-                  <SelectValue>{pageSize}</SelectValue>
-                </SelectTrigger>
-                <SelectContent align="end">
-                  {[10, 20, 50, 100].map((n) => (
-                    <SelectItem key={n} value={n.toString()}>
-                      {n}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <PageSizeSelect value={pageSize} onChange={setPageSize} />
           </div>
         </div>
 
@@ -595,32 +549,12 @@ export default function UsersPage() {
         )}
 
         {/* Controles de paginación */}
-        {!isLoading && !error && filteredUsers.length > 0 && totalPages > 1 && (
-          <div className="flex items-center justify-center gap-3 pt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1 rounded-lg"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Anterior
-            </Button>
-            <span className={`${typography.body.small} text-muted-foreground whitespace-nowrap`}>
-              Página {currentPage} de {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1 rounded-lg"
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            >
-              Siguiente
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+        {!isLoading && !error && filteredUsers.length > 0 && (
+          <DataPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         )}
       </section>
 
