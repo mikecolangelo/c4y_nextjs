@@ -42,6 +42,7 @@ import { typography, spacing, components } from "@/lib/design-system";
 import { strapiImages } from "@/lib/strapi-images";
 import { Skeleton } from "@/components_shadcn/ui/skeleton";
 import { toast } from "@/lib/toast";
+import { getInitials } from "@/lib/format";
 
 import { UserVehicleManagement } from "@/components/ui/user-vehicle-management";
 import { format } from "date-fns";
@@ -86,15 +87,6 @@ const roleConfig = {
     className: "bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100",
     icon: Car,
   },
-};
-
-const getInitials = (name: string) => {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
 };
 
 export default function ProfilePage() {

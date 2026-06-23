@@ -63,6 +63,7 @@ import { BackButton } from "@/components/admin/back-button";
 import { strapiImages } from "@/lib/strapi-images";
 import { Skeleton } from "@/components_shadcn/ui/skeleton";
 import { toast } from "@/lib/toast";
+import { getInitials } from "@/lib/format";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { FleetReminders } from "@/components/ui/fleet-reminders";
@@ -205,15 +206,6 @@ const roleConfig = {
     className: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100",
     icon: UserPlus,
   },
-};
-
-const getInitials = (name: string) => {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
 };
 
 export default function UserDetailsPage() {
