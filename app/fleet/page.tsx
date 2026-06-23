@@ -17,6 +17,7 @@ import {
   CreateVehicleFormData,
 } from "./components/fleet-dialogs";
 import { compressImage } from "@/lib/image-compression";
+import { usePaginatedSelection } from "@/hooks/use-paginated-selection";
 
 const conditions: FleetVehicleCondition[] = ["nuevo", "usado", "seminuevo"];
 
@@ -59,8 +60,9 @@ export default function FleetPage() {
   const [viewMode, setViewMode] = useState<FleetViewMode>("list");
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
-  // Estados para selección múltiple
-  const [selectedVehicles, setSelectedVehicles] = useState<Set<string>>(new Set());
+  // Selección múltiple (patrón reutilizable)
+  const selection = usePaginatedSelection();
+  const selectedVehicles = selection.selectedIds;
   const [isSelectMode, setIsSelectMode] = useState(false);
 
   // Estados para el diálogo de agregar vehículo
@@ -373,32 +375,31 @@ export default function FleetPage() {
     }
   };
 
+  // Stable id used for selection (mirrors the keys rendered by the views).
+  const vehicleKey = (v: FleetVehicleCard) => v.documentId ?? v.id;
+  const pageVehicleIds = useMemo(() => paginatedVehicles.map(vehicleKey), [paginatedVehicles]);
+  const allFilteredVehicleIds = useMemo(() => filteredVehicles.map(vehicleKey), [filteredVehicles]);
+  const vehicleBanner = selection.getAcrossPagesBanner(pageVehicleIds, allFilteredVehicleIds);
+
   const handleToggleVehicleSelection = (vehicleId: string) => {
-    setSelectedVehicles((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(vehicleId)) {
-        newSet.delete(vehicleId);
-      } else {
-        newSet.add(vehicleId);
-      }
-      return newSet;
-    });
+    selection.toggle(vehicleId);
   };
 
   const toggleSelectMode = () => {
     setIsSelectMode((prev) => {
       if (prev) {
-        setSelectedVehicles(new Set());
+        selection.clearAll();
       }
       return !prev;
     });
   };
 
   const handleSelectAll = () => {
-    if (selectedVehicles.size === paginatedVehicles.length) {
-      setSelectedVehicles(new Set());
+    // Toggle the current page: clear it if fully selected, otherwise union it in.
+    if (selection.isCurrentPageAllSelected(pageVehicleIds)) {
+      selection.clearCurrentPage(pageVehicleIds);
     } else {
-      setSelectedVehicles(new Set(paginatedVehicles.map((v) => v.documentId ?? v.id)));
+      selection.selectCurrentPage(pageVehicleIds);
     }
   };
 
@@ -422,7 +423,7 @@ export default function FleetPage() {
 
       await Promise.all(deletePromises);
       toast.success(`${selectedVehicles.size} vehículo(s) eliminado(s) exitosamente`);
-      setSelectedVehicles(new Set());
+      selection.clearAll();
       setIsSelectMode(false);
       setDeleteMultipleDialogOpen(false);
       await loadVehicles();
@@ -712,6 +713,9 @@ export default function FleetPage() {
         selectedVehicles={selectedVehicles}
         onToggleVehicleSelection={handleToggleVehicleSelection}
         onSelectAll={handleSelectAll}
+        acrossPagesBanner={vehicleBanner}
+        onSelectAllAcrossPages={() => selection.selectAllAcrossPages(allFilteredVehicleIds)}
+        onRevertAcrossPages={() => selection.setSelectedIds(new Set(pageVehicleIds))}
         onNavigateToDetails={handleNavigateToDetails}
         onNavigateToEdit={handleNavigateToEdit}
         onDuplicateVehicle={handleDuplicateVehicle}
