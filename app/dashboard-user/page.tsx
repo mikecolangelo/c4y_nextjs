@@ -24,6 +24,7 @@ import { useRouter } from "next/navigation";
 import { FleetReminder } from "@/validations/types";
 import { toast } from "@/lib/toast";
 import { DriverOverview } from "./components/driver-overview";
+import { useNotificationsStream } from "@/hooks/use-notifications-stream";
 
 interface Notification {
   id: string;
@@ -276,14 +277,12 @@ export default function DashboardUserRoute() {
     }
   }, []);
 
+  // Real-time notifications via SSE, with automatic polling fallback (replaces
+  // the previous 60s `setInterval` poller).
+  useNotificationsStream({ onRefresh: fetchNotifications });
+
   useEffect(() => {
     fetchNotifications();
-
-    // Red de seguridad cada minuto, solo con la pestaña visible (no consultar en
-    // segundo plano); se recarga al volver a la pestaña.
-    const interval = setInterval(() => {
-      if (!document.hidden) fetchNotifications();
-    }, 60000);
 
     const handleVisibility = () => {
       if (!document.hidden) fetchNotifications();
@@ -291,7 +290,6 @@ export default function DashboardUserRoute() {
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
-      clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [fetchNotifications]);
