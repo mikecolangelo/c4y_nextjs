@@ -10,6 +10,7 @@ import type { FleetViewMode } from "./fleet-header-actions";
 import { ListVehicleCard } from "./list-vehicle-card";
 import { GridVehicleCard } from "./grid-vehicle-card";
 import { TableVehicleRow } from "./table-vehicle-row";
+import { SelectAllAcrossPagesBanner, type AcrossPagesBannerState } from "@/components/ui/selection";
 
 interface FleetVehicleViewsProps {
   viewMode: FleetViewMode;
@@ -22,6 +23,9 @@ interface FleetVehicleViewsProps {
   selectedVehicles: Set<string>;
   onToggleVehicleSelection: (vehicleId: string) => void;
   onSelectAll: () => void;
+  acrossPagesBanner?: AcrossPagesBannerState;
+  onSelectAllAcrossPages?: () => void;
+  onRevertAcrossPages?: () => void;
   onNavigateToDetails: (vehicleId: string) => void;
   onNavigateToEdit: (vehicleId: string) => void;
   onDuplicateVehicle: (vehicle: FleetVehicleCard) => void;
@@ -41,6 +45,9 @@ export function FleetVehicleViews({
   selectedVehicles,
   onToggleVehicleSelection,
   onSelectAll,
+  acrossPagesBanner,
+  onSelectAllAcrossPages,
+  onRevertAcrossPages,
   onNavigateToDetails,
   onNavigateToEdit,
   onDuplicateVehicle,
@@ -120,7 +127,10 @@ export function FleetVehicleViews({
             {isSelectMode && (
               <th className={`${typography.label} text-left p-4 w-12`}>
                 <Checkbox
-                  checked={selectedVehicles.size === paginatedVehicles.length && paginatedVehicles.length > 0}
+                  checked={
+                    selectedVehicles.size === paginatedVehicles.length &&
+                    paginatedVehicles.length > 0
+                  }
                   onCheckedChange={onSelectAll}
                   className="h-4 w-4"
                 />
@@ -194,7 +204,9 @@ export function FleetVehicleViews({
       <div className="flex items-center justify-between pt-4 border-t">
         <div className="flex items-center gap-2">
           <p className={cn(typography.body.small, "text-muted-foreground")}>
-            Mostrando {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredVehiclesLength)} de {filteredVehiclesLength} vehículos
+            Mostrando {(currentPage - 1) * itemsPerPage + 1} -{" "}
+            {Math.min(currentPage * itemsPerPage, filteredVehiclesLength)} de{" "}
+            {filteredVehiclesLength} vehículos
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -208,9 +220,7 @@ export function FleetVehicleViews({
             <ChevronLeft className="h-4 w-4" />
             <span className="sr-only">Anterior</span>
           </Button>
-          <div className="flex items-center gap-1">
-            {renderPageNumbers()}
-          </div>
+          <div className="flex items-center gap-1">{renderPageNumbers()}</div>
           <Button
             variant="outline"
             size="sm"
@@ -228,6 +238,16 @@ export function FleetVehicleViews({
 
   return (
     <>
+      {isSelectMode && acrossPagesBanner && (
+        <SelectAllAcrossPagesBanner
+          show={acrossPagesBanner.show}
+          isAllFilteredSelected={acrossPagesBanner.isAllFilteredSelected}
+          pageCount={acrossPagesBanner.pageCount}
+          totalFiltered={acrossPagesBanner.totalFiltered}
+          onSelectAll={() => onSelectAllAcrossPages?.()}
+          onRevert={() => onRevertAcrossPages?.()}
+        />
+      )}
       {viewMode === "list" && renderListView()}
       {viewMode === "grid" && renderGridView()}
       {viewMode === "table" && renderTableView()}

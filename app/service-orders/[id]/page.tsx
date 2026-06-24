@@ -10,8 +10,9 @@ import { Textarea } from "@/ui/textarea";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
 import { Separator } from "@/ui/separator";
+import { BackButton } from "@/components/admin/back-button";
+import { AdminLayout } from "@/components/admin/admin-layout";
 import {
-  ArrowLeft,
   Car,
   Wrench,
   Loader2,
@@ -302,21 +303,25 @@ export default function ServiceOrderDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto p-4 space-y-4">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-48 w-full" />
-        <Skeleton className="h-48 w-full" />
-      </div>
+      <AdminLayout
+        title="Orden de servicio"
+        leftActions={<BackButton fallbackHref="/service-orders" />}
+      >
+        <section className="space-y-4">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-48 w-full" />
+        </section>
+      </AdminLayout>
     );
   }
 
   if (!order) {
     return (
-      <div className="max-w-4xl mx-auto p-4">
-        <Button variant="ghost" onClick={() => router.back()} className="mb-4">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Volver
-        </Button>
+      <AdminLayout
+        title="Orden no encontrada"
+        leftActions={<BackButton fallbackHref="/service-orders" />}
+      >
         <Card>
           <CardContent className="p-8 text-center">
             <AlertTriangle className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
@@ -326,7 +331,7 @@ export default function ServiceOrderDetailPage() {
             </p>
           </CardContent>
         </Card>
-      </div>
+      </AdminLayout>
     );
   }
 
@@ -336,429 +341,415 @@ export default function ServiceOrderDetailPage() {
   const isCancelled = order.status === "cancelado";
 
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4">
-        <Button variant="ghost" size="sm" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Volver
-        </Button>
-        <div className="flex items-center gap-2">
-          <Badge className={cn("text-xs border", getStatusBadge(order.status))}>
-            {getStatusLabel(order.status)}
-          </Badge>
-          {!isEditingNotes ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsEditingNotes(true)}
-              disabled={isProcessing || isCancelled}
-            >
-              <Edit className="h-3.5 w-3.5 mr-1" />
-              Editar
-            </Button>
-          ) : (
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleUpdateNotes}
-              disabled={isProcessing}
-            >
-              {isProcessing ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
-              ) : (
-                <Save className="h-3.5 w-3.5 mr-1" />
-              )}
-              Guardar
-            </Button>
-          )}
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => setShowDeleteDialog(true)}
-            disabled={isProcessing}
-          >
-            <Trash2 className="h-3.5 w-3.5 mr-1" />
-            Eliminar
-          </Button>
-        </div>
-      </div>
-
-      <h1 className="text-xl font-semibold">
-        {order.code || `Orden #${order.id}`}
-      </h1>
-
-      {/* Info general */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Car className="h-4 w-4 text-primary" />
-            Información General
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {order.vehicle && (
-            <div className="flex items-center gap-2 text-sm">
-              <Car className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">Vehículo:</span>
-              <span>
-                {order.vehicle.brand} {order.vehicle.model} {order.vehicle.name}
-                {order.vehicle.placa && ` (${order.vehicle.placa})`}
-              </span>
-            </div>
-          )}
-          <div className="flex items-center gap-2 text-sm">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">Programada:</span>
-            <span className="text-muted-foreground">
-              {formatDateTime(order.scheduledAt)}
-            </span>
-          </div>
-          {order.completedAt && (
-            <div className="flex items-center gap-2 text-sm">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
-              <span className="font-medium">Completada:</span>
-              <span className="text-muted-foreground">
-                {formatDateTime(order.completedAt)}
-              </span>
-            </div>
-          )}
-          {order.services && order.services.length > 0 && (
-            <div className="flex items-start gap-2 text-sm">
-              <Wrench className="h-4 w-4 text-muted-foreground mt-0.5" />
-              <span className="font-medium">Servicios:</span>
-              <span className="text-muted-foreground">
-                {order.services.map((s) => s.name).join(", ")}
-              </span>
-            </div>
-          )}
-
-          {/* Notas / Resumen */}
-          <Separator />
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Notas / Resumen</Label>
-            {isEditingNotes ? (
-              <Textarea
-                value={notesDraft}
-                onChange={(e) => setNotesDraft(e.target.value)}
-                placeholder="Descripción del trabajo realizado..."
-                rows={3}
-              />
-            ) : (
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                {order.summary || "Sin notas"}
-              </p>
-            )}
-          </div>
-
-          {/* Mano de obra (editable) */}
-          <Separator />
-          <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center gap-2">
-              <Banknote className="h-3.5 w-3.5" />
-              Costo de Mano de Obra
-            </Label>
-            {isEditingNotes ? (
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={laborCostDraft}
-                onChange={(e) => setLaborCostDraft(e.target.value)}
-                placeholder="0.00"
-                className="max-w-xs"
-              />
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                {formatCurrency(order.laborCost)}
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Desglose de Costos con Repuestos Detallados */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Banknote className="h-4 w-4 text-primary" />
-            Desglose de Costos
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Mano de Obra */}
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Mano de Obra</span>
-            <span className="font-medium">{formatCurrency(order.laborCost)}</span>
-          </div>
-
-          {/* Servicios */}
-          {order.services && order.services.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm">
-                <Wrench className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">Servicios</span>
-              </div>
-              <div className="pl-6 space-y-1">
-                {order.services.map((svc, idx) => (
-                  <div key={idx} className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{svc.name || "Servicio"}</span>
-                    <span className="font-medium">{formatCurrency(svc.price)}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-between text-sm pl-6">
-                <span className="text-muted-foreground">Subtotal Servicios</span>
-                <span className="font-medium">
-                  {formatCurrency(order.services.reduce((sum, s) => sum + (s.price || 0), 0))}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Repuestos / Materiales detallados */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm">
-              <Package className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium">Repuestos / Materiales</span>
-            </div>
-
-            {!order.usedItems || order.usedItems.length === 0 ? (
-              <p className="text-sm text-muted-foreground pl-6">
-                Sin repuestos / materiales registrados.
-              </p>
-            ) : (
-              <div className="overflow-x-auto rounded-md border">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/50">
-                    <tr className="border-b">
-                      <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                        Código
-                      </th>
-                      <th className="text-left py-2 px-3 font-medium text-muted-foreground">
-                        Descripción
-                      </th>
-                      <th className="text-right py-2 px-3 font-medium text-muted-foreground">
-                        Cant.
-                      </th>
-                      <th className="text-right py-2 px-3 font-medium text-muted-foreground">
-                        P. Unit.
-                      </th>
-                      <th className="text-right py-2 px-3 font-medium text-muted-foreground">
-                        Total
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {order.usedItems.map((item, idx) => {
-                      const inventoryItem = item.inventoryItem;
-                      const lineTotal =
-                        item.totalLine ??
-                        item.quantity * item.unitPriceAtMoment;
-                      return (
-                        <tr
-                          key={item.id ?? idx}
-                          className="border-b last:border-0 hover:bg-muted/30"
-                        >
-                          <td className="py-2 px-3 font-mono text-xs">
-                            {inventoryItem?.code || "N/A"}
-                          </td>
-                          <td className="py-2 px-3">
-                            {inventoryItem?.description || "Sin descripción"}
-                          </td>
-                          <td className="py-2 px-3 text-right">
-                            {item.quantity}
-                          </td>
-                          <td className="py-2 px-3 text-right">
-                            {formatCurrency(item.unitPriceAtMoment)}
-                          </td>
-                          <td className="py-2 px-3 text-right font-medium">
-                            {formatCurrency(lineTotal)}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* Subtotal repuestos */}
-            {order.usedItems && order.usedItems.length > 0 && (
-              <div className="flex justify-between text-sm pl-0">
-                <span className="text-muted-foreground">Subtotal Repuestos</span>
-                <span className="font-medium">
-                  {formatCurrency(order.partsCost)}
-                </span>
-              </div>
-            )}
-          </div>
-
-          <Separator />
-
-          {/* Totales */}
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Subtotal</span>
-              <span className="font-medium">
-                {formatCurrency(
-                  (order.laborCost || 0) +
-                  (order.partsCost || 0) +
-                  (order.services?.reduce((sum, s) => sum + (s.price || 0), 0) || 0)
-                )}
-              </span>
-            </div>
-            <Separator />
-            <div className="flex justify-between text-base font-semibold">
-              <span>Total</span>
-              <span>{formatCurrency(order.totalCost)}</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Acciones */}
-      {!isCancelled && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Acciones</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-3">
-            {canFinalize && (
-              <Button
-                onClick={() => setShowFinalizeDialog(true)}
-                disabled={isProcessing}
-                className="bg-green-600 hover:bg-green-700 text-white"
-              >
-                {isProcessing ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                )}
-                Finalizar Orden
-              </Button>
-            )}
-            {canCancel && (
+    <AdminLayout
+      title={order.code ? `Orden ${order.code}` : "Orden de servicio"}
+      leftActions={<BackButton fallbackHref="/service-orders" />}
+    >
+      <section className="space-y-4">
+        {/* Header actions (back lives in the menu) */}
+        <div className="flex items-center justify-end gap-4">
+          <div className="flex items-center gap-2">
+            <Badge className={cn("text-xs border", getStatusBadge(order.status))}>
+              {getStatusLabel(order.status)}
+            </Badge>
+            {!isEditingNotes ? (
               <Button
                 variant="outline"
-                onClick={() => setShowCancelDialog(true)}
+                size="sm"
+                onClick={() => setIsEditingNotes(true)}
+                disabled={isProcessing || isCancelled}
+              >
+                <Edit className="h-3.5 w-3.5 mr-1" />
+                Editar
+              </Button>
+            ) : (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleUpdateNotes}
                 disabled={isProcessing}
-                className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
               >
                 {isProcessing ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
                 ) : (
-                  <XCircle className="h-4 w-4 mr-2" />
+                  <Save className="h-3.5 w-3.5 mr-1" />
                 )}
-                Cancelar Orden
+                Guardar
               </Button>
             )}
-            {isCompleted && (
-              <Badge variant="outline" className="text-green-600 border-green-300">
-                <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                Orden completada — inventario deducido
-              </Badge>
-            )}
-          </CardContent>
-        </Card>
-      )}
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setShowDeleteDialog(true)}
+              disabled={isProcessing}
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-1" />
+              Eliminar
+            </Button>
+          </div>
+        </div>
 
-      {/* Dialog: Finalizar */}
-      <AlertDialog open={showFinalizeDialog} onOpenChange={setShowFinalizeDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Finalizar Orden de Servicio</AlertDialogTitle>
-            <AlertDialogDescription>
-              Al finalizar la orden, se deducirá el stock de los items de inventario
-              utilizados y se registrará un movimiento de salida. Esta acción no se
-              puede deshacer.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="space-y-3 py-2">
-            <div className="space-y-1">
-              <Label>Costo de Mano de Obra</Label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={laborCostDraft}
-                onChange={(e) => setLaborCostDraft(e.target.value)}
-                placeholder="0.00"
-              />
-            </div>
-            {order.usedItems && order.usedItems.length > 0 && (
-              <div className="rounded-md bg-muted p-3 text-xs space-y-1">
-                <p className="font-medium">Items a deducir:</p>
-                {order.usedItems.map((item, idx) => (
-                  <p key={idx} className="text-muted-foreground">
-                    • {item.inventoryItem?.code || "N/A"} — {item.quantity} unidad(es)
-                  </p>
-                ))}
+        <h1 className="text-xl font-semibold">{order.code || `Orden #${order.id}`}</h1>
+
+        {/* Info general */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Car className="h-4 w-4 text-primary" />
+              Información General
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {order.vehicle && (
+              <div className="flex items-center gap-2 text-sm">
+                <Car className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">Vehículo:</span>
+                <span>
+                  {order.vehicle.brand} {order.vehicle.model} {order.vehicle.name}
+                  {order.vehicle.placa && ` (${order.vehicle.placa})`}
+                </span>
               </div>
             )}
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isProcessing}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleFinalize}
-              disabled={isProcessing}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              {isProcessing && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Confirmar Finalización
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            <div className="flex items-center gap-2 text-sm">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">Programada:</span>
+              <span className="text-muted-foreground">{formatDateTime(order.scheduledAt)}</span>
+            </div>
+            {order.completedAt && (
+              <div className="flex items-center gap-2 text-sm">
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <span className="font-medium">Completada:</span>
+                <span className="text-muted-foreground">{formatDateTime(order.completedAt)}</span>
+              </div>
+            )}
+            {order.services && order.services.length > 0 && (
+              <div className="flex items-start gap-2 text-sm">
+                <Wrench className="h-4 w-4 text-muted-foreground mt-0.5" />
+                <span className="font-medium">Servicios:</span>
+                <span className="text-muted-foreground">
+                  {order.services.map((s) => s.name).join(", ")}
+                </span>
+              </div>
+            )}
 
-      {/* Dialog: Cancelar */}
-      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cancelar Orden de Servicio</AlertDialogTitle>
-            <AlertDialogDescription>
-              {isCompleted
-                ? "Esta orden ya fue completada. Al cancelarla, se revertirá el stock de los items de inventario utilizados (movimiento de reversión)."
-                : "¿Estás seguro de que deseas cancelar esta orden de servicio?"}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isProcessing}>Volver</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleCancel}
-              disabled={isProcessing}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {isProcessing && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Sí, Cancelar Orden
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            {/* Notas / Resumen */}
+            <Separator />
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Notas / Resumen</Label>
+              {isEditingNotes ? (
+                <Textarea
+                  value={notesDraft}
+                  onChange={(e) => setNotesDraft(e.target.value)}
+                  placeholder="Descripción del trabajo realizado..."
+                  rows={3}
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  {order.summary || "Sin notas"}
+                </p>
+              )}
+            </div>
 
-      {/* Dialog: Eliminar */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Eliminar Orden</AlertDialogTitle>
-            <AlertDialogDescription>
-              ¿Estás seguro de que deseas eliminar permanentemente esta orden de
-              servicio? Esta acción no se puede deshacer.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isProcessing}>Volver</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={isProcessing}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {isProcessing && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Eliminar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+            {/* Mano de obra (editable) */}
+            <Separator />
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <Banknote className="h-3.5 w-3.5" />
+                Costo de Mano de Obra
+              </Label>
+              {isEditingNotes ? (
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={laborCostDraft}
+                  onChange={(e) => setLaborCostDraft(e.target.value)}
+                  placeholder="0.00"
+                  className="max-w-xs"
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground">{formatCurrency(order.laborCost)}</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Desglose de Costos con Repuestos Detallados */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Banknote className="h-4 w-4 text-primary" />
+              Desglose de Costos
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Mano de Obra */}
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Mano de Obra</span>
+              <span className="font-medium">{formatCurrency(order.laborCost)}</span>
+            </div>
+
+            {/* Servicios */}
+            {order.services && order.services.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <Wrench className="h-4 w-4 text-muted-foreground" />
+                  <span className="font-medium">Servicios</span>
+                </div>
+                <div className="pl-6 space-y-1">
+                  {order.services.map((svc, idx) => (
+                    <div key={idx} className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">{svc.name || "Servicio"}</span>
+                      <span className="font-medium">{formatCurrency(svc.price)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex justify-between text-sm pl-6">
+                  <span className="text-muted-foreground">Subtotal Servicios</span>
+                  <span className="font-medium">
+                    {formatCurrency(order.services.reduce((sum, s) => sum + (s.price || 0), 0))}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Repuestos / Materiales detallados */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm">
+                <Package className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium">Repuestos / Materiales</span>
+              </div>
+
+              {!order.usedItems || order.usedItems.length === 0 ? (
+                <p className="text-sm text-muted-foreground pl-6">
+                  Sin repuestos / materiales registrados.
+                </p>
+              ) : (
+                <div className="overflow-x-auto rounded-md border">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50">
+                      <tr className="border-b">
+                        <th className="text-left py-2 px-3 font-medium text-muted-foreground">
+                          Código
+                        </th>
+                        <th className="text-left py-2 px-3 font-medium text-muted-foreground">
+                          Descripción
+                        </th>
+                        <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                          Cant.
+                        </th>
+                        <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                          P. Unit.
+                        </th>
+                        <th className="text-right py-2 px-3 font-medium text-muted-foreground">
+                          Total
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {order.usedItems.map((item, idx) => {
+                        const inventoryItem = item.inventoryItem;
+                        const lineTotal = item.totalLine ?? item.quantity * item.unitPriceAtMoment;
+                        return (
+                          <tr
+                            key={item.id ?? idx}
+                            className="border-b last:border-0 hover:bg-muted/30"
+                          >
+                            <td className="py-2 px-3 font-mono text-xs">
+                              {inventoryItem?.code || "N/A"}
+                            </td>
+                            <td className="py-2 px-3">
+                              {inventoryItem?.description || "Sin descripción"}
+                            </td>
+                            <td className="py-2 px-3 text-right">{item.quantity}</td>
+                            <td className="py-2 px-3 text-right">
+                              {formatCurrency(item.unitPriceAtMoment)}
+                            </td>
+                            <td className="py-2 px-3 text-right font-medium">
+                              {formatCurrency(lineTotal)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Subtotal repuestos */}
+              {order.usedItems && order.usedItems.length > 0 && (
+                <div className="flex justify-between text-sm pl-0">
+                  <span className="text-muted-foreground">Subtotal Repuestos</span>
+                  <span className="font-medium">{formatCurrency(order.partsCost)}</span>
+                </div>
+              )}
+            </div>
+
+            <Separator />
+
+            {/* Totales */}
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span className="font-medium">
+                  {formatCurrency(
+                    (order.laborCost || 0) +
+                      (order.partsCost || 0) +
+                      (order.services?.reduce((sum, s) => sum + (s.price || 0), 0) || 0)
+                  )}
+                </span>
+              </div>
+              <Separator />
+              <div className="flex justify-between text-base font-semibold">
+                <span>Total</span>
+                <span>{formatCurrency(order.totalCost)}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Acciones */}
+        {!isCancelled && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Acciones</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-3">
+              {canFinalize && (
+                <Button
+                  onClick={() => setShowFinalizeDialog(true)}
+                  disabled={isProcessing}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {isProcessing ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                  )}
+                  Finalizar Orden
+                </Button>
+              )}
+              {canCancel && (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCancelDialog(true)}
+                  disabled={isProcessing}
+                  className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
+                >
+                  {isProcessing ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <XCircle className="h-4 w-4 mr-2" />
+                  )}
+                  Cancelar Orden
+                </Button>
+              )}
+              {isCompleted && (
+                <Badge variant="outline" className="text-green-600 border-green-300">
+                  <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                  Orden completada — inventario deducido
+                </Badge>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Dialog: Finalizar */}
+        <AlertDialog open={showFinalizeDialog} onOpenChange={setShowFinalizeDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Finalizar Orden de Servicio</AlertDialogTitle>
+              <AlertDialogDescription>
+                Al finalizar la orden, se deducirá el stock de los items de inventario utilizados y
+                se registrará un movimiento de salida. Esta acción no se puede deshacer.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="space-y-1">
+                <Label>Costo de Mano de Obra</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={laborCostDraft}
+                  onChange={(e) => setLaborCostDraft(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+              {order.usedItems && order.usedItems.length > 0 && (
+                <div className="rounded-md bg-muted p-3 text-xs space-y-1">
+                  <p className="font-medium">Items a deducir:</p>
+                  {order.usedItems.map((item, idx) => (
+                    <p key={idx} className="text-muted-foreground">
+                      • {item.inventoryItem?.code || "N/A"} — {item.quantity} unidad(es)
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isProcessing}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleFinalize}
+                disabled={isProcessing}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {isProcessing && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Confirmar Finalización
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Dialog: Cancelar */}
+        <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Cancelar Orden de Servicio</AlertDialogTitle>
+              <AlertDialogDescription>
+                {isCompleted
+                  ? "Esta orden ya fue completada. Al cancelarla, se revertirá el stock de los items de inventario utilizados (movimiento de reversión)."
+                  : "¿Estás seguro de que deseas cancelar esta orden de servicio?"}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isProcessing}>Volver</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleCancel}
+                disabled={isProcessing}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                {isProcessing && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Sí, Cancelar Orden
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Dialog: Eliminar */}
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Eliminar Orden</AlertDialogTitle>
+              <AlertDialogDescription>
+                ¿Estás seguro de que deseas eliminar permanentemente esta orden de servicio? Esta
+                acción no se puede deshacer.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isProcessing}>Volver</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDelete}
+                disabled={isProcessing}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                {isProcessing && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </section>
+    </AdminLayout>
   );
 }

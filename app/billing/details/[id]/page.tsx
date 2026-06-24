@@ -2,16 +2,22 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { optimizeUpload } from "@/lib/image-compression";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components_shadcn/ui/card";
 import { Button } from "@/components_shadcn/ui/button";
 import { Input } from "@/components_shadcn/ui/input";
 import { Label } from "@/components_shadcn/ui/label";
 import { Textarea } from "@/components_shadcn/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components_shadcn/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components_shadcn/ui/select";
 import { Avatar, AvatarFallback } from "@/components_shadcn/ui/avatar";
 import { Separator } from "@/components_shadcn/ui/separator";
 import {
-  ArrowLeft,
   User,
   Car,
   Bell,
@@ -24,25 +30,19 @@ import {
   Receipt,
   CheckCircle,
   Hash,
-  Banknote,
   AlertTriangle,
   Eye,
-  X,
   Image as ImageIcon,
   FileType,
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components_shadcn/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components_shadcn/ui/dialog";
 import { Switch } from "@/components_shadcn/ui/switch";
 import { InvoicePDFDownload } from "../../components/invoice-pdf";
 import { ClientPaymentHistory } from "../../components/client-payment-history";
 import { VerifyPaymentDialog } from "../../components/verify-payment-dialog";
 import { spacing, typography, commonClasses, colors, components } from "@/lib/design-system";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { BackButton } from "@/components/admin/back-button";
 import { cn } from "@/lib/utils";
 import type { BillingRecordCard, BillingDocument, BillingStatus } from "@/validations/types";
 import { Badge } from "@/components_shadcn/ui/badge";
@@ -214,17 +214,7 @@ export default function BillingDetailsPage() {
     fetchRecord();
   }, [fetchRecord]);
 
-
-  const backButton = (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => router.back()}
-      className="h-10 w-10 flex items-center justify-center rounded-full"
-    >
-      <ArrowLeft className="h-5 w-5" />
-    </Button>
-  );
+  const backButton = <BackButton fallbackHref="/billing" />;
 
   const handleDeleteDocument = async (docId: string, docDocumentId?: string) => {
     try {
@@ -249,11 +239,11 @@ export default function BillingDetailsPage() {
 
     try {
       setIsUploading(true);
-      
+
       // First upload the file to Strapi
       const formData = new FormData();
-      formData.append("files", file);
-      
+      formData.append("files", await optimizeUpload(file));
+
       const uploadResponse = await fetch("/api/strapi/upload", {
         method: "POST",
         body: formData,
@@ -306,13 +296,16 @@ export default function BillingDetailsPage() {
   };
 
   // Handlers para drag and drop
-  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!isUploading) {
-      setIsDragging(true);
-    }
-  }, [isUploading]);
+  const handleDragOver = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!isUploading) {
+        setIsDragging(true);
+      }
+    },
+    [isUploading]
+  );
 
   const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -320,81 +313,84 @@ export default function BillingDetailsPage() {
     setIsDragging(false);
   }, []);
 
-  const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-    
-    if (isUploading || !record) return;
-    
-    const file = e.dataTransfer.files?.[0];
-    if (!file) return;
-    
-    // Validar tipo de archivo
-    const validTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
-    if (!validTypes.includes(file.type)) {
-      toast.error("Tipo de archivo no válido. Solo se permiten PDF, PNG y JPG.");
-      return;
-    }
-    
-    // Validar tamaño (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("El archivo es demasiado grande. Máximo 5MB.");
-      return;
-    }
-    
-    try {
-      setIsUploading(true);
-      
-      const formData = new FormData();
-      formData.append("files", file);
-      
-      const uploadResponse = await fetch("/api/strapi/upload", {
-        method: "POST",
-        body: formData,
-      });
+  const handleDrop = useCallback(
+    async (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
 
-      if (!uploadResponse.ok) {
-        throw new Error("Error al subir el archivo");
+      if (isUploading || !record) return;
+
+      const file = e.dataTransfer.files?.[0];
+      if (!file) return;
+
+      // Validar tipo de archivo
+      const validTypes = ["application/pdf", "image/png", "image/jpeg", "image/jpg"];
+      if (!validTypes.includes(file.type)) {
+        toast.error("Tipo de archivo no válido. Solo se permiten PDF, PNG y JPG.");
+        return;
       }
 
-      const uploadData = await uploadResponse.json();
-      const uploadedFileId = uploadData.data?.id;
-
-      if (!uploadedFileId) {
-        throw new Error("No se pudo obtener el ID del archivo subido");
+      // Validar tamaño (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("El archivo es demasiado grande. Máximo 5MB.");
+        return;
       }
 
-      const docResponse = await fetch(`/api/billing/${record.documentId}/documents`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          data: {
-            name: file.name,
-            file: uploadedFileId,
+      try {
+        setIsUploading(true);
+
+        const formData = new FormData();
+        formData.append("files", await optimizeUpload(file));
+
+        const uploadResponse = await fetch("/api/strapi/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error("Error al subir el archivo");
+        }
+
+        const uploadData = await uploadResponse.json();
+        const uploadedFileId = uploadData.data?.id;
+
+        if (!uploadedFileId) {
+          throw new Error("No se pudo obtener el ID del archivo subido");
+        }
+
+        const docResponse = await fetch(`/api/billing/${record.documentId}/documents`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
           },
-        }),
-      });
+          body: JSON.stringify({
+            data: {
+              name: file.name,
+              file: uploadedFileId,
+            },
+          }),
+        });
 
-      if (!docResponse.ok) {
-        throw new Error("Error al crear el documento de facturación");
-      }
+        if (!docResponse.ok) {
+          throw new Error("Error al crear el documento de facturación");
+        }
 
-      const docData = await docResponse.json();
-      const newDoc = docData.data;
-      if (!newDoc || !newDoc.id) {
-        throw new Error("El documento creado no tiene el formato esperado");
+        const docData = await docResponse.json();
+        const newDoc = docData.data;
+        if (!newDoc || !newDoc.id) {
+          throw new Error("El documento creado no tiene el formato esperado");
+        }
+        setDocuments((prev) => [...prev, newDoc]);
+        toast.success("Documento subido correctamente");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Error al subir el documento");
+      } finally {
+        setIsUploading(false);
       }
-      setDocuments(prev => [...prev, newDoc]);
-      toast.success("Documento subido correctamente");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Error al subir el documento");
-    } finally {
-      setIsUploading(false);
-    }
-  }, [isUploading, record]);
+    },
+    [isUploading, record]
+  );
 
   const handleSaveChanges = async () => {
     if (!record) return;
@@ -433,7 +429,7 @@ export default function BillingDetailsPage() {
 
   const handleDeleteRecord = async () => {
     if (!record) return;
-    
+
     try {
       setIsDeleting(true);
       const response = await fetch(`/api/billing/${record.documentId}`, {
@@ -500,14 +496,8 @@ export default function BillingDetailsPage() {
       <AdminLayout title="Detalle del Pago" showFilterAction leftActions={backButton}>
         <Card className={commonClasses.card}>
           <CardContent className={spacing.card.padding}>
-            <p className={`${typography.body.base} text-center`}>
-              {error || "Pago no encontrado"}
-            </p>
-            <Button
-              variant="outline"
-              className="mt-4 w-full"
-              onClick={() => router.back()}
-            >
+            <p className={`${typography.body.base} text-center`}>{error || "Pago no encontrado"}</p>
+            <Button variant="outline" className="mt-4 w-full" onClick={() => router.back()}>
               Volver
             </Button>
           </CardContent>
@@ -517,23 +507,23 @@ export default function BillingDetailsPage() {
   }
 
   // Título dinámico según el tipo de pago
-  const pageTitle = record.status === 'adelanto' 
-    ? 'Detalle del Adelanto' 
-    : record.status === 'abonado' 
-      ? 'Detalle del Abono' 
-      : 'Detalle del Pago';
+  const pageTitle =
+    record.status === "adelanto"
+      ? "Detalle del Adelanto"
+      : record.status === "abonado"
+        ? "Detalle del Abono"
+        : "Detalle del Pago";
 
   // Calcular saldo faltante dinámicamente a partir de childRecords (abonos)
-  const totalPaid = (record.childRecords || []).reduce((sum: number, child: { amount?: number }) => 
-    sum + (child.amount && child.amount > 0 ? child.amount : 0), 0);
+  const totalPaid = (record.childRecords || []).reduce(
+    (sum: number, child: { amount?: number }) =>
+      sum + (child.amount && child.amount > 0 ? child.amount : 0),
+    0
+  );
   const pendingBalance = Math.max(0, (record.amount || 0) - totalPaid);
 
   return (
-    <AdminLayout
-      title={pageTitle}
-      showFilterAction
-      leftActions={backButton}
-    >
+    <AdminLayout title={pageTitle} showFilterAction leftActions={backButton}>
       <div className="flex flex-col gap-6 pb-24">
         {/* Información del Cliente */}
         <Card className={commonClasses.card}>
@@ -554,13 +544,19 @@ export default function BillingDetailsPage() {
                       Recibo {record.receiptNumber || `Cuota #${record.quotaNumber || "-"}`}
                     </p>
                     {/* Badge de tipo de pago para adelantos/abonos */}
-                    {record.status === 'adelanto' && (
-                      <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-blue-200">
+                    {record.status === "adelanto" && (
+                      <Badge
+                        variant="secondary"
+                        className="bg-blue-100 text-blue-700 border-blue-200"
+                      >
                         Adelanto
                       </Badge>
                     )}
-                    {record.status === 'abonado' && (
-                      <Badge variant="secondary" className="bg-purple-100 text-purple-700 border-purple-200">
+                    {record.status === "abonado" && (
+                      <Badge
+                        variant="secondary"
+                        className="bg-purple-100 text-purple-700 border-purple-200"
+                      >
                         Abonado
                       </Badge>
                     )}
@@ -622,7 +618,9 @@ export default function BillingDetailsPage() {
             <CardContent className={spacing.card.content}>
               <div className={`flex flex-col ${spacing.gap.base}`}>
                 <div className="flex items-center justify-between">
-                  <span className={typography.body.large}>{record.financingNumber || "Sin número"}</span>
+                  <span className={typography.body.large}>
+                    {record.financingNumber || "Sin número"}
+                  </span>
                   <Badge variant="outline">
                     Cuota #{record.quotaNumber || record.currentQuotaNumber || "-"}
                   </Badge>
@@ -636,7 +634,9 @@ export default function BillingDetailsPage() {
                 {record.financingCurrentBalance !== undefined && (
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Saldo pendiente</span>
-                    <span className="font-medium">${record.financingCurrentBalance?.toFixed(2)}</span>
+                    <span className="font-medium">
+                      ${record.financingCurrentBalance?.toFixed(2)}
+                    </span>
                   </div>
                 )}
               </div>
@@ -647,70 +647,69 @@ export default function BillingDetailsPage() {
         {/* Detalles del Pago */}
         <Card className={commonClasses.card}>
           <CardHeader className={spacing.card.header}>
-            <CardTitle className={commonClasses.sectionTitle}>
-              Detalles del Pago
-            </CardTitle>
+            <CardTitle className={commonClasses.sectionTitle}>Detalles del Pago</CardTitle>
           </CardHeader>
           <CardContent className={spacing.card.content}>
             <div className={`flex flex-col ${spacing.gap.base}`}>
               <div className="flex items-center justify-between">
                 <span className={typography.label}>
-                  {record.status === 'retrasado' ? 'Monto Base' : 
-                   record.status === 'abonado' ? 'Saldo Faltante' : 'Monto'}
+                  {record.status === "retrasado"
+                    ? "Monto Base"
+                    : record.status === "abonado"
+                      ? "Saldo Faltante"
+                      : "Monto"}
                 </span>
                 <div className="text-right">
-                  <span className={`${typography.body.large} font-bold ${getAmountColor(record.status)}`}>
-                    {record.status === 'abonado' 
-                      ? `$${pendingBalance.toFixed(2)}` 
+                  <span
+                    className={`${typography.body.large} font-bold ${getAmountColor(record.status)}`}
+                  >
+                    {record.status === "abonado"
+                      ? `$${pendingBalance.toFixed(2)}`
                       : record.amountLabel}
                   </span>
-                  {record.status === 'abonado' && pendingBalance !== record.amount && (
+                  {record.status === "abonado" && pendingBalance !== record.amount && (
                     <p className="text-xs text-muted-foreground line-through">
                       Total: {record.amountLabel}
                     </p>
                   )}
                 </div>
               </div>
-              {record.status === 'retrasado' && record.lateFeeAmount && record.lateFeeAmount > 0 && (
-                <>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      Penalidad por día (10%)
-                    </span>
-                    <span className="text-red-600">
-                      ${(record.amount * 0.1).toFixed(2)}/día
+              {record.status === "retrasado" &&
+                record.lateFeeAmount &&
+                record.lateFeeAmount > 0 && (
+                  <>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Penalidad por día (10%)</span>
+                      <span className="text-red-600">${(record.amount * 0.1).toFixed(2)}/día</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Días de retraso</span>
+                      <span className="text-red-600">
+                        × {record.daysLate} día{record.daysLate !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between pt-1 border-t border-dashed border-red-200">
+                      <span className={typography.label}>Total Multa</span>
+                      <span className={`${typography.body.large} font-bold text-red-600`}>
+                        +${(record.lateFeeAmount || 0).toFixed(2)}
+                      </span>
+                    </div>
+                  </>
+                )}
+              {record.status === "retrasado" &&
+                record.lateFeeAmount &&
+                record.lateFeeAmount > 0 && (
+                  <div className="flex items-center justify-between border-t border-dashed pt-2 mt-1">
+                    <span className={`${typography.label} font-semibold`}>Total a Pagar</span>
+                    <span className={`${typography.metric.base} font-bold text-red-600`}>
+                      ${(record.amount + (record.lateFeeAmount || 0)).toFixed(2)}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      Días de retraso
-                    </span>
-                    <span className="text-red-600">
-                      × {record.daysLate} día{record.daysLate !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between pt-1 border-t border-dashed border-red-200">
-                    <span className={typography.label}>Total Multa</span>
-                    <span className={`${typography.body.large} font-bold text-red-600`}>
-                      +${(record.lateFeeAmount || 0).toFixed(2)}
-                    </span>
-                  </div>
-                </>
-              )}
-              {record.status === 'retrasado' && record.lateFeeAmount && record.lateFeeAmount > 0 && (
-                <div className="flex items-center justify-between border-t border-dashed pt-2 mt-1">
-                  <span className={`${typography.label} font-semibold`}>Total a Pagar</span>
-                  <span className={`${typography.metric.base} font-bold text-red-600`}>
-                    ${(record.amount + (record.lateFeeAmount || 0)).toFixed(2)}
-                  </span>
-                </div>
-              )}
+                )}
               {record.dueDate && (
                 <div className="flex items-center justify-between">
                   <span className={typography.label}>Fecha de Vencimiento</span>
-                  <span className={typography.body.base}>
-                    {formatDate(record.dueDate)}
-                  </span>
+                  <span className={typography.body.base}>{formatDate(record.dueDate)}</span>
                 </div>
               )}
               <div className="flex items-center justify-between">
@@ -781,51 +780,79 @@ export default function BillingDetailsPage() {
               {/* Grid de información principal */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {/* Monto de este Pago - NUEVO: destacar el monto real del pago */}
-                <div className={cn(
-                  "rounded-lg p-4 text-center",
-                  record.status === 'adelanto' || record.status === 'abonado'
-                    ? "bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800"
-                    : record.status === 'pagado'
-                      ? "bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800"
-                      : record.status === 'retrasado'
-                        ? "bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800"
-                        : "bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800"
-                )}>
+                <div
+                  className={cn(
+                    "rounded-lg p-4 text-center",
+                    record.status === "adelanto" || record.status === "abonado"
+                      ? "bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800"
+                      : record.status === "pagado"
+                        ? "bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800"
+                        : record.status === "retrasado"
+                          ? "bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800"
+                          : "bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800"
+                  )}
+                >
                   <p className="text-xs text-muted-foreground mb-1">
-                    {record.status === 'adelanto' ? 'Monto del Adelanto' : 
-                     record.status === 'abonado' ? 'Saldo Faltante' : 
-                     'Monto de este Pago'}
+                    {record.status === "adelanto"
+                      ? "Monto del Adelanto"
+                      : record.status === "abonado"
+                        ? "Saldo Faltante"
+                        : "Monto de este Pago"}
                   </p>
-                  <p className={cn(
-                    typography.metric.base,
-                    record.status === 'adelanto' || record.status === 'abonado' ? "text-blue-600" :
-                    record.status === 'pagado' ? "text-green-600" :
-                    record.status === 'retrasado' ? "text-red-600" : "text-yellow-600"
-                  )}>
-                    {record.status === 'abonado' 
-                      ? `$${pendingBalance.toFixed(2)}` 
+                  <p
+                    className={cn(
+                      typography.metric.base,
+                      record.status === "adelanto" || record.status === "abonado"
+                        ? "text-blue-600"
+                        : record.status === "pagado"
+                          ? "text-green-600"
+                          : record.status === "retrasado"
+                            ? "text-red-600"
+                            : "text-yellow-600"
+                    )}
+                  >
+                    {record.status === "abonado"
+                      ? `$${pendingBalance.toFixed(2)}`
                       : `$${(record.amount || 0).toFixed(2)}`}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {record.status === 'adelanto' ? 'pago adelantado' :
-                     record.status === 'abonado' ? `$${totalPaid.toFixed(2)} abonado de $${(record.amount || 0).toFixed(2)}` :
-                     record.status === 'pagado' ? 'pagado' :
-                     record.status === 'retrasado' ? 'vencido' : 'pendiente'}
+                    {record.status === "adelanto"
+                      ? "pago adelantado"
+                      : record.status === "abonado"
+                        ? `$${totalPaid.toFixed(2)} abonado de $${(record.amount || 0).toFixed(2)}`
+                        : record.status === "pagado"
+                          ? "pagado"
+                          : record.status === "retrasado"
+                            ? "vencido"
+                            : "pendiente"}
                   </p>
                 </div>
 
                 {/* Letra/Cuota Asignada - ahora con tooltip aclaratorio */}
                 <div className="rounded-lg bg-muted/50 p-4 text-center">
-                  <p className="text-xs text-muted-foreground mb-1" title="Monto de cada cuota según el plan de financiamiento">
+                  <p
+                    className="text-xs text-muted-foreground mb-1"
+                    title="Monto de cada cuota según el plan de financiamiento"
+                  >
                     Letra del Plan
                   </p>
                   <p className={`${typography.metric.base} text-primary`}>
-                    ${(record.financingQuotaAmount || record.weeklyQuotaAmount || parseFloat(weeklyQuotaAmount) || 0).toFixed(2)}
+                    $
+                    {(
+                      record.financingQuotaAmount ||
+                      record.weeklyQuotaAmount ||
+                      parseFloat(weeklyQuotaAmount) ||
+                      0
+                    ).toFixed(2)}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {record.financingFrequency === "semanal" ? "Semanal" : 
-                     record.financingFrequency === "quincenal" ? "Quincenal" : 
-                     record.financingFrequency === "mensual" ? "Mensual" : "Semanal"}
+                    {record.financingFrequency === "semanal"
+                      ? "Semanal"
+                      : record.financingFrequency === "quincenal"
+                        ? "Quincenal"
+                        : record.financingFrequency === "mensual"
+                          ? "Mensual"
+                          : "Semanal"}
                   </p>
                 </div>
 
@@ -849,7 +876,7 @@ export default function BillingDetailsPage() {
               </div>
 
               {/* Info adicional para adelantos y abonos */}
-              {(record.status === 'adelanto' || record.status === 'abonado') && (
+              {(record.status === "adelanto" || record.status === "abonado") && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Cuotas cubiertas por este pago */}
                   {record.quotasCovered && record.quotasCovered > 0 && (
@@ -858,21 +885,21 @@ export default function BillingDetailsPage() {
                         <div>
                           <p className="text-xs text-muted-foreground mb-1">Cuotas Cubiertas</p>
                           <p className={`${typography.body.large} font-semibold text-blue-600`}>
-                            {record.quotasCovered} {record.quotasCovered === 1 ? 'cuota' : 'cuotas'}
+                            {record.quotasCovered} {record.quotasCovered === 1 ? "cuota" : "cuotas"}
                           </p>
                         </div>
                         <div className="text-right">
                           <p className="text-xs text-muted-foreground mb-1">
-                            {record.status === 'adelanto' ? 'Desde cuota' : 'Aplicado a'}
+                            {record.status === "adelanto" ? "Desde cuota" : "Aplicado a"}
                           </p>
                           <p className={`${typography.body.large} font-semibold text-blue-600`}>
-                            #{record.quotaNumber || '-'}
+                            #{record.quotaNumber || "-"}
                           </p>
                         </div>
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Crédito disponible para futuras cuotas */}
                   {record.advanceCredit && record.advanceCredit > 0 && (
                     <div className="rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-4">
@@ -890,9 +917,9 @@ export default function BillingDetailsPage() {
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Saldo pendiente de la cuota actual (para abonos) */}
-                  {record.status === 'abonado' && pendingBalance > 0 && (
+                  {record.status === "abonado" && pendingBalance > 0 && (
                     <div className="rounded-lg bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 p-4">
                       <div className="flex items-center justify-between">
                         <div>
@@ -917,28 +944,34 @@ export default function BillingDetailsPage() {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Progreso del Financiamiento</span>
                     <span className="font-medium">
-                      {record.financingPaidQuotas || 0} de {record.financingTotalQuotas || 234} cuotas
+                      {record.financingPaidQuotas || 0} de {record.financingTotalQuotas || 234}{" "}
+                      cuotas
                     </span>
                   </div>
-                  <Progress 
-                    value={((record.financingPaidQuotas || 0) / (record.financingTotalQuotas || 234)) * 100} 
-                    className="h-2" 
+                  <Progress
+                    value={
+                      ((record.financingPaidQuotas || 0) / (record.financingTotalQuotas || 234)) *
+                      100
+                    }
+                    className="h-2"
                   />
                 </div>
               )}
 
               {/* Multa por atraso (si aplica) */}
-              {(record.lateFeeAmount && record.lateFeeAmount > 0) || (status === "retrasado" && record.daysLate && record.daysLate > 0) ? (
+              {(record.lateFeeAmount && record.lateFeeAmount > 0) ||
+              (status === "retrasado" && record.daysLate && record.daysLate > 0) ? (
                 <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/30 p-4">
                   <div className="flex items-center gap-3">
                     <AlertTriangle className="h-5 w-5 text-red-600" />
                     <div>
-                      <p className={`${typography.body.base} text-red-700 dark:text-red-400 font-medium`}>
-                        {record.daysLate || 0} día{(record.daysLate || 0) !== 1 ? "s" : ""} de atraso
+                      <p
+                        className={`${typography.body.base} text-red-700 dark:text-red-400 font-medium`}
+                      >
+                        {record.daysLate || 0} día{(record.daysLate || 0) !== 1 ? "s" : ""} de
+                        atraso
                       </p>
-                      <p className="text-xs text-red-600/70">
-                        10% diario sobre monto pendiente
-                      </p>
+                      <p className="text-xs text-red-600/70">10% diario sobre monto pendiente</p>
                     </div>
                   </div>
                   <span className={`${typography.metric.base} text-red-600`}>
@@ -990,14 +1023,14 @@ export default function BillingDetailsPage() {
 
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div className="flex items-center gap-3">
-                  <CheckCircle className={`h-5 w-5 ${verifiedInBank ? "text-green-600" : "text-muted-foreground"}`} />
+                  <CheckCircle
+                    className={`h-5 w-5 ${verifiedInBank ? "text-green-600" : "text-muted-foreground"}`}
+                  />
                   <div>
                     <Label htmlFor="verifiedInBank" className={typography.body.large}>
                       Verificado en Banco
                     </Label>
-                    <p className={typography.body.small}>
-                      Marcar si el pago fue verificado
-                    </p>
+                    <p className={typography.body.small}>Marcar si el pago fue verificado</p>
                   </div>
                 </div>
                 <Switch
@@ -1032,9 +1065,7 @@ export default function BillingDetailsPage() {
         {/* Documentos Adjuntos */}
         <Card className={commonClasses.card}>
           <CardHeader className={spacing.card.header}>
-            <CardTitle className={commonClasses.sectionTitle}>
-              Documentos Adjuntos
-            </CardTitle>
+            <CardTitle className={commonClasses.sectionTitle}>Documentos Adjuntos</CardTitle>
           </CardHeader>
           <CardContent className={spacing.card.content}>
             <div className={`flex flex-col ${spacing.gap.base}`}>
@@ -1042,7 +1073,7 @@ export default function BillingDetailsPage() {
                 const FileIcon = getFileIcon(doc.name);
                 const fileType = getFileType(doc.name);
                 const canPreview = fileType !== "other" && doc.url;
-                
+
                 return (
                   <div
                     key={doc.id || `doc-${Math.random()}`}
@@ -1054,11 +1085,16 @@ export default function BillingDetailsPage() {
                     onClick={() => canPreview && setViewingDocument(doc)}
                   >
                     <div className={`flex items-center ${spacing.gap.base}`}>
-                      <FileIcon className={cn(
-                        "h-4 w-4",
-                        fileType === "image" ? "text-green-600" : 
-                        fileType === "pdf" ? "text-red-600" : "text-muted-foreground"
-                      )} />
+                      <FileIcon
+                        className={cn(
+                          "h-4 w-4",
+                          fileType === "image"
+                            ? "text-green-600"
+                            : fileType === "pdf"
+                              ? "text-red-600"
+                              : "text-muted-foreground"
+                        )}
+                      />
                       <span className={typography.body.base}>{doc.name}</span>
                       {canPreview && (
                         <Badge variant="outline" className="text-xs">
@@ -1120,8 +1156,8 @@ export default function BillingDetailsPage() {
                 className={cn(
                   "flex w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed py-6 transition-colors",
                   components.input.base,
-                  isDragging 
-                    ? "border-primary bg-primary/10" 
+                  isDragging
+                    ? "border-primary bg-primary/10"
                     : "border-muted-foreground/30 bg-muted/30 hover:bg-muted/50",
                   isUploading && "pointer-events-none opacity-50"
                 )}
@@ -1130,7 +1166,12 @@ export default function BillingDetailsPage() {
                   {isUploading ? (
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   ) : (
-                    <Upload className={cn("h-8 w-8", isDragging ? "text-primary animate-bounce" : "text-primary")} />
+                    <Upload
+                      className={cn(
+                        "h-8 w-8",
+                        isDragging ? "text-primary animate-bounce" : "text-primary"
+                      )}
+                    />
                   )}
                   <p className={typography.body.base}>
                     {isUploading ? (
@@ -1143,9 +1184,7 @@ export default function BillingDetailsPage() {
                       </>
                     )}
                   </p>
-                  <p className={typography.body.small}>
-                    PDF, PNG, JPG (max. 5MB)
-                  </p>
+                  <p className={typography.body.small}>PDF, PNG, JPG (max. 5MB)</p>
                 </div>
                 <Input
                   id="file-upload"
@@ -1170,7 +1209,8 @@ export default function BillingDetailsPage() {
               <InvoicePDFDownload
                 company={{
                   name: "CAR 4 YOU PANAMA, S.A.",
-                  address: "Avenida Balboa, YOO Panamá & Arts Tower, apartamento 60a, Ciudad de Panamá",
+                  address:
+                    "Avenida Balboa, YOO Panamá & Arts Tower, apartamento 60a, Ciudad de Panamá",
                   phone: "+507 6000-0000",
                 }}
                 client={{
@@ -1180,10 +1220,14 @@ export default function BillingDetailsPage() {
                   email: record.clientEmail,
                   address: record.clientBillingAddress || record.clientAddress,
                 }}
-                vehicle={record.vehicleName ? {
-                  name: record.vehicleName,
-                  placa: record.vehiclePlaca,
-                } : undefined}
+                vehicle={
+                  record.vehicleName
+                    ? {
+                        name: record.vehicleName,
+                        placa: record.vehiclePlaca,
+                      }
+                    : undefined
+                }
                 invoice={{
                   invoiceNumber: record.invoiceNumber,
                   date: record.createdAt || new Date().toISOString(),
@@ -1222,7 +1266,7 @@ export default function BillingDetailsPage() {
                 <BadgeCheck className="h-4 w-4" />
                 {verifiedInBank ? "Verificado en Banco" : "Verificar en Banco"}
               </Button>
-              
+
               <Separator />
 
               <AlertDialog>
@@ -1275,19 +1319,22 @@ export default function BillingDetailsPage() {
             <DialogHeader className="p-4 border-b">
               <div className="flex items-center justify-between">
                 <DialogTitle className="flex items-center gap-2">
-                  {viewingDocument && (() => {
-                    const FileIcon = getFileIcon(viewingDocument.name);
-                    const fileType = getFileType(viewingDocument.name);
-                    return (
-                      <>
-                        <FileIcon className={cn(
-                          "h-5 w-5",
-                          fileType === "image" ? "text-green-600" : "text-red-600"
-                        )} />
-                        {viewingDocument.name}
-                      </>
-                    );
-                  })()}
+                  {viewingDocument &&
+                    (() => {
+                      const FileIcon = getFileIcon(viewingDocument.name);
+                      const fileType = getFileType(viewingDocument.name);
+                      return (
+                        <>
+                          <FileIcon
+                            className={cn(
+                              "h-5 w-5",
+                              fileType === "image" ? "text-green-600" : "text-red-600"
+                            )}
+                          />
+                          {viewingDocument.name}
+                        </>
+                      );
+                    })()}
                 </DialogTitle>
                 <div className="flex items-center gap-2">
                   {viewingDocument?.url && (
@@ -1326,9 +1373,7 @@ export default function BillingDetailsPage() {
                   </object>
                   {/* Mensaje de ayuda y botón alternativo */}
                   <div className="bg-muted/50 p-3 text-center border-t">
-                    <p className="text-sm text-muted-foreground mb-2">
-                      ¿No puedes ver el PDF? 
-                    </p>
+                    <p className="text-sm text-muted-foreground mb-2">¿No puedes ver el PDF?</p>
                     <Button variant="outline" size="sm" asChild>
                       <a href={viewingDocument.url} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="h-4 w-4 mr-2" />
@@ -1359,11 +1404,15 @@ export default function BillingDetailsPage() {
         <VerifyPaymentDialog
           isOpen={isVerifyDialogOpen}
           onOpenChange={setIsVerifyDialogOpen}
-          payment={record ? {
-            ...record,
-            receiptNumber: record.invoiceNumber || record.receiptId || "",
-            verifiedInBank,
-          } as any : null}
+          payment={
+            record
+              ? ({
+                  ...record,
+                  receiptNumber: record.invoiceNumber || record.receiptId || "",
+                  verifiedInBank,
+                } as any)
+              : null
+          }
           verifierUserId="system" // Auth layer removed; system user used for audit trail
           onSuccess={() => {
             setVerifiedInBank(true);

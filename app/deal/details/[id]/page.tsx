@@ -9,9 +9,10 @@ import { Label } from "@/components_shadcn/ui/label";
 import { Textarea } from "@/components_shadcn/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components_shadcn/ui/toggle-group";
 import { Skeleton } from "@/components_shadcn/ui/skeleton";
-import { ArrowLeft, Sparkles, Trash2, AlertCircle, Plus } from "lucide-react";
+import { Sparkles, Trash2, AlertCircle, Plus } from "lucide-react";
 import { spacing, typography, commonClasses } from "@/lib/design-system";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { BackButton } from "@/components/admin/back-button";
 import type { DealCard, DealPaymentAgreement } from "@/validations/types";
 
 const DetailsSkeleton = () => (
@@ -72,7 +73,7 @@ export default function DealDetailsPage() {
         const result = await response.json();
         const dealData = result.data as DealCard;
         setDeal(dealData);
-        
+
         // Initialize form state
         setSummary(dealData.summary || "");
         setPrice(dealData.price?.toString() || "");
@@ -89,20 +90,11 @@ export default function DealDetailsPage() {
     }
   }, [id]);
 
-  const backButton = (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => router.back()}
-      className="h-10 w-10 flex items-center justify-center rounded-full"
-    >
-      <ArrowLeft className="h-5 w-5" />
-    </Button>
-  );
+  const backButton = <BackButton fallbackHref="/deal" />;
 
   const handleSaveDraft = async () => {
     if (!deal) return;
-    
+
     setIsSaving(true);
     try {
       const response = await fetch(`/api/deal/${deal.documentId}`, {
@@ -133,7 +125,7 @@ export default function DealDetailsPage() {
 
   const handleGenerateContract = async () => {
     if (!deal) return;
-    
+
     setIsSaving(true);
     try {
       const response = await fetch(`/api/deal/${deal.documentId}`, {
@@ -201,9 +193,12 @@ export default function DealDetailsPage() {
     if (!deal || !clauseDocumentId) return;
 
     try {
-      const response = await fetch(`/api/deal/${deal.documentId}/clauses?clauseId=${clauseDocumentId}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `/api/deal/${deal.documentId}/clauses?clauseId=${clauseDocumentId}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Error al eliminar la cláusula");
@@ -211,7 +206,9 @@ export default function DealDetailsPage() {
 
       setDeal({
         ...deal,
-        clauses: deal.clauses.filter((c) => c.documentId !== clauseDocumentId && c.id !== clauseDocumentId),
+        clauses: deal.clauses.filter(
+          (c) => c.documentId !== clauseDocumentId && c.id !== clauseDocumentId
+        ),
       });
     } catch (err) {
       console.error("Error deleting clause:", err);
@@ -223,9 +220,12 @@ export default function DealDetailsPage() {
     if (!deal || !discountDocumentId) return;
 
     try {
-      const response = await fetch(`/api/deal/${deal.documentId}/discounts?discountId=${discountDocumentId}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `/api/deal/${deal.documentId}/discounts?discountId=${discountDocumentId}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Error al eliminar el descuento");
@@ -233,7 +233,9 @@ export default function DealDetailsPage() {
 
       setDeal({
         ...deal,
-        discounts: deal.discounts.filter((d) => d.documentId !== discountDocumentId && d.id !== discountDocumentId),
+        discounts: deal.discounts.filter(
+          (d) => d.documentId !== discountDocumentId && d.id !== discountDocumentId
+        ),
       });
     } catch (err) {
       console.error("Error deleting discount:", err);
@@ -243,11 +245,7 @@ export default function DealDetailsPage() {
 
   if (isLoading) {
     return (
-      <AdminLayout
-        title="Editor de Contrato"
-        showFilterAction
-        leftActions={backButton}
-      >
+      <AdminLayout title="Editor de Contrato" showFilterAction leftActions={backButton}>
         <DetailsSkeleton />
       </AdminLayout>
     );
@@ -255,11 +253,7 @@ export default function DealDetailsPage() {
 
   if (error) {
     return (
-      <AdminLayout
-        title="Editor de Contrato"
-        showFilterAction
-        leftActions={backButton}
-      >
+      <AdminLayout title="Editor de Contrato" showFilterAction leftActions={backButton}>
         <section className="flex items-center gap-2 p-4 bg-destructive/10 rounded-lg text-destructive">
           <AlertCircle className="h-5 w-5" />
           <p>{error}</p>
@@ -270,12 +264,10 @@ export default function DealDetailsPage() {
 
   if (!deal) {
     return (
-      <AdminLayout
-        title="Editor de Contrato"
-        showFilterAction
-        leftActions={backButton}
-      >
-        <section className={`flex flex-col items-center justify-center ${spacing.gap.base} min-h-[300px]`}>
+      <AdminLayout title="Editor de Contrato" showFilterAction leftActions={backButton}>
+        <section
+          className={`flex flex-col items-center justify-center ${spacing.gap.base} min-h-[300px]`}
+        >
           <p className={typography.body.large}>Contrato no encontrado</p>
           <Button onClick={() => router.push("/deal")}>Ver contratos</Button>
         </section>
@@ -284,21 +276,17 @@ export default function DealDetailsPage() {
   }
 
   return (
-    <AdminLayout
-      title="Editor de Contrato"
-      showFilterAction
-      leftActions={backButton}
-    >
+    <AdminLayout title="Editor de Contrato" showFilterAction leftActions={backButton}>
       <div className="mx-auto w-full max-w-2xl">
         <div className={`flex flex-col ${spacing.gap.xlarge} pb-32`}>
           {/* Tipo de Contrato */}
           <section>
             <h2 className={`${typography.h4} mb-3`}>Tipo de Contrato</h2>
             <Card className={commonClasses.card}>
-              <CardContent className={`flex flex-col ${spacing.gap.medium} ${spacing.card.padding}`}>
-                <p className={`${typography.body.large} font-bold`}>
-                  {deal.typeLabel}
-                </p>
+              <CardContent
+                className={`flex flex-col ${spacing.gap.medium} ${spacing.card.padding}`}
+              >
+                <p className={`${typography.body.large} font-bold`}>{deal.typeLabel}</p>
                 <p className={`${typography.body.small} text-muted-foreground`}>
                   Estado: {deal.statusLabel}
                 </p>
@@ -315,31 +303,21 @@ export default function DealDetailsPage() {
           <section>
             <h2 className={`${typography.h4} mb-3`}>Datos del Cliente</h2>
             <Card className={commonClasses.card}>
-              <CardContent className={`flex flex-col ${spacing.gap.medium} ${spacing.card.padding}`}>
+              <CardContent
+                className={`flex flex-col ${spacing.gap.medium} ${spacing.card.padding}`}
+              >
                 <div className="flex flex-col gap-1">
                   <Label className={typography.label}>Nombre Completo</Label>
-                  <Input
-                    value={deal.clientName || ""}
-                    disabled
-                    className="rounded-lg bg-muted"
-                  />
+                  <Input value={deal.clientName || ""} disabled className="rounded-lg bg-muted" />
                 </div>
                 <div className="flex flex-col gap-1">
                   <Label className={typography.label}>Email</Label>
-                  <Input
-                    value={deal.clientEmail || ""}
-                    disabled
-                    className="rounded-lg bg-muted"
-                  />
+                  <Input value={deal.clientEmail || ""} disabled className="rounded-lg bg-muted" />
                 </div>
                 {deal.clientPhone && (
                   <div className="flex flex-col gap-1">
                     <Label className={typography.label}>Teléfono</Label>
-                    <Input
-                      value={deal.clientPhone}
-                      disabled
-                      className="rounded-lg bg-muted"
-                    />
+                    <Input value={deal.clientPhone} disabled className="rounded-lg bg-muted" />
                   </div>
                 )}
               </CardContent>
@@ -350,7 +328,9 @@ export default function DealDetailsPage() {
           <section>
             <h2 className={`${typography.h4} mb-3`}>Detalles del Vehículo</h2>
             <Card className={commonClasses.card}>
-              <CardContent className={`flex flex-col ${spacing.gap.medium} ${spacing.card.padding}`}>
+              <CardContent
+                className={`flex flex-col ${spacing.gap.medium} ${spacing.card.padding}`}
+              >
                 <div className="flex flex-col gap-1">
                   <Label className={typography.label}>Vehículo</Label>
                   <Input
@@ -362,11 +342,7 @@ export default function DealDetailsPage() {
                 {deal.vehiclePlaca && (
                   <div className="flex flex-col gap-1">
                     <Label className={typography.label}>Placa</Label>
-                    <Input
-                      value={deal.vehiclePlaca}
-                      disabled
-                      className="rounded-lg bg-muted"
-                    />
+                    <Input value={deal.vehiclePlaca} disabled className="rounded-lg bg-muted" />
                   </div>
                 )}
                 <div className="flex flex-col gap-1">
@@ -394,7 +370,9 @@ export default function DealDetailsPage() {
           <section>
             <h2 className={`${typography.h4} mb-3`}>Términos del Contrato</h2>
             <Card className={commonClasses.card}>
-              <CardContent className={`flex flex-col ${spacing.gap.medium} ${spacing.card.padding}`}>
+              <CardContent
+                className={`flex flex-col ${spacing.gap.medium} ${spacing.card.padding}`}
+              >
                 <div className="flex flex-col gap-1">
                   <Label className={typography.label}>Acuerdo de Pago</Label>
                   <ToggleGroup
@@ -454,9 +432,7 @@ export default function DealDetailsPage() {
                 <Card key={clause.documentId || clause.id} className={commonClasses.card}>
                   <CardContent className={`flex items-start gap-3 ${spacing.card.padding}`}>
                     <div className="flex-1">
-                      <h3 className={`${typography.body.base} font-bold`}>
-                        {clause.title}
-                      </h3>
+                      <h3 className={`${typography.body.base} font-bold`}>{clause.title}</h3>
                       {clause.description && (
                         <p className={`${typography.body.small} mt-1 text-muted-foreground`}>
                           {clause.description}
@@ -474,10 +450,12 @@ export default function DealDetailsPage() {
                   </CardContent>
                 </Card>
               ))}
-              
+
               {/* Agregar nueva cláusula */}
               <Card className={commonClasses.card}>
-                <CardContent className={`flex flex-col ${spacing.gap.medium} ${spacing.card.padding}`}>
+                <CardContent
+                  className={`flex flex-col ${spacing.gap.medium} ${spacing.card.padding}`}
+                >
                   <Input
                     placeholder="Título de la cláusula..."
                     value={newClauseTitle}
@@ -550,10 +528,10 @@ export default function DealDetailsPage() {
             <section>
               <h2 className={`${typography.h4} mb-3`}>Vendedor Asignado</h2>
               <Card className={commonClasses.card}>
-                <CardContent className={`flex flex-col ${spacing.gap.small} ${spacing.card.padding}`}>
-                  <p className={`${typography.body.base} font-medium`}>
-                    {deal.sellerName}
-                  </p>
+                <CardContent
+                  className={`flex flex-col ${spacing.gap.small} ${spacing.card.padding}`}
+                >
+                  <p className={`${typography.body.base} font-medium`}>{deal.sellerName}</p>
                   {deal.sellerEmail && (
                     <p className={`${typography.body.small} text-muted-foreground`}>
                       {deal.sellerEmail}

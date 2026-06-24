@@ -1,6 +1,7 @@
 import { useCallback, useState, useEffect } from "react";
 import type { ChangeEvent } from "react";
 import { toast } from "@/lib/toast";
+import { optimizeUpload } from "@/lib/image-compression";
 import type { FleetDocument, FleetDocumentType } from "@/validations/types";
 
 interface UseVehicleDocumentsReturn {
@@ -33,7 +34,7 @@ export function useVehicleDocuments(vehicleId: string): UseVehicleDocumentsRetur
   const [showDocumentForm, setShowDocumentForm] = useState(false);
 
   const handleOpenDocumentForm = () => setShowDocumentForm(true);
-  
+
   const handleCancelDocumentForm = () => {
     setShowDocumentForm(false);
     setDocumentFiles([]);
@@ -65,23 +66,23 @@ export function useVehicleDocuments(vehicleId: string): UseVehicleDocumentsRetur
     if (files.length === 0) return;
 
     const MAX_SIZE = 5 * 1024 * 1024;
-    const invalidFiles = files.filter(file => file.size > MAX_SIZE);
-    
+    const invalidFiles = files.filter((file) => file.size > MAX_SIZE);
+
     if (invalidFiles.length > 0) {
       toast.error("Archivos demasiado grandes", {
-        description: `Algunos archivos exceden el tamaño máximo de 5MB. Archivos rechazados: ${invalidFiles.map(f => f.name).join(", ")}`,
+        description: `Algunos archivos exceden el tamaño máximo de 5MB. Archivos rechazados: ${invalidFiles.map((f) => f.name).join(", ")}`,
       });
-      const validFiles = files.filter(file => file.size <= MAX_SIZE);
-      setDocumentFiles(prev => [...prev, ...validFiles]);
+      const validFiles = files.filter((file) => file.size <= MAX_SIZE);
+      setDocumentFiles((prev) => [...prev, ...validFiles]);
     } else {
-      setDocumentFiles(prev => [...prev, ...files]);
+      setDocumentFiles((prev) => [...prev, ...files]);
     }
-    
-    event.target.value = '';
+
+    event.target.value = "";
   };
 
   const handleRemoveDocumentFile = (index: number) => {
-    setDocumentFiles(prev => prev.filter((_, i) => i !== index));
+    setDocumentFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSaveDocument = async (currentUserDocumentId: string | null) => {
@@ -104,7 +105,7 @@ export function useVehicleDocuments(vehicleId: string): UseVehicleDocumentsRetur
       const uploadedFileIds: number[] = [];
       for (const file of documentFiles) {
         const uploadForm = new FormData();
-        uploadForm.append("files", file);
+        uploadForm.append("files", await optimizeUpload(file));
         const uploadResponse = await fetch("/api/strapi/upload", {
           method: "POST",
           body: uploadForm,
@@ -119,7 +120,14 @@ export function useVehicleDocuments(vehicleId: string): UseVehicleDocumentsRetur
         }
       }
 
-      const requestBody: { data: { documentType: FleetDocumentType; files: number[]; authorDocumentId?: string; otherDescription?: string } } = {
+      const requestBody: {
+        data: {
+          documentType: FleetDocumentType;
+          files: number[];
+          authorDocumentId?: string;
+          otherDescription?: string;
+        };
+      } = {
         data: {
           documentType: documentType,
           files: uploadedFileIds,
@@ -148,21 +156,23 @@ export function useVehicleDocuments(vehicleId: string): UseVehicleDocumentsRetur
         } catch {
           errorData = { error: `Error ${response.status}: ${response.statusText}` };
         }
-        
+
         if (response.status === 405) {
-          throw new Error("El método POST no está permitido en esta ruta. Por favor, reinicia el servidor de desarrollo.");
+          throw new Error(
+            "El método POST no está permitido en esta ruta. Por favor, reinicia el servidor de desarrollo."
+          );
         }
-        
+
         throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
       }
 
       await loadVehicleDocuments();
-      
+
       setDocumentFiles([]);
       setDocumentType("poliza_seguro");
       setDocumentOtherDescription("");
       setShowDocumentForm(false);
-      
+
       toast.success("Documento guardado", {
         description: "El documento ha sido guardado correctamente",
       });
@@ -189,7 +199,9 @@ export function useVehicleDocuments(vehicleId: string): UseVehicleDocumentsRetur
         throw new Error(errorData.error || `Error ${response.status}`);
       }
 
-      setVehicleDocuments((prev) => prev.filter((d) => d.id !== documentId && d.documentId !== documentId));
+      setVehicleDocuments((prev) =>
+        prev.filter((d) => d.id !== documentId && d.documentId !== documentId)
+      );
       toast.success("Documento eliminado", {
         description: "El documento ha sido eliminado",
       });
@@ -227,4 +239,3 @@ export function useVehicleDocuments(vehicleId: string): UseVehicleDocumentsRetur
     setVehicleDocuments,
   };
 }
-

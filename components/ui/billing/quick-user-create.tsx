@@ -1,7 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { UserPlus, Loader2, CheckCircle2, AlertCircle, Calendar, MapPin, Phone, Mail, User, Briefcase, Car, Contact, Linkedin, Clock, Lock, Copy } from "lucide-react";
+import {
+  UserPlus,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  Calendar,
+  MapPin,
+  Phone,
+  Mail,
+  User,
+  Briefcase,
+  Car,
+  Contact,
+  Linkedin,
+  Clock,
+  Lock,
+  Copy,
+  Shield,
+} from "lucide-react";
 import { Button } from "@/components_shadcn/ui/button";
 import { Input } from "@/components_shadcn/ui/input";
 import { Label } from "@/components_shadcn/ui/label";
@@ -18,6 +36,14 @@ import { Alert, AlertDescription } from "@/components_shadcn/ui/alert";
 import { typography, components } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components_shadcn/ui/tabs";
+
+// Canonical role vocabulary, mirrored from `roleConfig` in app/users/page.tsx.
+// `lead` does not get portal credentials (no password), the rest do.
+const ROLE_OPTIONS = [
+  { value: "driver", label: "Conductor", icon: Car },
+  { value: "admin", label: "Administrador", icon: Shield },
+  { value: "lead", label: "Lead", icon: UserPlus },
+] as const;
 
 interface QuickUserCreateProps {
   onUserCreated: (user: CreatedUser) => void;
@@ -59,17 +85,12 @@ interface FormData {
 }
 
 interface FormErrors {
-  identificationNumber?: string;
   displayName?: string;
   email?: string;
-  address?: string;
+  password?: string;
 }
 
-export function QuickUserCreate({
-  onUserCreated,
-  trigger,
-  className,
-}: QuickUserCreateProps) {
+export function QuickUserCreate({ onUserCreated, trigger, className }: QuickUserCreateProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -138,26 +159,32 @@ export function QuickUserCreate({
   const validateForm = (): boolean => {
     const errors: FormErrors = {};
 
-    if (!formData.identificationNumber.trim()) {
-      errors.identificationNumber = "La cédula es requerida";
-    } else if (formData.identificationNumber.trim().length < 5) {
-      errors.identificationNumber = "La cédula debe tener al menos 5 caracteres";
-    }
-
+    // displayName is the only always-required field — a contact with no name is
+    // useless in the list. Everything descriptive can be filled in later.
     if (!formData.displayName.trim()) {
       errors.displayName = "El nombre completo es requerido";
     } else if (formData.displayName.trim().length < 3) {
       errors.displayName = "El nombre debe tener al menos 3 caracteres";
     }
 
-    if (!formData.email.trim()) {
-      errors.email = "El email es requerido";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      errors.email = "El email no es válido";
-    }
+    // email + password are only structurally required to create the login
+    // account, so they are mandatory exclusively for non-lead roles. Leads
+    // never get portal credentials.
+    if (formData.role !== "lead") {
+      if (!formData.email.trim()) {
+        errors.email = "El email es requerido para crear la cuenta de acceso";
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        errors.email = "El email no es válido";
+      }
 
-    if (!formData.address.trim() && formData.role !== "lead") {
-      errors.address = "La dirección es requerida";
+      if (!formData.password) {
+        errors.password = "La contraseña es requerida para crear la cuenta de acceso";
+      } else if (formData.password.length < 6) {
+        errors.password = "La contraseña debe tener al menos 6 caracteres";
+      }
+    } else if (formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      // For leads email is optional, but if provided it must still be valid.
+      errors.email = "El email no es válido";
     }
 
     setFormErrors(errors);
@@ -182,12 +209,15 @@ export function QuickUserCreate({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           data: {
-            identificationNumber: formData.identificationNumber.trim(),
+            // displayName is the only always-required field; the rest are
+            // optional and omitted (undefined) when empty so the backend does
+            // not receive empty strings it would reject.
+            identificationNumber: formData.identificationNumber.trim() || undefined,
             displayName: formData.displayName.trim(),
-            email: formData.email.trim(),
-            address: formData.address.trim(),
+            email: formData.email.trim() || undefined,
+            address: formData.address.trim() || undefined,
             // Los leads nunca reciben credenciales de acceso
-            password: formData.role === "lead" ? undefined : (formData.password || undefined),
+            password: formData.role === "lead" ? undefined : formData.password || undefined,
             phone: formData.phone.trim() || undefined,
             dateOfBirth: formData.dateOfBirth || undefined,
             department: formData.department.trim() || undefined,
@@ -226,7 +256,6 @@ export function QuickUserCreate({
         email: result.data.email,
         cedula: result.data.identificationNumber || result.data.cedula,
       });
-
     } catch (err) {
       console.error("Error creating user:", err);
       setError(err instanceof Error ? err.message : "Error desconocido");
@@ -235,14 +264,14 @@ export function QuickUserCreate({
     }
   };
 
-  const handleInputChange = (field: keyof FormData) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
-    setFormData(prev => ({ ...prev, [field]: e.target.value }));
-    if (formErrors[field as keyof FormErrors]) {
-      setFormErrors(prev => ({ ...prev, [field]: undefined }));
-    }
-  };
+  const handleInputChange =
+    (field: keyof FormData) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+      setFormData((prev) => ({ ...prev, [field]: e.target.value }));
+      if (formErrors[field as keyof FormErrors]) {
+        setFormErrors((prev) => ({ ...prev, [field]: undefined }));
+      }
+    };
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -258,7 +287,9 @@ export function QuickUserCreate({
         <DialogHeader className="pb-4">
           <DialogTitle className={typography.h3}>Crear Contacto Rápido</DialogTitle>
           <DialogDescription>
-            Crea un nuevo perfil de contacto en el sistema. Los campos marcados con * son obligatorios.
+            Crea un nuevo perfil de contacto rápidamente. Solo el nombre es obligatorio (y el email
+            + contraseña para crear cuentas de acceso). Puedes completar el resto más tarde desde la
+            ficha del contacto.
           </DialogDescription>
         </DialogHeader>
 
@@ -278,18 +309,24 @@ export function QuickUserCreate({
               <div className="grid grid-cols-[120px_1fr] gap-2 text-sm">
                 <span className="text-muted-foreground">Nombre:</span>
                 <span className="font-medium">{formData.displayName}</span>
-                
+
                 <span className="text-muted-foreground">Email:</span>
                 <span className="font-medium">{formData.email}</span>
-                
+
                 <span className="text-muted-foreground">Cédula:</span>
                 <span className="font-medium">{formData.identificationNumber}</span>
-                
+
                 <span className="text-muted-foreground">Dirección:</span>
                 <span className="font-medium">{formData.address}</span>
-                
+
                 <span className="text-muted-foreground">Rol:</span>
-                <span className="font-medium">{formData.role === "admin" ? "Administrador" : formData.role === "driver" ? "Conductor" : "Lead"}</span>
+                <span className="font-medium">
+                  {formData.role === "admin"
+                    ? "Administrador"
+                    : formData.role === "driver"
+                      ? "Conductor"
+                      : "Lead"}
+                </span>
               </div>
 
               {createdPassword && (
@@ -320,28 +357,29 @@ export function QuickUserCreate({
                     </Button>
                   </div>
                   <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-                    Guarde esta contraseña. El usuario puede iniciar sesión con su email y esta contraseña.
+                    Guarde esta contraseña. El usuario puede iniciar sesión con su email y esta
+                    contraseña.
                   </p>
                 </div>
               )}
 
               {!createdPassword && formData.role !== "lead" && (
                 <p className="text-xs text-muted-foreground mt-2">
-                  La cuenta de acceso ha sido creada. Si asignó una contraseña personalizada, el usuario puede iniciar sesión con ella.
+                  La cuenta de acceso ha sido creada. Si asignó una contraseña personalizada, el
+                  usuario puede iniciar sesión con ella.
                 </p>
               )}
 
               {formData.role === "lead" && (
                 <p className="text-xs text-muted-foreground mt-2">
-                  El perfil de contacto ha sido creado como lead. Promuévalo a usuario activo desde su ficha de detalle para asignarle credenciales de acceso.
+                  El perfil de contacto ha sido creado como lead. Promuévalo a usuario activo desde
+                  su ficha de detalle para asignarle credenciales de acceso.
                 </p>
               )}
             </div>
 
             <DialogFooter className="pt-4">
-              <Button onClick={() => handleOpenChange(false)}>
-                Cerrar
-              </Button>
+              <Button onClick={() => handleOpenChange(false)}>Cerrar</Button>
             </DialogFooter>
           </div>
         ) : (
@@ -362,26 +400,62 @@ export function QuickUserCreate({
 
               {/* Tab: Información Básica (Mandatoria) */}
               <TabsContent value="basic" className="space-y-4 mt-4">
+                {/* Rol — campo primario: define el tipo de contacto a crear */}
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Briefcase className="h-4 w-4 text-muted-foreground" />
+                    Rol del contacto *
+                  </Label>
+                  <div
+                    className="grid grid-cols-3 gap-2"
+                    role="radiogroup"
+                    aria-label="Rol del contacto"
+                  >
+                    {ROLE_OPTIONS.map(({ value, label, icon: Icon }) => {
+                      const selected = formData.role === value;
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          onClick={() => setFormData((prev) => ({ ...prev, role: value }))}
+                          disabled={loading}
+                          className={cn(
+                            "flex flex-col items-center justify-center gap-1 rounded-md border px-3 py-3 text-sm transition-colors",
+                            "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                            "disabled:cursor-not-allowed disabled:opacity-50",
+                            selected
+                              ? "border-primary bg-primary/10 font-medium text-foreground"
+                              : "border-input bg-background text-muted-foreground hover:bg-muted"
+                          )}
+                        >
+                          <Icon className="h-4 w-4" />
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Define el tipo de contacto. Los leads no reciben credenciales de acceso al
+                    portal.
+                  </p>
+                </div>
+
                 {/* Cédula / Identificación */}
                 <div className="space-y-2">
                   <Label htmlFor="identificationNumber" className="flex items-center gap-2">
                     <User className="h-4 w-4 text-muted-foreground" />
-                    Cédula / Identificación *
+                    Cédula / Identificación
                   </Label>
                   <Input
                     id="identificationNumber"
                     placeholder="Ej: 8-123-4567"
                     value={formData.identificationNumber}
                     onChange={handleInputChange("identificationNumber")}
-                    className={cn(
-                      components.input.base,
-                      formErrors.identificationNumber && "border-destructive"
-                    )}
+                    className={components.input.base}
                     disabled={loading}
                   />
-                  {formErrors.identificationNumber && (
-                    <p className="text-xs text-destructive">{formErrors.identificationNumber}</p>
-                  )}
                 </div>
 
                 {/* Nombre Completo */}
@@ -410,7 +484,7 @@ export function QuickUserCreate({
                 <div className="space-y-2">
                   <Label htmlFor="email" className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-muted-foreground" />
-                    Email *
+                    Email{formData.role !== "lead" ? " *" : ""}
                   </Label>
                   <Input
                     id="email"
@@ -418,10 +492,7 @@ export function QuickUserCreate({
                     placeholder="Ej: juan@email.com"
                     value={formData.email}
                     onChange={handleInputChange("email")}
-                    className={cn(
-                      components.input.base,
-                      formErrors.email && "border-destructive"
-                    )}
+                    className={cn(components.input.base, formErrors.email && "border-destructive")}
                     disabled={loading}
                   />
                   {formErrors.email && (
@@ -433,22 +504,16 @@ export function QuickUserCreate({
                 <div className="space-y-2">
                   <Label htmlFor="address" className="flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
-                    Dirección *
+                    Dirección (opcional)
                   </Label>
                   <Input
                     id="address"
                     placeholder="Ej: Calle 50, Edificio Bay View, Apartamento 4B"
                     value={formData.address}
                     onChange={handleInputChange("address")}
-                    className={cn(
-                      components.input.base,
-                      formErrors.address && "border-destructive"
-                    )}
+                    className={components.input.base}
                     disabled={loading}
                   />
-                  {formErrors.address && (
-                    <p className="text-xs text-destructive">{formErrors.address}</p>
-                  )}
                 </div>
 
                 {/* Teléfono */}
@@ -473,7 +538,7 @@ export function QuickUserCreate({
                   <div className="space-y-2">
                     <Label htmlFor="password" className="flex items-center gap-2">
                       <Lock className="h-4 w-4 text-muted-foreground" />
-                      Contraseña
+                      Contraseña *
                     </Label>
                     <Input
                       id="password"
@@ -481,9 +546,15 @@ export function QuickUserCreate({
                       placeholder="Mínimo 6 caracteres"
                       value={formData.password}
                       onChange={handleInputChange("password")}
-                      className={components.input.base}
+                      className={cn(
+                        components.input.base,
+                        formErrors.password && "border-destructive"
+                      )}
                       disabled={loading}
                     />
+                    {formErrors.password && (
+                      <p className="text-xs text-destructive">{formErrors.password}</p>
+                    )}
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">
@@ -554,7 +625,7 @@ export function QuickUserCreate({
                     <Contact className="h-4 w-4" />
                     Contacto de Emergencia
                   </h4>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="emergencyContactName" className="text-sm">
                       Nombre del Contacto
@@ -602,29 +673,6 @@ export function QuickUserCreate({
                     className={components.input.base}
                     disabled={loading}
                   />
-                </div>
-
-                {/* Rol */}
-                <div className="space-y-2">
-                  <Label htmlFor="role" className="flex items-center gap-2">
-                    <Briefcase className="h-4 w-4 text-muted-foreground" />
-                    Rol
-                  </Label>
-                  <select
-                    id="role"
-                    value={formData.role}
-                    onChange={handleInputChange("role")}
-                    className={cn(
-                      "w-full h-10 px-3 py-2 text-sm rounded-md border border-input bg-background",
-                      "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-                      "disabled:cursor-not-allowed disabled:opacity-50"
-                    )}
-                    disabled={loading}
-                  >
-                    <option value="driver">Conductor</option>
-                    <option value="admin">Administrador</option>
-                    <option value="lead">Lead</option>
-                  </select>
                 </div>
 
                 {/* Horario de Trabajo */}

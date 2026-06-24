@@ -14,7 +14,12 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./vitest.setup.ts"],
     globals: true,
-    include: ["components/**/*.test.ts?(x)", "app/**/*.test.ts?(x)", "tests/**/*.test.ts?(x)"],
+    include: [
+      "components/**/*.test.ts?(x)",
+      "app/**/*.test.ts?(x)",
+      "lib/**/*.test.ts?(x)",
+      "tests/**/*.test.ts?(x)",
+    ],
     coverage: {
       reporter: ["text", "lcov"],
       include: ["components/admin/mobile-menu.tsx", "components/admin/admin-header.tsx"],

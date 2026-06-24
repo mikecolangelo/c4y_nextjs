@@ -1,5 +1,7 @@
 "use client";
 
+import { clientLogger } from "@/lib/client-logger";
+
 import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Dialog,
@@ -35,7 +37,7 @@ import {
 } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { formatCurrency } from "@/lib/format";
-import type { ServiceCard, InventoryItemRaw, ServiceTemplateItem } from "@/validations/types";
+import type { ServiceCard, InventoryItemRaw } from "@/validations/types";
 
 interface KitItemState {
   id: string;
@@ -52,10 +54,7 @@ interface ServiceDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onTemplateSaved?: (service: ServiceCard) => void;
-  onCreateOrder?: (data: {
-    laborCost: number;
-    usedItems: KitItemState[];
-  }) => void;
+  onCreateOrder?: (data: { laborCost: number; usedItems: KitItemState[] }) => void;
   userRole?: string;
 }
 
@@ -144,7 +143,7 @@ export function ServiceDetailDialog({
       } catch (e) {
         if (!cancelled) {
           setInventoryError("No se pudo cargar el inventario. Intenta de nuevo.");
-          console.error(e);
+          clientLogger.error(e);
         }
       } finally {
         if (!cancelled) setIsLoadingInventory(false);
@@ -152,36 +151,41 @@ export function ServiceDetailDialog({
     }
 
     loadInventory();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [open]);
 
   const handleRemoveItem = useCallback((id: string) => {
     setItems((prev) => prev.filter((i) => i.id !== id));
   }, []);
 
-  const handleAddItem = useCallback((inventoryItemId: string) => {
-    const inv = inventoryOptions.find(
-      (i) => String(i.id) === inventoryItemId || String(i.documentId) === inventoryItemId
-    );
-    if (!inv) return;
+  const handleAddItem = useCallback(
+    (inventoryItemId: string) => {
+      const inv = inventoryOptions.find(
+        (i) => String(i.id) === inventoryItemId || String(i.documentId) === inventoryItemId
+      );
+      if (!inv) return;
 
-    setItems((prev) => {
-      const exists = prev.find((p) => p.inventoryItemId === String(inv.id ?? inv.documentId));
-      if (exists) return prev;
-      return [
-        ...prev,
-        {
-          id: `tmp-${Date.now()}`,
-          inventoryItemId: String(inv.documentId ?? inv.id),
-          code: inv.code || "",
-          description: inv.description || "",
-          salePrice: Number(inv.salePrice ?? inv.unitCost ?? 0),
-          quantity: 1,
-          stock: Number(inv.stock ?? 0),
-        },
-      ];
-    });
-  }, [inventoryOptions]);
+      setItems((prev) => {
+        const exists = prev.find((p) => p.inventoryItemId === String(inv.id ?? inv.documentId));
+        if (exists) return prev;
+        return [
+          ...prev,
+          {
+            id: `tmp-${Date.now()}`,
+            inventoryItemId: String(inv.documentId ?? inv.id),
+            code: inv.code || "",
+            description: inv.description || "",
+            salePrice: Number(inv.salePrice ?? inv.unitCost ?? 0),
+            quantity: 1,
+            stock: Number(inv.stock ?? 0),
+          },
+        ];
+      });
+    },
+    [inventoryOptions]
+  );
 
   const handleQuantityChange = useCallback((id: string, value: string) => {
     const qty = parseFloat(value);
@@ -217,9 +221,7 @@ export function ServiceDetailDialog({
 
   const availableInventory = useMemo(() => {
     const usedIds = new Set(items.map((i) => i.inventoryItemId));
-    return inventoryOptions.filter(
-      (opt) => !usedIds.has(String(opt.id ?? opt.documentId))
-    );
+    return inventoryOptions.filter((opt) => !usedIds.has(String(opt.id ?? opt.documentId)));
   }, [inventoryOptions, items]);
 
   const handleSaveTemplate = async () => {
@@ -256,7 +258,7 @@ export function ServiceDetailDialog({
       toast.success("Plantilla de servicio actualizada");
       onTemplateSaved?.(data);
     } catch (e) {
-      console.error(e);
+      clientLogger.error(e);
       toast.error(e instanceof Error ? e.message : "No se pudo guardar la plantilla");
     } finally {
       setIsSaving(false);
@@ -293,7 +295,7 @@ export function ServiceDetailDialog({
                   </span>
                 ) : null}
                 {!service.category && !service.coverageLabel && !service.durationMinutes
-                  ? (service.description || "Detalle del servicio")
+                  ? service.description || "Detalle del servicio"
                   : null}
               </DialogDescription>
             </div>
@@ -348,11 +350,15 @@ export function ServiceDetailDialog({
                     <>
                       <div className="bg-muted/40 rounded-lg p-3">
                         <p className="text-xs text-muted-foreground">Mano de Obra (Base)</p>
-                        <p className="text-base font-semibold">{formatCurrency(calculations.basePrice)}</p>
+                        <p className="text-base font-semibold">
+                          {formatCurrency(calculations.basePrice)}
+                        </p>
                       </div>
                       <div className="bg-muted/40 rounded-lg p-3">
                         <p className="text-xs text-muted-foreground">Agencia (Referencia)</p>
-                        <p className="text-base font-semibold">{formatCurrency(calculations.agencyCost)}</p>
+                        <p className="text-base font-semibold">
+                          {formatCurrency(calculations.agencyCost)}
+                        </p>
                       </div>
                     </>
                   )}
@@ -392,10 +398,10 @@ export function ServiceDetailDialog({
                           isLoadingInventory
                             ? "Cargando inventario..."
                             : inventoryError
-                            ? "Error al cargar"
-                            : availableInventory.length === 0
-                            ? "Sin repuestos disponibles"
-                            : "Añadir repuesto del inventario..."
+                              ? "Error al cargar"
+                              : availableInventory.length === 0
+                                ? "Sin repuestos disponibles"
+                                : "Añadir repuesto del inventario..."
                         }
                       />
                     </SelectTrigger>
@@ -441,68 +447,73 @@ export function ServiceDetailDialog({
                   </div>
                 ) : (
                   <div className="flex-1 min-h-0 overflow-y-auto pr-2 space-y-2 max-h-[280px]">
-                      {items.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex flex-col gap-2 p-3 bg-muted/40 rounded-lg border border-border/50"
-                        >
-                          {/* Fila superior: código + descripción + eliminar */}
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium truncate" title={item.code}>{item.code}</p>
-                              <p className="text-xs text-muted-foreground truncate" title={item.description}>
-                                {item.description}
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveItem(item.id)}
-                              className="p-1.5 hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors shrink-0 mt-0.5"
-                              title="Eliminar repuesto"
+                    {items.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex flex-col gap-2 p-3 bg-muted/40 rounded-lg border border-border/50"
+                      >
+                        {/* Fila superior: código + descripción + eliminar */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate" title={item.code}>
+                              {item.code}
+                            </p>
+                            <p
+                              className="text-xs text-muted-foreground truncate"
+                              title={item.description}
                             >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
+                              {item.description}
+                            </p>
                           </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveItem(item.id)}
+                            className="p-1.5 hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors shrink-0 mt-0.5"
+                            title="Eliminar repuesto"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
 
-                          {/* Fila inferior: cantidad y precio con labels */}
-                          <div className="flex items-end gap-3">
-                            <div className="flex flex-col gap-1">
-                              <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                                Cantidad
-                              </Label>
-                              <Input
-                                type="number"
-                                min="0.1"
-                                step="0.1"
-                                value={item.quantity}
-                                onChange={(e) => handleQuantityChange(item.id, e.target.value)}
-                                className="w-20 h-8 text-sm"
-                              />
-                            </div>
-                            <div className="flex flex-col gap-1 flex-1">
-                              <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                                Precio unitario
-                              </Label>
-                              <Input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={item.salePrice}
-                                onChange={(e) => handlePriceChange(item.id, e.target.value)}
-                                className="w-full h-8 text-sm"
-                              />
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                                Total
-                              </Label>
-                              <p className="h-8 flex items-center text-sm font-semibold tabular-nums">
-                                {formatCurrency(item.salePrice * item.quantity)}
-                              </p>
-                            </div>
+                        {/* Fila inferior: cantidad y precio con labels */}
+                        <div className="flex items-end gap-3">
+                          <div className="flex flex-col gap-1">
+                            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                              Cantidad
+                            </Label>
+                            <Input
+                              type="number"
+                              min="0.1"
+                              step="0.1"
+                              value={item.quantity}
+                              onChange={(e) => handleQuantityChange(item.id, e.target.value)}
+                              className="w-20 h-8 text-sm"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1 flex-1">
+                            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                              Precio unitario
+                            </Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={item.salePrice}
+                              onChange={(e) => handlePriceChange(item.id, e.target.value)}
+                              className="w-full h-8 text-sm"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                              Total
+                            </Label>
+                            <p className="h-8 flex items-center text-sm font-semibold tabular-nums">
+                              {formatCurrency(item.salePrice * item.quantity)}
+                            </p>
                           </div>
                         </div>
-                      ))}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -571,8 +582,8 @@ export function ServiceDetailDialog({
                     calculations.isCheaper
                       ? "bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-900"
                       : calculations.isEqual
-                      ? "bg-muted/50 border-border"
-                      : "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-900"
+                        ? "bg-muted/50 border-border"
+                        : "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-900"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">
