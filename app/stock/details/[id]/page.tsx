@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components_shadcn/ui/card";
 import { Button } from "@/components_shadcn/ui/button";
-import { Badge } from "@/components_shadcn/ui/badge";
+import { StatusBadge, type StatusTone } from "@/components/ui";
 import { Textarea } from "@/components_shadcn/ui/textarea";
 import { Input } from "@/components_shadcn/ui/input";
 import { Label } from "@/components_shadcn/ui/label";
@@ -47,27 +47,16 @@ interface InventoryNote {
   updatedAt: string;
 }
 
+// Maps a stock level to a semantic StatusBadge tone (in stock → success,
+// medium → warning, low → danger).
+const STOCK_STATUS_TONE: Record<StockStatus, StatusTone> = {
+  high: "success",
+  medium: "warning",
+  low: "danger",
+};
+
 const getStockBadge = (status: StockStatus, stock: number) => {
-  switch (status) {
-    case "high":
-      return (
-        <Badge className="bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300 rounded-full px-3 py-1 text-sm font-medium">
-          Stock: {stock}
-        </Badge>
-      );
-    case "medium":
-      return (
-        <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300 rounded-full px-3 py-1 text-sm font-medium">
-          Stock: {stock}
-        </Badge>
-      );
-    case "low":
-      return (
-        <Badge className="bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300 rounded-full px-3 py-1 text-sm font-medium">
-          Stock: {stock}
-        </Badge>
-      );
-  }
+  return <StatusBadge tone={STOCK_STATUS_TONE[status]}>Stock: {stock}</StatusBadge>;
 };
 
 const getIcon = (icon: InventoryIcon) => {
@@ -687,28 +676,33 @@ export default function StockDetailsPage() {
           <CardContent className={`flex flex-col ${spacing.gap.base} px-6 pb-6`}>
             {/* Lista de notas existentes */}
             {isLoadingNotes ? (
-              <div className="space-y-3">
+              <div className={`flex flex-col ${spacing.gap.base}`}>
                 <Skeleton className="h-16 w-full" />
                 <Skeleton className="h-16 w-full" />
               </div>
             ) : notes.length > 0 ? (
               <div className={`flex flex-col ${spacing.gap.medium} max-h-60 overflow-y-auto mb-4`}>
                 {notes.map((noteItem) => (
-                  <div key={noteItem.id} className="bg-muted/50 rounded-lg p-3 space-y-1 group">
-                    <p className="text-sm text-foreground whitespace-pre-wrap">
+                  <div
+                    key={noteItem.id}
+                    className="group flex flex-col gap-1 rounded-lg bg-muted/50 p-3"
+                  >
+                    <p className="whitespace-pre-wrap text-sm text-foreground">
                       {noteItem.content}
                     </p>
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <span>{noteItem.authorName || "Usuario"}</span>
                       <div className="flex items-center gap-2">
                         <span>{formatNoteDate(noteItem.createdAt)}</span>
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => handleDeleteNote(noteItem.documentId)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive/80 p-1"
+                          className="size-7 text-destructive opacity-0 transition-opacity hover:text-destructive/80 group-hover:opacity-100"
                           title="Eliminar nota"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                          <Trash2 className="size-3.5" />
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -728,7 +722,6 @@ export default function StockDetailsPage() {
             <Button
               onClick={handleSaveNote}
               variant="default"
-              className="btn-black"
               disabled={!note.trim() || isSavingNote}
             >
               {isSavingNote ? (
