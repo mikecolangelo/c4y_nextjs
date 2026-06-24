@@ -47,11 +47,12 @@ import {
   type HiddenMap,
 } from "@/lib/menu-items";
 import type { ModulePermission } from "@/lib/permissions";
+import { fetchRoles, type Role } from "@/lib/roles";
 
 type FullMatrix = Record<string, Record<string, ModulePermission>>;
 
-/** Etiquetas legibles por rol. */
-const ROLE_LABELS: Record<string, string> = {
+/** Etiquetas legibles para los roles base (fallback si no llega la lista). */
+const BASE_ROLE_LABELS: Record<string, string> = {
   admin: "Administrador",
   driver: "Conductor",
   lead: "Lead",
@@ -79,12 +80,14 @@ const emptyPermission = (): ModulePermission => ({
 function SortableMenuRow({
   item,
   configurableRoles,
+  roleLabels,
   visibleRoles,
   onToggleVisibility,
   onChangeRoles,
 }: {
   item: NavItem;
   configurableRoles: string[];
+  roleLabels: Record<string, string>;
   visibleRoles: string[];
   onToggleVisibility: (module: string) => void;
   onChangeRoles: (module: string, roles: string[]) => void;
@@ -131,7 +134,7 @@ function SortableMenuRow({
           >
             {configurableRoles.map((role) => (
               <ToggleGroupItem key={role} value={role} className="text-xs">
-                {ROLE_LABELS[role] ?? role}
+                {roleLabels[role] ?? role}
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
@@ -183,6 +186,7 @@ export function MenuSettingsSection() {
   const [items, setItems] = useState<NavItem[]>([]);
   const [matrix, setMatrix] = useState<FullMatrix>({});
   const [hidden, setHidden] = useState<HiddenMap>({});
+  const [roleLabels, setRoleLabels] = useState<Record<string, string>>(BASE_ROLE_LABELS);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -196,13 +200,25 @@ export function MenuSettingsSection() {
   const load = async () => {
     setIsLoading(true);
     try {
-      const [matrixRes, orderRes] = await Promise.all([
+      const [matrixRes, orderRes, rolesList] = await Promise.all([
         fetch("/api/permissions/matrix", { cache: "no-store" }),
         fetch("/api/menu-config", { cache: "no-store" }),
+        fetchRoles(),
       ]);
       if (!matrixRes.ok) throw new Error("No se pudo cargar la matriz de permisos");
 
       const matrixJson = await matrixRes.json();
+      if (rolesList.length > 0) {
+        setRoleLabels(
+          rolesList.reduce<Record<string, string>>(
+            (acc, role: Role) => {
+              acc[role.key] = role.label;
+              return acc;
+            },
+            { ...BASE_ROLE_LABELS }
+          )
+        );
+      }
       const layoutJson = orderRes.ok ? await orderRes.json() : null;
       const order: string[] = Array.isArray(layoutJson?.data?.order) ? layoutJson.data.order : [];
       const hiddenMap: HiddenMap =
@@ -364,6 +380,7 @@ export function MenuSettingsSection() {
                   key={item.module}
                   item={item}
                   configurableRoles={configurableRoles}
+                  roleLabels={roleLabels}
                   visibleRoles={visibleRolesFor(item.module)}
                   onToggleVisibility={handleToggleVisibility}
                   onChangeRoles={setRolesForModule}

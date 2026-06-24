@@ -63,6 +63,7 @@ import { BackButton } from "@/components/admin/back-button";
 import { strapiImages } from "@/lib/strapi-images";
 import { Skeleton } from "@/components_shadcn/ui/skeleton";
 import { toast } from "@/lib/toast";
+import { useRoles } from "@/lib/roles";
 import { getInitials } from "@/lib/format";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -148,7 +149,7 @@ interface UserProfile {
   displayName: string;
   email?: string;
   phone?: string;
-  role: "admin" | "driver" | "lead";
+  role: string;
   department?: string;
   bio?: string;
   address?: string;
@@ -190,7 +191,13 @@ interface UserProfile {
   };
 }
 
-const roleConfig = {
+interface RoleDisplay {
+  label: string;
+  className: string;
+  icon: typeof Shield;
+}
+
+const roleConfig: Record<string, RoleDisplay> = {
   admin: {
     label: "Administrador",
     className: "bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100",
@@ -208,11 +215,20 @@ const roleConfig = {
   },
 };
 
+/** Apariencia de un rol; los personalizados usan un estilo neutro genérico. */
+const displayForRole = (roleKey: string, label?: string): RoleDisplay =>
+  roleConfig[roleKey] ?? {
+    label: label || roleKey,
+    className: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100",
+    icon: Briefcase,
+  };
+
 export default function UserDetailsPage() {
   const router = useRouter();
   const params = useParams();
   const userId = params.id as string;
   const [user, setUser] = useState<UserProfile | null>(null);
+  const { activeRoles } = useRoles();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -243,7 +259,7 @@ export default function UserDetailsPage() {
     displayName: "",
     email: "",
     phone: "",
-    role: "driver" as "admin" | "driver" | "lead",
+    role: "driver" as string,
     department: "",
     bio: "",
     address: "",
@@ -698,7 +714,7 @@ export default function UserDetailsPage() {
     );
   }
 
-  const roleInfo = roleConfig[user.role];
+  const roleInfo = displayForRole(user.role);
   const RoleIcon = roleInfo.icon;
 
   return (
@@ -880,17 +896,17 @@ export default function UserDetailsPage() {
                     <Label>Rol</Label>
                     <Select
                       value={formData.role}
-                      onValueChange={(value: "admin" | "driver" | "lead") =>
-                        setFormData({ ...formData, role: value })
-                      }
+                      onValueChange={(value: string) => setFormData({ ...formData, role: value })}
                     >
                       <SelectTrigger className="mt-1">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="admin">Administrador</SelectItem>
-                        <SelectItem value="driver">Conductor</SelectItem>
-                        <SelectItem value="lead">Lead</SelectItem>
+                        {activeRoles.map((role) => (
+                          <SelectItem key={role.key} value={role.key}>
+                            {role.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>

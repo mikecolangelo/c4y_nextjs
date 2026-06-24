@@ -36,14 +36,14 @@ import { Alert, AlertDescription } from "@/components_shadcn/ui/alert";
 import { typography, components } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components_shadcn/ui/tabs";
+import { useRoles, roleGetsCredentials, labelForRole } from "@/lib/roles";
 
-// Canonical role vocabulary, mirrored from `roleConfig` in app/users/page.tsx.
-// `lead` does not get portal credentials (no password), the rest do.
-const ROLE_OPTIONS = [
-  { value: "driver", label: "Conductor", icon: Car },
-  { value: "admin", label: "Administrador", icon: Shield },
-  { value: "lead", label: "Lead", icon: UserPlus },
-] as const;
+// Iconos por rol base; los roles personalizados usan un icono genérico (Shield).
+const ROLE_ICONS: Record<string, typeof Car> = {
+  driver: Car,
+  admin: Shield,
+  lead: UserPlus,
+};
 
 interface QuickUserCreateProps {
   onUserCreated: (user: CreatedUser) => void;
@@ -98,6 +98,9 @@ export function QuickUserCreate({ onUserCreated, trigger, className }: QuickUser
   const [activeTab, setActiveTab] = useState("basic");
   const [createdPassword, setCreatedPassword] = useState<string | null>(null);
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
+
+  // Roles disponibles (base + personalizados) cargados del backend.
+  const { activeRoles } = useRoles();
 
   const [formData, setFormData] = useState<FormData>({
     identificationNumber: "",
@@ -170,7 +173,7 @@ export function QuickUserCreate({ onUserCreated, trigger, className }: QuickUser
     // email + password are only structurally required to create the login
     // account, so they are mandatory exclusively for non-lead roles. Leads
     // never get portal credentials.
-    if (formData.role !== "lead") {
+    if (roleGetsCredentials(formData.role)) {
       if (!formData.email.trim()) {
         errors.email = "El email es requerido para crear la cuenta de acceso";
       } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
@@ -217,7 +220,9 @@ export function QuickUserCreate({ onUserCreated, trigger, className }: QuickUser
             email: formData.email.trim() || undefined,
             address: formData.address.trim() || undefined,
             // Los leads nunca reciben credenciales de acceso
-            password: formData.role === "lead" ? undefined : formData.password || undefined,
+            password: roleGetsCredentials(formData.role)
+              ? formData.password || undefined
+              : undefined,
             phone: formData.phone.trim() || undefined,
             dateOfBirth: formData.dateOfBirth || undefined,
             department: formData.department.trim() || undefined,
@@ -243,8 +248,8 @@ export function QuickUserCreate({ onUserCreated, trigger, className }: QuickUser
 
       setSuccess(true);
 
-      // Si el rol no es lead, capturar la contrasena generada/devuelta
-      if (formData.role !== "lead") {
+      // Si el rol recibe credenciales, capturar la contrasena generada/devuelta
+      if (roleGetsCredentials(formData.role)) {
         const tempPass = result.meta?.tempPassword || formData.password || null;
         setCreatedPassword(tempPass);
       }
@@ -320,13 +325,7 @@ export function QuickUserCreate({ onUserCreated, trigger, className }: QuickUser
                 <span className="font-medium">{formData.address}</span>
 
                 <span className="text-muted-foreground">Rol:</span>
-                <span className="font-medium">
-                  {formData.role === "admin"
-                    ? "Administrador"
-                    : formData.role === "driver"
-                      ? "Conductor"
-                      : "Lead"}
-                </span>
+                <span className="font-medium">{labelForRole(activeRoles, formData.role)}</span>
               </div>
 
               {createdPassword && (
@@ -363,7 +362,7 @@ export function QuickUserCreate({ onUserCreated, trigger, className }: QuickUser
                 </div>
               )}
 
-              {!createdPassword && formData.role !== "lead" && (
+              {!createdPassword && roleGetsCredentials(formData.role) && (
                 <p className="text-xs text-muted-foreground mt-2">
                   La cuenta de acceso ha sido creada. Si asignó una contraseña personalizada, el
                   usuario puede iniciar sesión con ella.
@@ -411,7 +410,9 @@ export function QuickUserCreate({ onUserCreated, trigger, className }: QuickUser
                     role="radiogroup"
                     aria-label="Rol del contacto"
                   >
-                    {ROLE_OPTIONS.map(({ value, label, icon: Icon }) => {
+                    {activeRoles.map((role) => {
+                      const Icon = ROLE_ICONS[role.key] ?? Shield;
+                      const value = role.key;
                       const selected = formData.role === value;
                       return (
                         <button
@@ -431,7 +432,7 @@ export function QuickUserCreate({ onUserCreated, trigger, className }: QuickUser
                           )}
                         >
                           <Icon className="h-4 w-4" />
-                          {label}
+                          {role.label}
                         </button>
                       );
                     })}
@@ -484,7 +485,7 @@ export function QuickUserCreate({ onUserCreated, trigger, className }: QuickUser
                 <div className="space-y-2">
                   <Label htmlFor="email" className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-muted-foreground" />
-                    Email{formData.role !== "lead" ? " *" : ""}
+                    Email{roleGetsCredentials(formData.role) ? " *" : ""}
                   </Label>
                   <Input
                     id="email"
@@ -534,7 +535,7 @@ export function QuickUserCreate({ onUserCreated, trigger, className }: QuickUser
                 </div>
 
                 {/* Contraseña — los leads no tienen credenciales de acceso */}
-                {formData.role !== "lead" ? (
+                {roleGetsCredentials(formData.role) ? (
                   <div className="space-y-2">
                     <Label htmlFor="password" className="flex items-center gap-2">
                       <Lock className="h-4 w-4 text-muted-foreground" />
