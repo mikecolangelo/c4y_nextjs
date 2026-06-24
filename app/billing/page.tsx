@@ -364,38 +364,42 @@ export default function BillingPage() {
   return (
     <AdminLayout title="Gestión de Financiamiento" showFilterAction>
       {/* Action Buttons */}
-      <div className="flex gap-3 px-0 flex-wrap">
+      <div className={`flex ${spacing.gap.base} flex-wrap`}>
         <Button
-          className="flex-1 rounded-lg bg-primary h-12 text-base font-bold text-primary-foreground transition-colors hover:bg-primary/90 flex items-center justify-center gap-2"
+          size="lg"
+          className="flex-1 rounded-lg"
           onClick={() => setIsCreateFinancingOpen(true)}
         >
-          <Plus className="h-5 w-5" />
+          <Plus />
           Nuevo Financiamiento
         </Button>
         <Button
           variant="outline"
-          className="flex-1 rounded-lg h-12 text-base font-semibold flex items-center justify-center gap-2"
+          size="lg"
+          className="flex-1 rounded-lg"
           onClick={() => setIsCreatePaymentOpen(true)}
         >
-          <CreditCard className="h-5 w-5" />
+          <CreditCard />
           Registrar Pago
         </Button>
       </div>
-      <div className="flex gap-3 px-0 flex-wrap">
+      <div className={`flex ${spacing.gap.base} flex-wrap`}>
         <Button
           variant="secondary"
-          className="flex-1 rounded-lg h-12 text-base font-semibold flex items-center justify-center gap-2 px-4 shrink-0"
+          size="lg"
+          className="flex-1 rounded-lg"
           onClick={() => router.push("/billing/import")}
         >
-          <Upload className="h-5 w-5" />
+          <Upload />
           Importar Cobranza
         </Button>
         <Button
           variant="outline"
-          className="flex-1 rounded-lg h-12 text-base font-semibold flex items-center justify-center gap-2 px-4 shrink-0"
+          size="lg"
+          className="flex-1 rounded-lg"
           onClick={() => router.push("/billing/imports")}
         >
-          <History className="h-5 w-5" />
+          <History />
           Historial de Importaciones
         </Button>
       </div>
