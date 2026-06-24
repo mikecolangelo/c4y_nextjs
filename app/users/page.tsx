@@ -14,6 +14,7 @@ import {
   Plus,
   Shield,
   Car,
+  Briefcase,
   UserPlus,
   History,
   FolderPlus,
@@ -53,7 +54,7 @@ interface UserProfile {
   displayName: string;
   email?: string;
   phone?: string;
-  role: "admin" | "driver" | "lead";
+  role: string;
   department?: string;
   avatar?: {
     url?: string;
@@ -111,7 +112,13 @@ const RELATED_LABELS: Record<keyof DeletionImpact["related"], string> = {
   supplyRequests: "Solicitudes de suministro",
 };
 
-const roleConfig = {
+interface RoleDisplay {
+  label: string;
+  className: string;
+  icon: typeof Shield;
+}
+
+const roleConfig: Record<string, RoleDisplay> = {
   admin: {
     label: "Administrador",
     className: "bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100",
@@ -128,6 +135,14 @@ const roleConfig = {
     icon: UserPlus,
   },
 };
+
+/** Apariencia de un rol; los personalizados usan un estilo neutro genérico. */
+const displayForRole = (roleKey: string): RoleDisplay =>
+  roleConfig[roleKey] ?? {
+    label: roleKey,
+    className: "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100",
+    icon: Briefcase,
+  };
 
 export default function UsersPage() {
   const router = useRouter();
@@ -284,7 +299,7 @@ export default function UsersPage() {
   };
 
   const getRoleBadge = (role: UserProfile["role"]) => {
-    const config = roleConfig[role];
+    const config = displayForRole(role);
     const Icon = config.icon;
     return (
       <Badge
