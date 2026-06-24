@@ -67,6 +67,7 @@ import {
 } from "@/lib/reminder-events";
 import { MODULE_LABELS, MODULE_COLORS } from "@/components/ui/unified-reminders";
 import { NotificationCalendar } from "@/components/ui/notification-calendar";
+import { useNotificationsStream } from "@/hooks/use-notifications-stream";
 import type { CalendarEvent } from "@/components/ui/notification-calendar";
 
 interface UserProfile {
@@ -703,19 +704,7 @@ export default function NotificationsPage() {
     };
     window.addEventListener("focus", handleFocus);
 
-    // Recargar cada minuto como respaldo: solo con la pestaña visible y si el
-    // usuario no está interactuando (no consultar en segundo plano).
-    const interval = setInterval(() => {
-      if (document.hidden) return;
-      const timeSinceLastAction = Date.now() - lastUserActionRef.current;
-      // Solo recargar si no hay interacción reciente (últimos 5 segundos)
-      if (!isUserInteractingRef.current && timeSinceLastAction > 5000) {
-        fetchNotifications();
-      }
-    }, 60000);
-
     return () => {
-      clearInterval(interval);
       // Limpiar debounce timer al desmontar
       if (fetchDebounceTimerRef.current) {
         clearTimeout(fetchDebounceTimerRef.current);
@@ -728,6 +717,18 @@ export default function NotificationsPage() {
       window.removeEventListener("focus", handleFocus);
     };
   }, [fetchNotifications]);
+
+  // Real-time refresh via SSE, with automatic polling fallback. This replaces
+  // the previous 60s `setInterval` poller. Refreshes are suppressed while the
+  // user is actively interacting to avoid clobbering optimistic UI updates.
+  const handleStreamRefresh = useCallback(() => {
+    const timeSinceLastAction = Date.now() - lastUserActionRef.current;
+    if (!isUserInteractingRef.current && timeSinceLastAction > 5000) {
+      fetchNotifications();
+    }
+  }, [fetchNotifications]);
+
+  useNotificationsStream({ onRefresh: handleStreamRefresh });
 
   const handleMarkAllAsRead = async () => {
     // PREVENIR BUG DE SINCRONIZACIÓN: Registrar interacción del usuario
