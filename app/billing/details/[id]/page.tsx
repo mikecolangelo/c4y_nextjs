@@ -46,6 +46,7 @@ import { BackButton } from "@/components/admin/back-button";
 import { cn } from "@/lib/utils";
 import type { BillingRecordCard, BillingDocument, BillingStatus } from "@/validations/types";
 import { Badge } from "@/components_shadcn/ui/badge";
+import { StatusBadge } from "@/components/ui";
 import { Progress } from "@/components_shadcn/ui/progress";
 import { BadgeCheck, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -545,21 +546,9 @@ export default function BillingDetailsPage() {
                     </p>
                     {/* Badge de tipo de pago para adelantos/abonos */}
                     {record.status === "adelanto" && (
-                      <Badge
-                        variant="secondary"
-                        className="bg-blue-100 text-blue-700 border-blue-200"
-                      >
-                        Adelanto
-                      </Badge>
+                      <StatusBadge tone="info">Adelanto</StatusBadge>
                     )}
-                    {record.status === "abonado" && (
-                      <Badge
-                        variant="secondary"
-                        className="bg-purple-100 text-purple-700 border-purple-200"
-                      >
-                        Abonado
-                      </Badge>
-                    )}
+                    {record.status === "abonado" && <StatusBadge tone="info">Abonado</StatusBadge>}
                   </div>
                 </div>
               </div>
