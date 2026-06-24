@@ -55,6 +55,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components_shadcn/ui/card";
 import { Badge } from "@/components_shadcn/ui/badge";
+import { StatusBadge, type StatusTone } from "@/components/ui";
 import { Button } from "@/components_shadcn/ui/button";
 import { Input } from "@/components_shadcn/ui/input";
 import { Label } from "@/components_shadcn/ui/label";
@@ -187,6 +188,8 @@ const statusConfig: Record<
   {
     label: string;
     icon: typeof CheckCircle2;
+    // Semantic tone for the shared StatusBadge pill.
+    tone: StatusTone;
     bgColor: string;
     textColor: string;
     borderColor: string;
@@ -196,6 +199,7 @@ const statusConfig: Record<
   pagado: {
     label: "Pagado",
     icon: CheckCircle2,
+    tone: "success",
     bgColor: "bg-green-50 dark:bg-green-950/30",
     textColor: "text-green-700 dark:text-green-400",
     borderColor: "border-green-200 dark:border-green-800",
@@ -204,6 +208,7 @@ const statusConfig: Record<
   pendiente: {
     label: "Pendiente",
     icon: Clock,
+    tone: "warning",
     bgColor: "bg-yellow-50 dark:bg-yellow-950/30",
     textColor: "text-yellow-700 dark:text-yellow-400",
     borderColor: "border-yellow-200 dark:border-yellow-800",
@@ -212,6 +217,7 @@ const statusConfig: Record<
   adelanto: {
     label: "Adelanto",
     icon: Banknote,
+    tone: "info",
     bgColor: "bg-blue-50 dark:bg-blue-950/30",
     textColor: "text-blue-700 dark:text-blue-400",
     borderColor: "border-blue-200 dark:border-blue-800",
@@ -220,6 +226,7 @@ const statusConfig: Record<
   retrasado: {
     label: "Retrasado",
     icon: AlertCircle,
+    tone: "danger",
     bgColor: "bg-red-50 dark:bg-red-950/30",
     textColor: "text-red-700 dark:text-red-400",
     borderColor: "border-red-200 dark:border-red-800",
@@ -228,6 +235,7 @@ const statusConfig: Record<
   abonado: {
     label: "Abonado",
     icon: Banknote,
+    tone: "info",
     bgColor: "bg-purple-50 dark:bg-purple-950/30",
     textColor: "text-purple-700 dark:text-purple-400",
     borderColor: "border-purple-200 dark:border-purple-800",
@@ -236,6 +244,7 @@ const statusConfig: Record<
   cubierta: {
     label: "Cubierta",
     icon: CheckCircle2,
+    tone: "success",
     bgColor: "bg-emerald-50 dark:bg-emerald-950/30",
     textColor: "text-emerald-700 dark:text-emerald-400",
     borderColor: "border-emerald-200 dark:border-emerald-800",
@@ -246,6 +255,7 @@ const statusConfig: Record<
 const multaConfig = {
   label: "Multa",
   icon: AlertCircle,
+  tone: "warning" as StatusTone,
   bgColor: "bg-orange-50 dark:bg-orange-950/30",
   textColor: "text-orange-700 dark:text-orange-400",
   borderColor: "border-orange-200 dark:border-orange-800",
@@ -360,17 +370,9 @@ function DraggableChildItem({
                   Cuota #{child.quotaNumber}
                 </Badge>
               )}
-              <Badge
-                className={cn(
-                  "text-[10px]",
-                  childConfig.bgColor,
-                  childConfig.textColor,
-                  "border",
-                  childConfig.borderColor
-                )}
-              >
+              <StatusBadge tone={isChildMulta ? multaConfig.tone : childConfig.tone}>
                 {isChildMulta ? "Multa" : childConfig.label}
-              </Badge>
+              </StatusBadge>
             </div>
             <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
               {child.paymentDate && (
@@ -1362,17 +1364,9 @@ export function PaymentTimeline({
                     Cuota #{payment.quotaNumber}
                   </Badge>
                 ) : null}
-                <Badge
-                  className={cn(
-                    "text-xs",
-                    isMulta ? multaConfig.bgColor : config.bgColor,
-                    isMulta ? multaConfig.textColor : config.textColor,
-                    "border",
-                    isMulta ? multaConfig.borderColor : config.borderColor
-                  )}
-                >
+                <StatusBadge tone={isMulta ? multaConfig.tone : config.tone}>
                   {isMulta ? "Multa" : config.label}
-                </Badge>
+                </StatusBadge>
               </div>
               <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                 {payment.status !== "adelanto" && (
@@ -2164,7 +2158,9 @@ export function PaymentTimeline({
                 </div>
                 <div className="flex justify-between">
                   <span>Estado:</span>
-                  <Badge>{statusConfig[selectedAbono.status]?.label || selectedAbono.status}</Badge>
+                  <StatusBadge tone={statusConfig[selectedAbono.status]?.tone ?? "neutral"}>
+                    {statusConfig[selectedAbono.status]?.label || selectedAbono.status}
+                  </StatusBadge>
                 </div>
               </div>
             )}
