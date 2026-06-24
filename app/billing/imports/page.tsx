@@ -17,7 +17,7 @@ import { AdminLayout } from "@/components/admin/admin-layout";
 import { BackButton } from "@/components/admin/back-button";
 import { Button } from "@/components_shadcn/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components_shadcn/ui/card";
-import { Badge } from "@/components_shadcn/ui/badge";
+import { StatusBadge } from "@/components/ui";
 import {
   Table,
   TableBody,
@@ -185,27 +185,27 @@ export default function BillingImportsPage() {
                         </TableCell>
                         <TableCell className="text-right font-medium">{batch.total}</TableCell>
                         <TableCell className="text-right">
-                          <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                          <StatusBadge tone="success">
+                            <CheckCircle2 />
                             {batch.created}
-                          </Badge>
+                          </StatusBadge>
                         </TableCell>
                         <TableCell className="text-right">
                           {batch.duplicated > 0 ? (
-                            <Badge variant="secondary" className="bg-amber-100 text-amber-700">
-                              <AlertTriangle className="h-3 w-3 mr-1" />
+                            <StatusBadge tone="warning">
+                              <AlertTriangle />
                               {batch.duplicated}
-                            </Badge>
+                            </StatusBadge>
                           ) : (
                             <span className="text-muted-foreground text-sm">0</span>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
                           {batch.errors > 0 ? (
-                            <Badge variant="destructive">
-                              <XCircle className="h-3 w-3 mr-1" />
+                            <StatusBadge tone="danger">
+                              <XCircle />
                               {batch.errors}
-                            </Badge>
+                            </StatusBadge>
                           ) : (
                             <span className="text-muted-foreground text-sm">0</span>
                           )}

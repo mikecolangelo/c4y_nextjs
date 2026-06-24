@@ -22,7 +22,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components_shadcn/ui/card";
-import { Badge } from "@/components_shadcn/ui/badge";
+import { StatusBadge } from "@/components/ui";
 import {
   Table,
   TableBody,
@@ -120,31 +120,31 @@ export default function BillingImportDetailPage() {
     switch (status) {
       case "processed":
         return (
-          <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">
-            <CheckCircle2 className="h-3 w-3 mr-1" />
+          <StatusBadge tone="success">
+            <CheckCircle2 />
             Creado
-          </Badge>
+          </StatusBadge>
         );
       case "duplicate":
         return (
-          <Badge variant="secondary" className="bg-amber-100 text-amber-700">
-            <AlertTriangle className="h-3 w-3 mr-1" />
+          <StatusBadge tone="warning">
+            <AlertTriangle />
             Duplicado
-          </Badge>
+          </StatusBadge>
         );
       case "error":
         return (
-          <Badge variant="destructive">
-            <XCircle className="h-3 w-3 mr-1" />
+          <StatusBadge tone="danger">
+            <XCircle />
             Error
-          </Badge>
+          </StatusBadge>
         );
       default:
         return (
-          <Badge variant="outline">
-            <CheckCircle2 className="h-3 w-3 mr-1" />
+          <StatusBadge tone="neutral">
+            <CheckCircle2 />
             Procesado
-          </Badge>
+          </StatusBadge>
         );
     }
   };
