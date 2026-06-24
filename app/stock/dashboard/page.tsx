@@ -17,24 +17,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components_shadcn/ui/table";
-import { Badge } from "@/components_shadcn/ui/badge";
+import { StatusBadge } from "@/components/ui";
 import { Skeleton } from "@/components_shadcn/ui/skeleton";
 import { ScrollArea } from "@/components_shadcn/ui/scroll-area";
 import { Button } from "@/components_shadcn/ui/button";
+import { spacing, typography } from "@/lib/design-system";
 import { toast } from "@/lib/toast";
-import {
-  DollarSign,
-  AlertTriangle,
-  Package,
-  ArrowRight,
-  TrendingDown,
-} from "lucide-react";
+import { DollarSign, AlertTriangle, Package, TrendingDown } from "lucide-react";
 import Link from "next/link";
-import type {
-  StockDashboardMetrics,
-  StockAlert,
-  InventoryMovement,
-} from "@/validations/types";
+import type { StockDashboardMetrics, StockAlert, InventoryMovement } from "@/validations/types";
 
 export default function StockDashboardPage() {
   const [metrics, setMetrics] = useState<StockDashboardMetrics | null>(null);
@@ -103,17 +94,12 @@ export default function StockDashboardPage() {
 
   return (
     <AdminLayout title="Cuadro de Inventario">
-      <div className="space-y-6">
+      <div className={`flex flex-col ${spacing.gap.xlarge}`}>
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              Cuadro de Inventario
-            </h1>
-            <p className="text-muted-foreground">
-              Métricas, alertas y consumos recientes de repuestos.
-            </p>
-          </div>
+        <div className={`flex items-center justify-between ${spacing.gap.medium}`}>
+          <p className={typography.body.small}>
+            Métricas, alertas y consumos recientes de repuestos.
+          </p>
           <Link href="/stock">
             <Button variant="outline" className="gap-2">
               <Package className="h-4 w-4" />
@@ -123,86 +109,70 @@ export default function StockDashboardPage() {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className={`grid ${spacing.gap.medium} md:grid-cols-3`}>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Valor Total del Inventario
-              </CardTitle>
+              <CardTitle className={typography.body.base}>Valor Total del Inventario</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               {isLoadingMetrics ? (
                 <Skeleton className="h-8 w-32" />
               ) : (
-                <div className="text-2xl font-bold">
+                <div className={typography.metric.base}>
                   {formatCurrency(metrics?.totalInventoryValue ?? 0)}
                 </div>
               )}
-              <p className="text-xs text-muted-foreground">
-                Suma de stock × costo unitario
-              </p>
+              <p className={typography.body.small}>Suma de stock × costo unitario</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Repuestos Críticos
-              </CardTitle>
-              <AlertTriangle className="h-4 w-4 text-red-500" />
+              <CardTitle className={typography.body.base}>Repuestos Críticos</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-destructive" />
             </CardHeader>
             <CardContent>
               {isLoadingMetrics ? (
                 <Skeleton className="h-8 w-16" />
               ) : (
-                <div className="text-2xl font-bold text-red-600">
+                <div className={`${typography.metric.base} text-destructive`}>
                   {metrics?.criticalItemsCount ?? 0}
                 </div>
               )}
-              <p className="text-xs text-muted-foreground">
-                Items con stock ≤ mínimo
-              </p>
+              <p className={typography.body.small}>Items con stock ≤ mínimo</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total de Repuestos
-              </CardTitle>
+              <CardTitle className={typography.body.base}>Total de Repuestos</CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               {isLoadingMetrics ? (
                 <Skeleton className="h-8 w-16" />
               ) : (
-                <div className="text-2xl font-bold">
-                  {metrics?.totalItemsCount ?? 0}
-                </div>
+                <div className={typography.metric.base}>{metrics?.totalItemsCount ?? 0}</div>
               )}
-              <p className="text-xs text-muted-foreground">
-                Items activos en catálogo
-              </p>
+              <p className={typography.body.small}>Items activos en catálogo</p>
             </CardContent>
           </Card>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className={`grid ${spacing.gap.xlarge} lg:grid-cols-2`}>
           {/* Critical Items Table */}
           <Card className="col-span-1">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <AlertTriangle className="h-4 w-4 text-red-500" />
+              <CardTitle className={`flex items-center gap-2 ${typography.h4}`}>
+                <AlertTriangle className="h-4 w-4 text-destructive" />
                 Repuestos Críticos
               </CardTitle>
-              <CardDescription>
-                Items que requieren reabastecimiento inmediato.
-              </CardDescription>
+              <CardDescription>Items que requieren reabastecimiento inmediato.</CardDescription>
             </CardHeader>
             <CardContent>
               {isLoadingAlerts ? (
-                <div className="space-y-2">
+                <div className={`flex flex-col ${spacing.gap.small}`}>
                   <Skeleton className="h-8 w-full" />
                   <Skeleton className="h-8 w-full" />
                   <Skeleton className="h-8 w-full" />
@@ -225,21 +195,16 @@ export default function StockDashboardPage() {
                     <TableBody>
                       {alerts.map((alert) => (
                         <TableRow key={alert.id}>
-                          <TableCell className="font-medium">
-                            {alert.code}
-                          </TableCell>
-                          <TableCell className="max-w-[200px] truncate">
+                          <TableCell className="py-4 font-medium">{alert.code}</TableCell>
+                          <TableCell className="max-w-[200px] truncate py-4">
                             {alert.description}
                           </TableCell>
-                          <TableCell className="text-right">
-                            <Badge
-                              variant="destructive"
-                              className="rounded-full"
-                            >
+                          <TableCell className="py-4 text-right">
+                            <StatusBadge tone="danger" className="ml-auto">
                               {alert.stock} {alert.unit}
-                            </Badge>
+                            </StatusBadge>
                           </TableCell>
-                          <TableCell className="text-right text-muted-foreground">
+                          <TableCell className="py-4 text-right text-muted-foreground">
                             {alert.minStock} {alert.unit}
                           </TableCell>
                         </TableRow>
@@ -254,23 +219,20 @@ export default function StockDashboardPage() {
           {/* Last Consumptions Table */}
           <Card className="col-span-1">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
+              <CardTitle className={`flex items-center gap-2 ${typography.h4}`}>
                 <TrendingDown className="h-4 w-4 text-muted-foreground" />
                 Últimos Consumos
               </CardTitle>
-              <CardDescription>
-                Movimientos de salida más recientes del inventario.
-              </CardDescription>
+              <CardDescription>Movimientos de salida más recientes del inventario.</CardDescription>
             </CardHeader>
             <CardContent>
               {isLoadingMetrics ? (
-                <div className="space-y-2">
+                <div className={`flex flex-col ${spacing.gap.small}`}>
                   <Skeleton className="h-8 w-full" />
                   <Skeleton className="h-8 w-full" />
                   <Skeleton className="h-8 w-full" />
                 </div>
-              ) : !metrics?.lastConsumptions ||
-                metrics.lastConsumptions.length === 0 ? (
+              ) : !metrics?.lastConsumptions || metrics.lastConsumptions.length === 0 ? (
                 <div className="py-8 text-center text-muted-foreground">
                   No hay consumos registrados recientemente.
                 </div>
@@ -288,18 +250,16 @@ export default function StockDashboardPage() {
                     <TableBody>
                       {metrics.lastConsumptions.map((mov: InventoryMovement) => (
                         <TableRow key={mov.id}>
-                          <TableCell className="text-muted-foreground whitespace-nowrap">
+                          <TableCell className="whitespace-nowrap py-4 text-muted-foreground">
                             {formatDate(mov.date)}
                           </TableCell>
-                          <TableCell className="max-w-[180px] truncate">
-                            {mov.inventoryItem?.description ||
-                              mov.inventoryItem?.code ||
-                              "—"}
+                          <TableCell className="max-w-[180px] truncate py-4">
+                            {mov.inventoryItem?.description || mov.inventoryItem?.code || "—"}
                           </TableCell>
-                          <TableCell className="text-right font-medium">
+                          <TableCell className="py-4 text-right font-medium">
                             {mov.quantity}
                           </TableCell>
-                          <TableCell className="text-muted-foreground">
+                          <TableCell className="py-4 text-muted-foreground">
                             {mov.serviceOrder?.code || "—"}
                           </TableCell>
                         </TableRow>
