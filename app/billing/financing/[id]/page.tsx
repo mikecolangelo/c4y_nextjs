@@ -28,6 +28,7 @@ import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { Button } from "@/components_shadcn/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components_shadcn/ui/card";
 import { Badge } from "@/components_shadcn/ui/badge";
+import { StatusBadge, type StatusTone } from "@/components/ui";
 import { Progress } from "@/components_shadcn/ui/progress";
 import { Separator } from "@/components_shadcn/ui/separator";
 import {
@@ -72,6 +73,8 @@ const statusConfig: Record<
   {
     label: string;
     icon: typeof CheckCircle2;
+    tone: StatusTone;
+    // Accent classes for the decorative status icon circle (kept aligned with the tone).
     bgColor: string;
     textColor: string;
     borderColor: string;
@@ -80,30 +83,34 @@ const statusConfig: Record<
   activo: {
     label: "Activo",
     icon: CheckCircle2,
-    bgColor: "bg-green-50 dark:bg-green-950/30",
-    textColor: "text-green-700 dark:text-green-400",
-    borderColor: "border-green-200 dark:border-green-800",
+    tone: "success",
+    bgColor: "bg-emerald-500/10",
+    textColor: "text-emerald-700 dark:text-emerald-300",
+    borderColor: "border-emerald-500/20",
   },
   inactivo: {
     label: "Inactivo",
     icon: XCircle,
-    bgColor: "bg-gray-50 dark:bg-gray-950/30",
-    textColor: "text-gray-700 dark:text-gray-400",
-    borderColor: "border-gray-200 dark:border-gray-800",
+    tone: "neutral",
+    bgColor: "bg-muted",
+    textColor: "text-muted-foreground",
+    borderColor: "border-border",
   },
   en_mora: {
     label: "En Mora",
     icon: AlertTriangle,
-    bgColor: "bg-red-50 dark:bg-red-950/30",
-    textColor: "text-red-700 dark:text-red-400",
-    borderColor: "border-red-200 dark:border-red-800",
+    tone: "danger",
+    bgColor: "bg-red-500/10",
+    textColor: "text-red-700 dark:text-red-300",
+    borderColor: "border-red-500/20",
   },
   completado: {
     label: "Completado",
     icon: CheckCircle2,
-    bgColor: "bg-blue-50 dark:bg-blue-950/30",
-    textColor: "text-blue-700 dark:text-blue-400",
-    borderColor: "border-blue-200 dark:border-blue-800",
+    tone: "info",
+    bgColor: "bg-sky-500/10",
+    textColor: "text-sky-700 dark:text-sky-300",
+    borderColor: "border-sky-500/20",
   },
 };
 
@@ -492,12 +499,7 @@ export default function FinancingDetailPage() {
             </div>
             <div>
               <h1 className={typography.h2}>{financing.financingNumber}</h1>
-              <Badge
-                variant="outline"
-                className={cn("text-sm", config.bgColor, config.textColor, config.borderColor)}
-              >
-                {config.label}
-              </Badge>
+              <StatusBadge tone={config.tone}>{config.label}</StatusBadge>
             </div>
           </div>
         </div>

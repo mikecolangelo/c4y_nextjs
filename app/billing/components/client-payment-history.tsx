@@ -19,6 +19,7 @@ import {
 import { Card, CardContent } from "@/components_shadcn/ui/card";
 import { Button } from "@/components_shadcn/ui/button";
 import { Badge } from "@/components_shadcn/ui/badge";
+import { StatusBadge, type StatusTone } from "@/components/ui";
 import { Avatar, AvatarFallback } from "@/components_shadcn/ui/avatar";
 import { ScrollArea } from "@/components_shadcn/ui/scroll-area";
 import { Separator } from "@/components_shadcn/ui/separator";
@@ -46,6 +47,7 @@ const statusConfig = {
   pagado: {
     label: "Pagado",
     icon: CheckCircle2,
+    tone: "success" as StatusTone,
     bgColor: "bg-green-50 dark:bg-green-950/30",
     textColor: "text-green-700 dark:text-green-400",
     borderColor: "border-green-200 dark:border-green-800",
@@ -53,6 +55,7 @@ const statusConfig = {
   pendiente: {
     label: "Pendiente",
     icon: Clock,
+    tone: "warning" as StatusTone,
     bgColor: "bg-yellow-50 dark:bg-yellow-950/30",
     textColor: "text-yellow-700 dark:text-yellow-400",
     borderColor: "border-yellow-200 dark:border-yellow-800",
@@ -60,6 +63,7 @@ const statusConfig = {
   abonado: {
     label: "Abonado",
     icon: Banknote,
+    tone: "info" as StatusTone,
     bgColor: "bg-purple-50 dark:bg-purple-950/30",
     textColor: "text-purple-700 dark:text-purple-400",
     borderColor: "border-purple-200 dark:border-purple-800",
@@ -67,6 +71,7 @@ const statusConfig = {
   adelanto: {
     label: "Adelanto",
     icon: Banknote,
+    tone: "info" as StatusTone,
     bgColor: "bg-blue-50 dark:bg-blue-950/30",
     textColor: "text-blue-700 dark:text-blue-400",
     borderColor: "border-blue-200 dark:border-blue-800",
@@ -74,6 +79,7 @@ const statusConfig = {
   retrasado: {
     label: "Retrasado",
     icon: AlertCircle,
+    tone: "danger" as StatusTone,
     bgColor: "bg-red-50 dark:bg-red-950/30",
     textColor: "text-red-700 dark:text-red-400",
     borderColor: "border-red-200 dark:border-red-800",
@@ -239,52 +245,24 @@ export function ClientPaymentHistory({
                     {/* Badges de estado */}
                     <div className="flex flex-wrap gap-2">
                       {stats.pagados > 0 && (
-                        <Badge
-                          className={cn(
-                            statusConfig.pagado.bgColor,
-                            statusConfig.pagado.textColor,
-                            "border",
-                            statusConfig.pagado.borderColor
-                          )}
-                        >
+                        <StatusBadge tone={statusConfig.pagado.tone}>
                           {stats.pagados} pagados
-                        </Badge>
+                        </StatusBadge>
                       )}
                       {stats.adelantos > 0 && (
-                        <Badge
-                          className={cn(
-                            statusConfig.adelanto.bgColor,
-                            statusConfig.adelanto.textColor,
-                            "border",
-                            statusConfig.adelanto.borderColor
-                          )}
-                        >
+                        <StatusBadge tone={statusConfig.adelanto.tone}>
                           {stats.adelantos} adelantos
-                        </Badge>
+                        </StatusBadge>
                       )}
                       {stats.pendientes > 0 && (
-                        <Badge
-                          className={cn(
-                            statusConfig.pendiente.bgColor,
-                            statusConfig.pendiente.textColor,
-                            "border",
-                            statusConfig.pendiente.borderColor
-                          )}
-                        >
+                        <StatusBadge tone={statusConfig.pendiente.tone}>
                           {stats.pendientes} pendientes
-                        </Badge>
+                        </StatusBadge>
                       )}
                       {stats.retrasados > 0 && (
-                        <Badge
-                          className={cn(
-                            statusConfig.retrasado.bgColor,
-                            statusConfig.retrasado.textColor,
-                            "border",
-                            statusConfig.retrasado.borderColor
-                          )}
-                        >
+                        <StatusBadge tone={statusConfig.retrasado.tone}>
                           {stats.retrasados} retrasados
-                        </Badge>
+                        </StatusBadge>
                       )}
                     </div>
                   </div>
