@@ -23,7 +23,7 @@ const matrix = {
 };
 
 function mockFetch() {
-  const calls: { url: string; method: string; body?: any }[] = [];
+  const calls: { url: string; method: string; body?: Record<string, unknown> }[] = [];
   global.fetch = vi.fn(async (url: string, init?: RequestInit) => {
     const method = init?.method ?? "GET";
     calls.push({ url, method, body: init?.body ? JSON.parse(init.body as string) : undefined });
@@ -32,7 +32,10 @@ function mockFetch() {
       return { ok: true, json: async () => ({ data: { matrix, modules: [] } }) } as Response;
     }
     if (url.includes("/api/menu-config") && method === "GET") {
-      return { ok: true, json: async () => ({ data: { order: ["fleet", "users"] } }) } as Response;
+      return {
+        ok: true,
+        json: async () => ({ data: { order: ["fleet", "users"], hidden: {} } }),
+      } as Response;
     }
     // PUTs
     return { ok: true, json: async () => ({ data: {} }) } as Response;
@@ -57,13 +60,13 @@ describe("MenuSettingsSection", () => {
     mockFetch();
     render(<MenuSettingsSection />);
 
-    // driver NO ve "users" -> el botón ofrece "Mostrar Contactos".
-    const showBtn = await screen.findByRole("button", { name: "Mostrar Contactos" });
-    fireEvent.click(showBtn);
+    // El admin siempre ve los items -> "Contactos" arranca visible (Ocultar).
+    const hideBtn = await screen.findByRole("button", { name: "Ocultar Contactos" });
+    fireEvent.click(hideBtn);
 
-    // Tras el click pasa a ser visible -> el botón ahora oculta.
+    // Tras ocultarlo para todos los roles, el botón ofrece mostrarlo de nuevo.
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Ocultar Contactos" })).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: "Mostrar Contactos" })).toBeInTheDocument()
     );
   });
 
@@ -80,6 +83,8 @@ describe("MenuSettingsSection", () => {
         (c) => c.url.includes("/api/permissions/matrix") && c.method === "PUT"
       );
       expect(orderPut?.body.order).toContain("fleet");
+      // El layout ahora persiste también la visibilidad de menú (hidden).
+      expect(orderPut?.body).toHaveProperty("hidden");
       expect(matrixPut?.body.matrix).toBeTruthy();
     });
   });

@@ -1,5 +1,15 @@
 import type { ComponentType } from "react";
-import { Users, Settings, Package, Car, CreditCard, Cog, BarChart3 } from "lucide-react";
+import {
+  Users,
+  Settings,
+  Package,
+  Car,
+  CreditCard,
+  Cog,
+  BarChart3,
+  Bell,
+  CalendarDays,
+} from "lucide-react";
 
 /**
  * Definición compartida de los items del menú de navegación.
@@ -32,6 +42,8 @@ export const adminNavSections: NavSection[] = [
       { href: "/stock", label: "Inventario", icon: Package, module: "stock" },
       { href: "/fleet", label: "Flota", icon: Car, module: "fleet" },
       { href: "/billing", label: "Facturación", icon: CreditCard, module: "billing" },
+      { href: "/notifications", label: "Notificaciones", icon: Bell, module: "notifications" },
+      { href: "/calendar", label: "Calendario", icon: CalendarDays, module: "calendar" },
       { href: "/settings", label: "Configuración", icon: Cog, module: "settings" },
     ],
   },
@@ -58,4 +70,17 @@ export function sortMenuItemsByOrder<T extends { module: string }>(
     const rb = rank.has(b.module) ? rank.get(b.module)! : fallback;
     return ra - rb;
   });
+}
+
+/** Mapa { moduleKey: rolesOcultos[] } devuelto por `/api/menu-config`. */
+export type HiddenMap = Record<string, string[]>;
+
+/**
+ * ¿Está oculto del menú el módulo para el rol dado?
+ *
+ * La visibilidad de menú es independiente del acceso: ocultar un item solo lo
+ * quita del menú (útil para que un admin "limpie" su menú sin perder acceso).
+ */
+export function isHiddenForRole(hidden: HiddenMap, module: string, role: string): boolean {
+  return Boolean(role) && Array.isArray(hidden[module]) && hidden[module].includes(role);
 }

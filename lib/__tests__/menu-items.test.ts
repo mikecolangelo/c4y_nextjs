@@ -48,4 +48,10 @@ describe("sortMenuItemsByOrder", () => {
     expect(adminNavItems.length).toBeGreaterThan(0);
     expect(adminNavItems.every((i) => typeof i.module === "string")).toBe(true);
   });
+
+  it("includes the restored notifications and calendar items", () => {
+    const modules = adminNavItems.map((i) => i.module);
+    expect(modules).toContain("notifications");
+    expect(modules).toContain("calendar");
+  });
 });

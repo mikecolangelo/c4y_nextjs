@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { resolveNavHref } from "@/lib/permissions";
 import { useMyPermissions } from "@/lib/use-my-permissions";
 import { useMenuOrder } from "@/lib/use-menu-order";
-import { adminNavSections, sortMenuItemsByOrder } from "@/lib/menu-items";
+import { adminNavSections, sortMenuItemsByOrder, isHiddenForRole } from "@/lib/menu-items";
 
 // Re-exportado para conservar las importaciones existentes (spotlight, tests).
 // La fuente única vive ahora en `@/lib/menu-items`.
@@ -28,7 +28,7 @@ export function MobileMenu() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const { role, permissions, loading } = useMyPermissions();
-  const { order } = useMenuOrder();
+  const { order, hidden } = useMenuOrder();
 
   // Aplica el orden guardado en Configuración a cada sección del menú.
   const sections = useMemo(
@@ -57,10 +57,16 @@ export function MobileMenu() {
         </SheetHeader>
         <nav className={cn("mt-6 flex flex-col", spacing.gap.large)}>
           {sections.map((section) => {
-            // Filtrar items según los permisos del usuario (canAccess por módulo)
+            // Mostrar un item si el usuario tiene acceso (canAccess) Y no está
+            // oculto del menú para su rol (visibilidad configurable, no afecta
+            // el acceso por URL).
             const filteredItems = loading
               ? []
-              : section.items.filter((item) => permissions[item.module]?.canAccess);
+              : section.items.filter(
+                  (item) =>
+                    permissions[item.module]?.canAccess &&
+                    !isHiddenForRole(hidden, item.module, role)
+                );
 
             return (
               <div key={section.label} className={cn("flex flex-col", spacing.gap.small)}>

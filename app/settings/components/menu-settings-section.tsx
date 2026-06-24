@@ -39,20 +39,33 @@ import {
 import { typography } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
-import { adminNavItems, sortMenuItemsByOrder, type NavItem } from "@/lib/menu-items";
+import {
+  adminNavItems,
+  sortMenuItemsByOrder,
+  isHiddenForRole,
+  type NavItem,
+  type HiddenMap,
+} from "@/lib/menu-items";
 import type { ModulePermission } from "@/lib/permissions";
 
 type FullMatrix = Record<string, Record<string, ModulePermission>>;
 
-/** Etiquetas legibles por rol. El admin siempre ve todo (no configurable). */
+/** Etiquetas legibles por rol. */
 const ROLE_LABELS: Record<string, string> = {
   admin: "Administrador",
   driver: "Conductor",
   lead: "Lead",
 };
 
-/** Roles que nunca se configuran desde aquí: admin (ve todo) y lead (sin portal). */
-const NON_CONFIGURABLE_ROLES = new Set(["admin", "lead"]);
+/** El lead no tiene portal, así que nunca se configura desde aquí. */
+const NON_CONFIGURABLE_ROLES = new Set(["lead"]);
+
+/**
+ * Roles con acceso total permanente (admin). Su visibilidad de menú se controla
+ * con la bandera `hidden` (solo afecta el menú) en vez de `canAccess`, para que
+ * ocultar un item NO les quite el acceso por URL (evita auto-bloqueos).
+ */
+const FULL_ACCESS_ROLES = new Set(["admin"]);
 
 const emptyPermission = (): ModulePermission => ({
   canAccess: false,
@@ -66,13 +79,13 @@ const emptyPermission = (): ModulePermission => ({
 function SortableMenuRow({
   item,
   configurableRoles,
-  rolesWithAccess,
+  visibleRoles,
   onToggleVisibility,
   onChangeRoles,
 }: {
   item: NavItem;
   configurableRoles: string[];
-  rolesWithAccess: string[];
+  visibleRoles: string[];
   onToggleVisibility: (module: string) => void;
   onChangeRoles: (module: string, roles: string[]) => void;
 }) {
@@ -80,7 +93,7 @@ function SortableMenuRow({
     id: item.module,
   });
   const Icon = item.icon;
-  const isVisible = rolesWithAccess.length > 0;
+  const isVisible = visibleRoles.length > 0;
 
   return (
     <div
@@ -106,13 +119,13 @@ function SortableMenuRow({
       <span className="text-sm font-medium">{item.label}</span>
 
       <div className="ml-auto flex items-center gap-3">
-        {/* Roles que pueden ver el item (la visibilidad = canAccess en la matriz) */}
+        {/* Roles que ven el item en el menú */}
         {configurableRoles.length > 0 && (
           <ToggleGroup
             type="multiple"
             variant="outline"
             size="sm"
-            value={rolesWithAccess}
+            value={visibleRoles}
             onValueChange={(roles) => onChangeRoles(item.module, roles)}
             aria-label={`Roles que ven ${item.label}`}
           >
@@ -155,16 +168,21 @@ function SortableMenuRow({
  * Editor del menú de navegación.
  *
  * Permite (1) reordenar los items arrastrándolos y (2) decidir qué roles ven
- * cada item con el "ojito" y los chips de rol. El ORDEN se guarda en
- * `menu-config`; la VISIBILIDAD por rol escribe `canAccess` en la matriz de
- * permisos (misma fuente de verdad que la pestaña Permisos), por lo que ocultar
- * un item equivale a quitarle el acceso al rol.
+ * cada item con el "ojito" y los chips de rol. El ORDEN y la bandera `hidden`
+ * se guardan en `menu-config`.
+ *
+ * Visibilidad de un item para un rol = tiene acceso (`canAccess`) Y no está
+ * oculto (`hidden`). Para roles normales (conductor) el toggle escribe
+ * `canAccess` en la matriz (ocultar = sin acceso). Para el admin —que siempre
+ * tiene acceso total— el toggle escribe la bandera `hidden`, así puede limpiar
+ * su menú sin perder el acceso por URL.
  */
 export function MenuSettingsSection() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [items, setItems] = useState<NavItem[]>([]);
   const [matrix, setMatrix] = useState<FullMatrix>({});
+  const [hidden, setHidden] = useState<HiddenMap>({});
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -185,10 +203,15 @@ export function MenuSettingsSection() {
       if (!matrixRes.ok) throw new Error("No se pudo cargar la matriz de permisos");
 
       const matrixJson = await matrixRes.json();
-      const orderJson = orderRes.ok ? await orderRes.json() : null;
-      const order: string[] = Array.isArray(orderJson?.data?.order) ? orderJson.data.order : [];
+      const layoutJson = orderRes.ok ? await orderRes.json() : null;
+      const order: string[] = Array.isArray(layoutJson?.data?.order) ? layoutJson.data.order : [];
+      const hiddenMap: HiddenMap =
+        layoutJson?.data?.hidden && typeof layoutJson.data.hidden === "object"
+          ? layoutJson.data.hidden
+          : {};
 
       setMatrix(matrixJson.data?.matrix || {});
+      setHidden(hiddenMap);
       setItems(sortMenuItemsByOrder(adminNavItems, order));
     } catch (error) {
       console.error("Error cargando el menú:", error);
@@ -198,26 +221,50 @@ export function MenuSettingsSection() {
     }
   };
 
-  // Roles configurables = los presentes en la matriz que no son admin ni lead.
+  // Roles configurables = los presentes en la matriz que tienen portal (todos
+  // menos lead). Incluye admin, cuya visibilidad se maneja con `hidden`.
   const configurableRoles = useMemo(
     () => Object.keys(matrix).filter((role) => !NON_CONFIGURABLE_ROLES.has(role)),
     [matrix]
   );
 
-  const rolesWithAccessFor = (module: string): string[] =>
-    configurableRoles.filter((role) => matrix[role]?.[module]?.canAccess);
+  /** ¿El item es visible en el menú para el rol? (acceso Y no oculto) */
+  const isVisibleForRole = (role: string, module: string): boolean => {
+    const hasAccess = FULL_ACCESS_ROLES.has(role)
+      ? true // el admin siempre tiene acceso
+      : Boolean(matrix[role]?.[module]?.canAccess);
+    return hasAccess && !isHiddenForRole(hidden, module, role);
+  };
 
-  /** Aplica el acceso de un módulo para un conjunto exacto de roles. */
+  const visibleRolesFor = (module: string): string[] =>
+    configurableRoles.filter((role) => isVisibleForRole(role, module));
+
+  /** Ajusta la visibilidad de un módulo para que la vean exactamente `roles`. */
   const setRolesForModule = (module: string, roles: string[]) => {
-    const allowed = new Set(roles);
+    const visible = new Set(roles);
+
+    // Roles con acceso total (admin): solo togglear la bandera `hidden`.
+    setHidden((prev) => {
+      const next: HiddenMap = { ...prev };
+      for (const role of configurableRoles) {
+        if (!FULL_ACCESS_ROLES.has(role)) continue;
+        const others = (next[module] ?? []).filter((r) => r !== role);
+        next[module] = visible.has(role) ? others : [...others, role];
+      }
+      // Limpiar entradas vacías para no persistir ruido.
+      if (next[module] && next[module].length === 0) delete next[module];
+      return next;
+    });
+
+    // Roles normales (conductor): la visibilidad escribe `canAccess`.
     setMatrix((prev) => {
       const next: FullMatrix = { ...prev };
       for (const role of configurableRoles) {
+        if (FULL_ACCESS_ROLES.has(role)) continue;
         const current = next[role]?.[module] ?? emptyPermission();
-        const canAccess = allowed.has(role);
         next[role] = {
           ...next[role],
-          [module]: canAccess
+          [module]: visible.has(role)
             ? // Coherencia: ser visible implica al menos poder "Ver".
               { ...current, canAccess: true, canRead: true }
             : // Ocultar = sin acceso ni acciones sobre el módulo.
@@ -229,7 +276,7 @@ export function MenuSettingsSection() {
   };
 
   const handleToggleVisibility = (module: string) => {
-    const visible = rolesWithAccessFor(module).length > 0;
+    const visible = visibleRolesFor(module).length > 0;
     setRolesForModule(module, visible ? [] : configurableRoles);
   };
 
@@ -251,7 +298,7 @@ export function MenuSettingsSection() {
         fetch("/api/menu-config", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ order: items.map((i) => i.module) }),
+          body: JSON.stringify({ order: items.map((i) => i.module), hidden }),
         }),
         fetch("/api/permissions/matrix", {
           method: "PUT",
@@ -300,8 +347,9 @@ export function MenuSettingsSection() {
         <div className="flex items-start gap-2 rounded-lg bg-muted/50 p-3">
           <Info className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
-            El administrador siempre ve todos los items. Ocultar un item le quita el acceso al rol
-            correspondiente (equivale a desactivar &quot;Acceso&quot; en Permisos).
+            Ocultar un item al conductor le quita el acceso (equivale a desactivar
+            &quot;Acceso&quot; en Permisos). Al administrador solo lo quita de su menú: conserva el
+            acceso por URL, así que nunca se queda fuera de Configuración.
           </p>
         </div>
 
@@ -316,7 +364,7 @@ export function MenuSettingsSection() {
                   key={item.module}
                   item={item}
                   configurableRoles={configurableRoles}
-                  rolesWithAccess={rolesWithAccessFor(item.module)}
+                  visibleRoles={visibleRolesFor(item.module)}
                   onToggleVisibility={handleToggleVisibility}
                   onChangeRoles={setRolesForModule}
                 />
@@ -326,7 +374,7 @@ export function MenuSettingsSection() {
         </DndContext>
 
         <Badge variant="secondary" className="w-fit">
-          Administrador: acceso total siempre
+          Administrador: ocultar es solo visual, conserva el acceso
         </Badge>
 
         <Button onClick={handleSave} disabled={isSaving} className="w-full sm:w-auto">

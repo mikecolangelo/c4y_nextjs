@@ -1,16 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { HiddenMap } from "@/lib/menu-items";
+
+export interface MenuLayout {
+  /** Orden guardado como lista de `moduleKey`. */
+  order: string[];
+  /** { moduleKey: rolesOcultos[] } — visibilidad de menú, no afecta el acceso. */
+  hidden: HiddenMap;
+  loading: boolean;
+}
 
 /**
- * Obtiene el orden guardado de los items del menú desde `/api/menu-config`.
+ * Obtiene el layout del menú desde `/api/menu-config` (orden + visibilidad).
  *
- * Devuelve `order` como una lista de `moduleKey`. Ante error o sin datos,
- * devuelve `[]` para que los consumidores caigan al orden por defecto de la
- * definición compartida (`sortMenuItemsByOrder` deja todo en su sitio).
+ * Ante error o sin datos, devuelve valores vacíos para que los consumidores
+ * caigan al orden por defecto y no oculten nada.
  */
-export function useMenuOrder(): { order: string[]; loading: boolean } {
+export function useMenuOrder(): MenuLayout {
   const [order, setOrder] = useState<string[]>([]);
+  const [hidden, setHidden] = useState<HiddenMap>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,7 +27,11 @@ export function useMenuOrder(): { order: string[]; loading: boolean } {
     fetch("/api/menu-config", { cache: "no-store" })
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
-        if (active && Array.isArray(json?.data?.order)) setOrder(json.data.order);
+        if (!active) return;
+        if (Array.isArray(json?.data?.order)) setOrder(json.data.order);
+        if (json?.data?.hidden && typeof json.data.hidden === "object") {
+          setHidden(json.data.hidden);
+        }
       })
       .catch(() => {
         /* silencioso: se usa el orden por defecto */
@@ -31,5 +44,5 @@ export function useMenuOrder(): { order: string[]; loading: boolean } {
     };
   }, []);
 
-  return { order, loading };
+  return { order, hidden, loading };
 }
