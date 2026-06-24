@@ -244,10 +244,15 @@ export function CreateInventoryRequestDialog({
                     }}
                     placeholder="Ej: Necesito esta pieza para la reparación del vehículo asignado..."
                     rows={4}
-                    className={cn("rounded-lg resize-none", errors.justification && "border-destructive")}
+                    className={cn(
+                      "rounded-lg resize-none",
+                      errors.justification && "border-destructive"
+                    )}
                   />
                   <div className="flex justify-between">
-                    <p className={`${typography.body.small} text-muted-foreground`}>Mínimo 10 caracteres</p>
+                    <p className={`${typography.body.small} text-muted-foreground`}>
+                      Mínimo 10 caracteres
+                    </p>
                     <p className={`${typography.body.small} text-muted-foreground`}>
                       {formData.justification.length} caracteres
                     </p>
@@ -271,13 +276,7 @@ export function CreateInventoryRequestDialog({
           <Button
             onClick={handleSubmit}
             disabled={isCreating || !isFormValid}
-            className={cn(
-              "font-semibold shadow-md hover:shadow-lg transition-all duration-200",
-              !isCreating &&
-                isFormValid &&
-                "bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/95 !opacity-100",
-              (isCreating || !isFormValid) && "!opacity-50 cursor-not-allowed"
-            )}
+            className="font-semibold"
           >
             {isCreating ? "Enviando..." : "Enviar Solicitud"}
           </Button>
