@@ -563,7 +563,10 @@ export async function POST(request: Request) {
         isPinned: shouldPin,
         expiresAt: shouldPin ? null : expiresAt.toISOString(),
         isDismissible: !shouldPin,
-        author: currentUser.id, // ID numérico para la relación
+        // Strapi 5 conecta relaciones por documentId. `author` apunta a
+        // user-profile, así que NO sirve el id numérico del usuario de auth.
+        // Forma explícita { documentId } — la forma corta la interpreta como `id`.
+        author: { connect: [{ documentId: currentUser.documentId }] },
         authorDocumentId: currentUser.documentId, // documentId para referencia
       };
 
@@ -612,7 +615,8 @@ export async function POST(request: Request) {
         isPinned: shouldPin,
         expiresAt: shouldPin ? null : expiresAt.toISOString(),
         isDismissible: !shouldPin,
-        author: currentUser.id, // ID numérico para la relación
+        // Strapi 5 conecta relaciones por documentId (ver create individual).
+        author: { connect: [{ documentId: currentUser.documentId }] },
         authorDocumentId: currentUser.documentId, // documentId para referencia
         // No incluir recipient - es broadcast
       };
