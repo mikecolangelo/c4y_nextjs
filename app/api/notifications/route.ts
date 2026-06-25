@@ -563,7 +563,7 @@ export async function POST(request: Request) {
         isPinned: shouldPin,
         expiresAt: shouldPin ? null : expiresAt.toISOString(),
         isDismissible: !shouldPin,
-        author: currentUser.id, // ID numérico para la relación
+        author: { connect: [{ documentId: currentUser.documentId }] }, // Strapi 5: relación por documentId
         authorDocumentId: currentUser.documentId, // documentId para referencia
       };
 
@@ -612,7 +612,7 @@ export async function POST(request: Request) {
         isPinned: shouldPin,
         expiresAt: shouldPin ? null : expiresAt.toISOString(),
         isDismissible: !shouldPin,
-        author: currentUser.id, // ID numérico para la relación
+        author: { connect: [{ documentId: currentUser.documentId }] }, // Strapi 5: relación por documentId
         authorDocumentId: currentUser.documentId, // documentId para referencia
         // No incluir recipient - es broadcast
       };
