@@ -42,7 +42,7 @@ async function getCurrentUserProfile() {
       filters: {
         email: { $eq: userData.email },
       },
-      fields: ["documentId", "displayName", "email", "role"],
+      fields: ["id", "documentId", "displayName", "email", "role"],
     });
 
     const profileResponse = await fetch(`${STRAPI_BASE_URL}/api/user-profiles?${profileQuery}`, {
@@ -65,7 +65,11 @@ async function getCurrentUserProfile() {
     }
 
     return {
-      id: userData.id, // ID numérico del usuario para relaciones
+      // ID numérico del USER-PROFILE (no del usuario de auth). Las relaciones
+      // `recipient`/`author` apuntan a user-profile, así que este es el id que
+      // hay que usar para filtrar; el id de auth (userData.id) vive en otro espacio.
+      id: profile.id,
+      authUserId: userData.id, // id del usuario de auth (/api/users/me), por si se necesita
       documentId: profile.documentId,
       displayName: profile.displayName || profile.email || "Usuario",
       email: profile.email,
@@ -91,13 +95,20 @@ export async function GET() {
       "notifications: authenticated user"
     );
 
-    // SOLUCIÓN 1: traer notificaciones broadcast (targetAudience = "all") y
-    // filtrar por rol en el frontend; evita duplicar N notificaciones en BD.
+    // Audiencia broadcast que le corresponde al rol del usuario. Alineado con
+    // `audienceMatchesClient` del SSE (backend event-hub): admin/super-admin →
+    // "admins"; cualquier otro rol → "drivers".
+    const userRoleAudience =
+      currentUser.role === "admin" || currentUser.role === "super-admin" ? "admins" : "drivers";
+
+    // SOLUCIÓN 1: traer notificaciones broadcast y filtrar duplicados en el front;
+    // evita duplicar N notificaciones en BD.
+    // targetAudience es un campo string (NO relación), así que `$in` es seguro y
+    // no dispara el error 500 de Strapi v5 con `$or` sobre relaciones.
     const notificationQuery = qs.stringify({
       filters: {
-        // Filtro simplificado: el $or con relaciones causa error 500 en Strapi v5
-        // Traemos notificaciones broadcast (targetAudience = all) y filtramos en el frontend
-        targetAudience: { $eq: "all" },
+        // Traer broadcasts "all" + las dirigidas al rol del usuario ("admins"/"drivers").
+        targetAudience: { $in: ["all", userRoleAudience] },
       },
       fields: [
         "id",
@@ -426,8 +437,8 @@ export async function GET() {
       }
 
       // Si no tiene recipient pero tiene targetAudience, verificar que coincida con el rol del usuario
+      // (reusa `userRoleAudience`, ya alineado con la lógica de audiencias del SSE).
       if (!hasRecipient && hasTargetAudience) {
-        const userRoleAudience = currentUser.role === "admin" ? "admins" : "drivers";
         if (
           notification.targetAudience !== userRoleAudience &&
           notification.targetAudience !== "all"

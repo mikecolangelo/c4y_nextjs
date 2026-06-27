@@ -20,13 +20,17 @@ function jsonResponse(data: unknown, status = 200): Response {
   });
 }
 
-/** Stubs the user-profile resolution chain (users/me + user-profiles lookup). */
-function stubAuthenticatedUser() {
+/**
+ * Stubs the user-profile resolution chain (users/me + user-profiles lookup).
+ * Auth-user id (34) and user-profile id (58) are intentionally DIFFERENT — they
+ * live in separate id-spaces and the route must use the profile id for relations.
+ */
+function stubAuthenticatedUser(role = "admin") {
   return [
-    jsonResponse({ id: 11, email: "user@test.com" }), // /api/users/me
+    jsonResponse({ id: 34, email: "user@test.com" }), // /api/users/me (auth id)
     jsonResponse({
-      data: [{ id: 11, documentId: "doc-11", role: "admin", email: "user@test.com" }],
-    }), // /api/user-profiles
+      data: [{ id: 58, documentId: "doc-58", role, email: "user@test.com" }],
+    }), // /api/user-profiles (profile id)
   ];
 }
 
@@ -76,6 +80,108 @@ describe("notifications route", () => {
       expect(Array.isArray(json.data)).toBe(true);
       expect(json.data).toHaveLength(1);
       expect(json.data[0].title).toBe("Lead");
+    });
+
+    it("shows an 'admins' broadcast to an admin and queries the role audience", async () => {
+      cookieGet.mockReturnValue({ value: "jwt" });
+      const responses = [
+        ...stubAuthenticatedUser("admin"),
+        // broadcast query: a notification targeted at admins only
+        jsonResponse({
+          data: [
+            {
+              id: 2,
+              documentId: "n2",
+              type: "announcement",
+              title: "Solo admins",
+              isRead: false,
+              targetAudience: "admins",
+            },
+          ],
+        }),
+        jsonResponse({ data: [] }), // recipient query
+      ];
+      const fetchMock = vi.fn(async () => responses.shift() as Response);
+      vi.stubGlobal("fetch", fetchMock);
+
+      const res = await GET();
+      const json = await res.json();
+      expect(json.data).toHaveLength(1);
+      expect(json.data[0].title).toBe("Solo admins");
+
+      // The broadcast query must include the role audience, not just "all".
+      const broadcastUrl = String(fetchMock.mock.calls[2]?.[0]);
+      expect(broadcastUrl).toContain("admins");
+    });
+
+    it("hides a role-mismatched broadcast from a driver", async () => {
+      cookieGet.mockReturnValue({ value: "jwt" });
+      const responses = [
+        ...stubAuthenticatedUser("driver"),
+        // broadcast query returns one drivers + one admins notification;
+        // the admins one must be filtered out for a driver.
+        jsonResponse({
+          data: [
+            {
+              id: 3,
+              documentId: "n3",
+              type: "announcement",
+              title: "Para drivers",
+              isRead: false,
+              targetAudience: "drivers",
+            },
+            {
+              id: 4,
+              documentId: "n4",
+              type: "announcement",
+              title: "Para admins",
+              isRead: false,
+              targetAudience: "admins",
+            },
+          ],
+        }),
+        jsonResponse({ data: [] }), // recipient query
+      ];
+      const fetchMock = vi.fn(async () => responses.shift() as Response);
+      vi.stubGlobal("fetch", fetchMock);
+
+      const res = await GET();
+      const json = await res.json();
+      expect(json.data).toHaveLength(1);
+      expect(json.data[0].title).toBe("Para drivers");
+    });
+
+    it("matches an individual notification by profile id (not auth id)", async () => {
+      cookieGet.mockReturnValue({ value: "jwt" });
+      const responses = [
+        ...stubAuthenticatedUser("admin"),
+        jsonResponse({ data: [] }), // broadcast query
+        // recipient query: notification addressed to profile id 58
+        jsonResponse({
+          data: [
+            {
+              id: 5,
+              documentId: "n5",
+              type: "lead",
+              title: "Para vos",
+              isRead: false,
+              recipient: { id: 58, documentId: "doc-58" },
+            },
+          ],
+        }),
+      ];
+      const fetchMock = vi.fn(async () => responses.shift() as Response);
+      vi.stubGlobal("fetch", fetchMock);
+
+      const res = await GET();
+      const json = await res.json();
+      expect(json.data).toHaveLength(1);
+      expect(json.data[0].title).toBe("Para vos");
+
+      // The recipient query must filter by the PROFILE id (58), never the auth id (34).
+      const recipientUrl = decodeURIComponent(String(fetchMock.mock.calls[3]?.[0]));
+      expect(recipientUrl).toContain("58");
+      expect(recipientUrl).not.toContain("][$eq]=34");
     });
   });
 
