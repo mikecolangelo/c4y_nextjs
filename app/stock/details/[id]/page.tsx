@@ -4,14 +4,13 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components_shadcn/ui/card";
 import { Button } from "@/components_shadcn/ui/button";
-import { Badge } from "@/components_shadcn/ui/badge";
+import { StatusBadge, type StatusTone } from "@/components/ui";
 import { Textarea } from "@/components_shadcn/ui/textarea";
 import { Input } from "@/components_shadcn/ui/input";
 import { Label } from "@/components_shadcn/ui/label";
 import { Skeleton } from "@/components_shadcn/ui/skeleton";
-import { 
-  ArrowLeft, 
-  MoreVertical, 
+import {
+  MoreVertical,
   Edit,
   Trash2,
   Package,
@@ -23,7 +22,7 @@ import {
   Zap,
   Wrench,
   Loader2,
-  DollarSign
+  DollarSign,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -33,6 +32,7 @@ import {
 } from "@/components_shadcn/ui/dropdown-menu";
 import { spacing, typography } from "@/lib/design-system";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { BackButton } from "@/components/admin/back-button";
 import { toast } from "@/lib/toast";
 import type { InventoryItemCard, StockStatus, InventoryIcon } from "@/validations/types";
 import { formatDistanceToNow } from "date-fns";
@@ -47,27 +47,16 @@ interface InventoryNote {
   updatedAt: string;
 }
 
+// Maps a stock level to a semantic StatusBadge tone (in stock → success,
+// medium → warning, low → danger).
+const STOCK_STATUS_TONE: Record<StockStatus, StatusTone> = {
+  high: "success",
+  medium: "warning",
+  low: "danger",
+};
+
 const getStockBadge = (status: StockStatus, stock: number) => {
-  switch (status) {
-    case "high":
-      return (
-        <Badge className="bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300 rounded-full px-3 py-1 text-sm font-medium">
-          Stock: {stock}
-        </Badge>
-      );
-    case "medium":
-      return (
-        <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300 rounded-full px-3 py-1 text-sm font-medium">
-          Stock: {stock}
-        </Badge>
-      );
-    case "low":
-      return (
-        <Badge className="bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300 rounded-full px-3 py-1 text-sm font-medium">
-          Stock: {stock}
-        </Badge>
-      );
-  }
+  return <StatusBadge tone={STOCK_STATUS_TONE[status]}>Stock: {stock}</StatusBadge>;
 };
 
 const getIcon = (icon: InventoryIcon) => {
@@ -141,16 +130,7 @@ export default function StockDetailsPage() {
     loadItem();
   }, [loadItem]);
 
-  const backButton = (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => router.back()}
-      className="h-10 w-10 flex items-center justify-center rounded-full"
-    >
-      <ArrowLeft className="h-5 w-5" />
-    </Button>
-  );
+  const backButton = <BackButton fallbackHref="/stock" />;
 
   const loadNotes = useCallback(async () => {
     if (!itemId) return;
@@ -247,7 +227,7 @@ export default function StockDetailsPage() {
         console.log("Notas filtradas:", filtered.length, "de", prev.length);
         return filtered;
       });
-      
+
       toast.success("Nota eliminada correctamente");
     } catch (error) {
       console.error("Error deleting note:", error);
@@ -367,11 +347,11 @@ export default function StockDetailsPage() {
   if (!itemData) {
     return (
       <AdminLayout title="Pieza no encontrada" showFilterAction leftActions={backButton}>
-        <section className={`flex flex-col items-center justify-center ${spacing.gap.base} min-h-[400px]`}>
+        <section
+          className={`flex flex-col items-center justify-center ${spacing.gap.base} min-h-[400px]`}
+        >
           <p className={typography.body.large}>La pieza solicitada no existe.</p>
-          <Button onClick={() => router.push("/stock")}>
-            Volver a Inventario
-          </Button>
+          <Button onClick={() => router.push("/stock")}>Volver a Inventario</Button>
         </section>
       </AdminLayout>
     );
@@ -385,19 +365,16 @@ export default function StockDetailsPage() {
         {/* Información de la Pieza */}
         <Card className="shadow-sm ring-1 ring-inset ring-border/50">
           <CardContent className={`flex flex-col items-center ${spacing.gap.base} p-6 relative`}>
-            {/* Botones de navegación */}
-            <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-10 w-10 rounded-full flex items-center justify-center"
-                onClick={() => router.back()}
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
+            {/* Acciones de la pieza. La navegación "volver" vive en el menú
+                (header), no en la tarjeta, para no duplicar el control. */}
+            <div className="absolute top-4 right-4 flex items-center justify-end z-10">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full flex items-center justify-center">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 rounded-full flex items-center justify-center"
+                  >
                     <MoreVertical className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -405,8 +382,8 @@ export default function StockDetailsPage() {
                   <DropdownMenuItem className="cursor-pointer" onClick={() => setIsEditing(true)}>
                     Editar Pieza
                   </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    variant="destructive" 
+                  <DropdownMenuItem
+                    variant="destructive"
                     className="cursor-pointer"
                     onClick={handleDelete}
                     disabled={isDeleting}
@@ -419,15 +396,15 @@ export default function StockDetailsPage() {
             </div>
 
             {/* Icono */}
-            <div className={`flex items-center justify-center w-16 h-16 rounded-lg bg-primary/10 text-primary mt-8`}>
+            <div
+              className={`flex items-center justify-center w-16 h-16 rounded-lg bg-primary/10 text-primary mt-8`}
+            >
               <IconComponent className="h-8 w-8" />
             </div>
 
             {/* Código y Badge */}
             <div className="flex flex-col items-center text-center">
-              <h2 className={`${typography.h3} text-center`}>
-                {itemData.code}
-              </h2>
+              <h2 className={`${typography.h3} text-center`}>{itemData.code}</h2>
               <p className={`${typography.body.small} mt-1 text-muted-foreground`}>
                 {itemData.description}
               </p>
@@ -568,8 +545,10 @@ export default function StockDetailsPage() {
                           assignedTo: itemData.assignedTo || "",
                           location: itemData.location || "",
                           description: itemData.description,
-                          unitCost: itemData.unitCost !== undefined ? itemData.unitCost.toString() : "",
-                          salePrice: itemData.salePrice !== undefined ? itemData.salePrice.toString() : "",
+                          unitCost:
+                            itemData.unitCost !== undefined ? itemData.unitCost.toString() : "",
+                          salePrice:
+                            itemData.salePrice !== undefined ? itemData.salePrice.toString() : "",
                         });
                       }
                     }}
@@ -618,8 +597,12 @@ export default function StockDetailsPage() {
                   <div className={`flex items-center ${spacing.gap.medium}`}>
                     <AlertCircle className="h-5 w-5 text-muted-foreground shrink-0" />
                     <div className="flex-1">
-                      <p className={`${typography.body.small} text-muted-foreground`}>Stock Mínimo</p>
-                      <p className={typography.body.base}>{itemData.minStock} {itemData.unit || "unidades"}</p>
+                      <p className={`${typography.body.small} text-muted-foreground`}>
+                        Stock Mínimo
+                      </p>
+                      <p className={typography.body.base}>
+                        {itemData.minStock} {itemData.unit || "unidades"}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -627,8 +610,12 @@ export default function StockDetailsPage() {
                   <div className={`flex items-center ${spacing.gap.medium}`}>
                     <CheckCircle className="h-5 w-5 text-muted-foreground shrink-0" />
                     <div className="flex-1">
-                      <p className={`${typography.body.small} text-muted-foreground`}>Stock Máximo</p>
-                      <p className={typography.body.base}>{itemData.maxStock} {itemData.unit || "unidades"}</p>
+                      <p className={`${typography.body.small} text-muted-foreground`}>
+                        Stock Máximo
+                      </p>
+                      <p className={typography.body.base}>
+                        {itemData.maxStock} {itemData.unit || "unidades"}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -663,9 +650,15 @@ export default function StockDetailsPage() {
                   <div className={`flex items-center ${spacing.gap.medium}`}>
                     <Package className="h-5 w-5 text-muted-foreground shrink-0" />
                     <div className="flex-1">
-                      <p className={`${typography.body.small} text-muted-foreground`}>Última Reposición</p>
+                      <p className={`${typography.body.small} text-muted-foreground`}>
+                        Última Reposición
+                      </p>
                       <p className={typography.body.base}>
-                        {new Date(itemData.lastRestocked).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        {new Date(itemData.lastRestocked).toLocaleDateString("es-ES", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
                       </p>
                     </div>
                   </div>
@@ -683,7 +676,7 @@ export default function StockDetailsPage() {
           <CardContent className={`flex flex-col ${spacing.gap.base} px-6 pb-6`}>
             {/* Lista de notas existentes */}
             {isLoadingNotes ? (
-              <div className="space-y-3">
+              <div className={`flex flex-col ${spacing.gap.base}`}>
                 <Skeleton className="h-16 w-full" />
                 <Skeleton className="h-16 w-full" />
               </div>
@@ -692,22 +685,24 @@ export default function StockDetailsPage() {
                 {notes.map((noteItem) => (
                   <div
                     key={noteItem.id}
-                    className="bg-muted/50 rounded-lg p-3 space-y-1 group"
+                    className="group flex flex-col gap-1 rounded-lg bg-muted/50 p-3"
                   >
-                    <p className="text-sm text-foreground whitespace-pre-wrap">
+                    <p className="whitespace-pre-wrap text-sm text-foreground">
                       {noteItem.content}
                     </p>
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <span>{noteItem.authorName || "Usuario"}</span>
                       <div className="flex items-center gap-2">
                         <span>{formatNoteDate(noteItem.createdAt)}</span>
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => handleDeleteNote(noteItem.documentId)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive/80 p-1"
+                          className="size-7 text-destructive opacity-0 transition-opacity hover:text-destructive/80 group-hover:opacity-100"
                           title="Eliminar nota"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                          <Trash2 className="size-3.5" />
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -727,7 +722,6 @@ export default function StockDetailsPage() {
             <Button
               onClick={handleSaveNote}
               variant="default"
-              className="btn-black"
               disabled={!note.trim() || isSavingNote}
             >
               {isSavingNote ? (

@@ -2,7 +2,6 @@
 
 import { Card, CardContent } from "@/components_shadcn/ui/card";
 import { Button } from "@/components_shadcn/ui/button";
-import { Badge } from "@/components_shadcn/ui/badge";
 import { MoreVertical, Edit, Trash2, Wrench, Calendar } from "lucide-react";
 import {
   DropdownMenu,
@@ -14,6 +13,7 @@ import { spacing, typography } from "@/lib/design-system";
 import { strapiImages } from "@/lib/strapi-images";
 import type { FleetVehicleCondition, StrapiImage } from "@/validations/types";
 import { VehicleImage } from "@/components/ui/fleet/vehicle-image";
+import { ConditionBadge } from "@/app/fleet/components/condition-badge";
 
 interface VehicleHeaderCardProps {
   name: string;
@@ -37,12 +37,12 @@ const getOptimalImageUrl = (
   imageData?: StrapiImage | null
 ): string | null => {
   if (!imageUrl) return null;
-  
+
   // Si es una imagen blob (preview), usar directamente
   if (imageUrl.startsWith("blob:")) {
     return imageUrl;
   }
-  
+
   // Si tenemos los datos completos de la imagen con formats
   if (imageData?.formats) {
     // Para un contenedor de 384px, usar large para pantallas Retina (768px+)
@@ -54,32 +54,9 @@ const getOptimalImageUrl = (
       return strapiImages.getURL(imageData.formats.medium.url);
     }
   }
-  
+
   // Fallback a la URL original (procesada para corregir localhost si es necesario)
   return strapiImages.getURL(imageUrl);
-};
-
-const getStatusBadge = (status: FleetVehicleCondition) => {
-  switch (status) {
-    case "nuevo":
-      return (
-        <Badge className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800 dark:bg-green-800 dark:text-green-100">
-          Nuevo
-        </Badge>
-      );
-    case "usado":
-      return (
-        <Badge className="rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-800 dark:bg-orange-800 dark:text-orange-100">
-          Usado
-        </Badge>
-      );
-    case "seminuevo":
-      return (
-        <Badge className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800 dark:bg-blue-800 dark:text-blue-100">
-          Seminuevo
-        </Badge>
-      );
-  }
 };
 
 export function VehicleHeaderCard({
@@ -96,12 +73,14 @@ export function VehicleHeaderCard({
   const optimalImageUrl = getOptimalImageUrl(imageUrl, imageData);
 
   return (
-    <Card 
+    <Card
       className="!bg-transparent shadow-sm backdrop-blur-sm border rounded-lg"
-      style={{
-        backgroundColor: 'color-mix(in oklch, var(--background) 50%, transparent)',
-        borderColor: 'color-mix(in oklch, var(--border) 85%, transparent)',
-      } as React.CSSProperties}
+      style={
+        {
+          backgroundColor: "color-mix(in oklch, var(--background) 50%, transparent)",
+          borderColor: "color-mix(in oklch, var(--border) 85%, transparent)",
+        } as React.CSSProperties
+      }
     >
       <CardContent className={`flex flex-col items-center ${spacing.gap.base} px-12 relative`}>
         <div className="absolute top-4 right-8 flex items-center justify-end z-10">
@@ -155,7 +134,9 @@ export function VehicleHeaderCard({
 
         <div className="flex flex-col items-center text-center">
           <h2 className={typography.h3}>{name}</h2>
-          <div className="mt-2">{getStatusBadge(condition)}</div>
+          <div className="mt-2">
+            <ConditionBadge status={condition} />
+          </div>
         </div>
 
         <div className={`flex items-center justify-center ${spacing.gap.small} w-full pt-2`}>

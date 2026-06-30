@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   Upload,
   FileSpreadsheet,
   Calendar,
@@ -15,9 +14,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { BackButton } from "@/components/admin/back-button";
 import { Button } from "@/components_shadcn/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components_shadcn/ui/card";
-import { Badge } from "@/components_shadcn/ui/badge";
+import { StatusBadge } from "@/components/ui";
 import {
   Table,
   TableBody,
@@ -72,18 +72,16 @@ export default function BillingImportsPage() {
   };
 
   return (
-    <AdminLayout title="Historial de Importaciones">
+    <AdminLayout
+      title="Historial de Importaciones"
+      leftActions={<BackButton fallbackHref="/billing" />}
+    >
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => router.push("/billing")}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">
-                Historial de Importaciones
-              </h1>
+              <h1 className="text-2xl font-bold tracking-tight">Historial de Importaciones</h1>
               <p className="text-muted-foreground">
                 Consulta todos los lotes de cobranza semanal importados.
               </p>
@@ -178,40 +176,36 @@ export default function BillingImportsPage() {
                   <TableBody>
                     {batches.map((batch) => (
                       <TableRow key={batch.importBatch}>
-                        <TableCell className="font-mono text-xs">
-                          {batch.importBatch}
-                        </TableCell>
+                        <TableCell className="font-mono text-xs">{batch.importBatch}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1.5 text-sm">
                             <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                             {formatDate(batch.createdAt)}
                           </div>
                         </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {batch.total}
-                        </TableCell>
+                        <TableCell className="text-right font-medium">{batch.total}</TableCell>
                         <TableCell className="text-right">
-                          <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                          <StatusBadge tone="success">
+                            <CheckCircle2 />
                             {batch.created}
-                          </Badge>
+                          </StatusBadge>
                         </TableCell>
                         <TableCell className="text-right">
                           {batch.duplicated > 0 ? (
-                            <Badge variant="secondary" className="bg-amber-100 text-amber-700">
-                              <AlertTriangle className="h-3 w-3 mr-1" />
+                            <StatusBadge tone="warning">
+                              <AlertTriangle />
                               {batch.duplicated}
-                            </Badge>
+                            </StatusBadge>
                           ) : (
                             <span className="text-muted-foreground text-sm">0</span>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
                           {batch.errors > 0 ? (
-                            <Badge variant="destructive">
-                              <XCircle className="h-3 w-3 mr-1" />
+                            <StatusBadge tone="danger">
+                              <XCircle />
                               {batch.errors}
-                            </Badge>
+                            </StatusBadge>
                           ) : (
                             <span className="text-muted-foreground text-sm">0</span>
                           )}
@@ -221,7 +215,9 @@ export default function BillingImportsPage() {
                             variant="ghost"
                             size="icon"
                             onClick={() =>
-                              router.push(`/billing/imports/${encodeURIComponent(batch.importBatch)}`)
+                              router.push(
+                                `/billing/imports/${encodeURIComponent(batch.importBatch)}`
+                              )
                             }
                           >
                             <Eye className="h-4 w-4" />

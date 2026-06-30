@@ -51,7 +51,6 @@ const vehicles: FleetVehicleCard[] = [
   },
 ];
 
-
 const createBaseProps = () => ({
   paginatedVehicles: vehicles,
   filteredVehiclesLength: vehicles.length,
@@ -92,5 +91,53 @@ describe("FleetVehicleViews", () => {
     expect(screen.getByRole("columnheader", { name: /VIN/i })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /siguiente/i }));
     expect(props.onPageChange).toHaveBeenCalledWith(2);
+  });
+
+  it("muestra el banner de selección entre páginas y dispara seleccionar todos", async () => {
+    const user = userEvent.setup();
+    const props = createBaseProps();
+    const onSelectAllAcrossPages = vi.fn();
+    render(
+      <FleetVehicleViews
+        {...props}
+        viewMode="list"
+        isSelectMode={true}
+        acrossPagesBanner={{
+          show: true,
+          isAllFilteredSelected: false,
+          pageCount: 2,
+          totalFiltered: 10,
+          remaining: 8,
+        }}
+        onSelectAllAcrossPages={onSelectAllAcrossPages}
+        onRevertAcrossPages={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(/Has seleccionado los/i)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Seleccionar los 10/i }));
+    expect(onSelectAllAcrossPages).toHaveBeenCalledOnce();
+  });
+
+  it("no muestra el banner cuando no hay filas fuera de la página", () => {
+    const props = createBaseProps();
+    render(
+      <FleetVehicleViews
+        {...props}
+        viewMode="list"
+        isSelectMode={true}
+        acrossPagesBanner={{
+          show: false,
+          isAllFilteredSelected: false,
+          pageCount: 2,
+          totalFiltered: 2,
+          remaining: 0,
+        }}
+        onSelectAllAcrossPages={vi.fn()}
+        onRevertAcrossPages={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByText(/Has seleccionado los/i)).not.toBeInTheDocument();
   });
 });

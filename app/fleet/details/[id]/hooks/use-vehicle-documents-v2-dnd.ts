@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { ChangeEvent } from "react";
 import { toast } from "@/lib/toast";
+import { optimizeUpload } from "@/lib/image-compression";
 import type { VehicleDocument, VehicleDocumentCategory } from "@/validations/types";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -52,7 +53,12 @@ interface UseVehicleDocumentsV2Return {
   isCreatingCategory: boolean;
   isUpdatingCategory: boolean;
   isDeletingCategory: boolean;
-  createCategory: (data: { name: string; description?: string; isActive: boolean; order: number }) => Promise<void>;
+  createCategory: (data: {
+    name: string;
+    description?: string;
+    isActive: boolean;
+    order: number;
+  }) => Promise<void>;
   updateCategory: (id: string | number, data: Partial<VehicleDocumentCategory>) => Promise<void>;
   deleteCategory: (id: string | number) => Promise<void>;
   reorderCategories: (reorderedList: VehicleDocumentCategory[]) => Promise<void>;
@@ -217,7 +223,7 @@ export function useVehicleDocumentsV2(vehicleId: string): UseVehicleDocumentsV2R
     const ids: number[] = [];
     for (const file of files) {
       const formData = new FormData();
-      formData.append("files", file);
+      formData.append("files", await optimizeUpload(file));
       const res = await fetch("/api/strapi/upload", {
         method: "POST",
         body: formData,
@@ -431,19 +437,18 @@ export function useVehicleDocumentsV2(vehicleId: string): UseVehicleDocumentsV2R
   const reorderCategories = async (reorderedList: VehicleDocumentCategory[]) => {
     setIsUpdatingCategory(true);
     try {
-      const updates = reorderedList
-        .map((cat, index) => {
-          const newOrder = index + 1;
-          const id = cat.documentId || cat.id;
-          if (cat.order !== newOrder) {
-            return fetch(`/api/vehicle-document-categories-v2/${id}`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ data: { order: newOrder } }),
-            });
-          }
-          return Promise.resolve(new Response(null, { status: 200 }));
-        });
+      const updates = reorderedList.map((cat, index) => {
+        const newOrder = index + 1;
+        const id = cat.documentId || cat.id;
+        if (cat.order !== newOrder) {
+          return fetch(`/api/vehicle-document-categories-v2/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ data: { order: newOrder } }),
+          });
+        }
+        return Promise.resolve(new Response(null, { status: 200 }));
+      });
 
       const results = await Promise.all(updates);
       const failed = results.filter((r) => !r.ok);

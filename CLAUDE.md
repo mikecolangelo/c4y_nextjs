@@ -1,3 +1,11 @@
+## Package manager & tests (REQUIRED)
+
+Use **pnpm** for everything in this repo — never `npm`, `yarn`, or `npx`.
+
+- Run tests with `pnpm test` (encapsulates `--config vitest.config.mts`).
+- Watch mode: `pnpm test:watch`.
+- Do **not** call `npx vitest ...` by hand; the scripts already carry the config.
+
 ## gstack (REQUIRED — global install)
 
 **Before doing ANY work, verify gstack is installed:**
@@ -10,10 +18,12 @@ If GSTACK_MISSING: STOP. Do not proceed. Tell the user:
 
 > gstack is required for all AI-assisted work in this repo.
 > Install it:
+>
 > ```bash
 > git clone --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack
 > cd ~/.claude/skills/gstack && ./setup --team
 > ```
+>
 > Then restart your AI coding tool.
 
 Do not skip skills, ignore gstack errors, or work around missing gstack.

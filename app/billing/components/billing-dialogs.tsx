@@ -1,26 +1,57 @@
 "use client";
 
 import { Button } from "@/components_shadcn/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components_shadcn/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components_shadcn/ui/dialog";
 import { Calendar as CalendarComponent } from "@/components_shadcn/ui/calendar";
 import { Input } from "@/components_shadcn/ui/input";
 import { Label } from "@/components_shadcn/ui/label";
 import { Textarea } from "@/components_shadcn/ui/textarea";
 import { Separator } from "@/components_shadcn/ui/separator";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components_shadcn/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components_shadcn/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components_shadcn/ui/popover";
 import { Switch } from "@/components_shadcn/ui/switch";
 import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
-import { Calendar, Receipt, Hash, Banknote, Calculator, CheckCircle, User, Search, Loader2 } from "lucide-react";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components_shadcn/ui/command";
+import {
+  Calendar,
+  Receipt,
+  Hash,
+  Banknote,
+  Calculator,
+  CheckCircle,
+  User,
+  Search,
+  Loader2,
+} from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components_shadcn/ui/command";
 import { Avatar, AvatarFallback } from "@/components_shadcn/ui/avatar";
 import { spacing, typography } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
+import { getInitials } from "@/lib/format";
 import type { Dispatch, SetStateAction } from "react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import type { BillingStatus } from "@/validations/types";
 
 // Tipo para cliente simplificado
@@ -96,7 +127,7 @@ export function CreateBillingDialog({
   // Cargar contactos del sistema cuando se abre el modal
   useEffect(() => {
     if (!isOpen) return;
-    
+
     const loadUsers = async () => {
       try {
         setIsLoadingClients(true);
@@ -104,13 +135,21 @@ export function CreateBillingDialog({
         if (response.ok) {
           const data = await response.json();
           // Mapear contactos del sistema al formato de ClientOption
-          const mappedUsers: ClientOption[] = (data.data || []).map((user: { id: string; documentId: string; displayName?: string; email?: string; phone?: string }) => ({
-            id: user.id,
-            documentId: user.documentId,
-            fullName: user.displayName || "Sin nombre",
-            email: user.email,
-            phone: user.phone,
-          }));
+          const mappedUsers: ClientOption[] = (data.data || []).map(
+            (user: {
+              id: string;
+              documentId: string;
+              displayName?: string;
+              email?: string;
+              phone?: string;
+            }) => ({
+              id: user.id,
+              documentId: user.documentId,
+              fullName: user.displayName || "Sin nombre",
+              email: user.email,
+              phone: user.phone,
+            })
+          );
           setClients(mappedUsers);
         } else {
           console.error("Error response:", response.status, response.statusText);
@@ -121,7 +160,7 @@ export function CreateBillingDialog({
         setIsLoadingClients(false);
       }
     };
-    
+
     loadUsers();
   }, [isOpen]);
 
@@ -133,15 +172,6 @@ export function CreateBillingDialog({
       clientName: client.fullName,
     }));
     setClientSearchOpen(false);
-  };
-
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
   };
 
   return (
@@ -164,7 +194,7 @@ export function CreateBillingDialog({
                     <User className="h-4 w-4" />
                     Cliente
                   </h3>
-                  
+
                   <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
                     <PopoverTrigger asChild>
                       <Button
@@ -241,7 +271,9 @@ export function CreateBillingDialog({
                     <Input
                       id="invoiceNumber"
                       value={formData.invoiceNumber}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, invoiceNumber: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, invoiceNumber: e.target.value }))
+                      }
                       placeholder="Ej: 2024-001"
                       className="rounded-lg"
                     />
@@ -256,7 +288,9 @@ export function CreateBillingDialog({
                         id="amount"
                         type="number"
                         value={formData.amount}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, amount: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, amount: e.target.value }))
+                        }
                         placeholder="Ej: 350.00"
                         className="rounded-lg"
                         min={0}
@@ -270,7 +304,9 @@ export function CreateBillingDialog({
                       </Label>
                       <Select
                         value={formData.currency}
-                        onValueChange={(value) => setFormData((prev) => ({ ...prev, currency: value }))}
+                        onValueChange={(value) =>
+                          setFormData((prev) => ({ ...prev, currency: value }))
+                        }
                       >
                         <SelectTrigger className="rounded-lg">
                           <SelectValue placeholder="Seleccionar moneda" />
@@ -292,7 +328,9 @@ export function CreateBillingDialog({
                     </Label>
                     <Select
                       value={formData.status}
-                      onValueChange={(value) => setFormData((prev) => ({ ...prev, status: value as BillingStatus }))}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({ ...prev, status: value as BillingStatus }))
+                      }
                     >
                       <SelectTrigger className="rounded-lg">
                         <SelectValue placeholder="Seleccionar estado" />
@@ -328,7 +366,9 @@ export function CreateBillingDialog({
                           id="weeklyQuotaAmount"
                           type="number"
                           value={formData.weeklyQuotaAmount}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, weeklyQuotaAmount: e.target.value }))}
+                          onChange={(e) =>
+                            setFormData((prev) => ({ ...prev, weeklyQuotaAmount: e.target.value }))
+                          }
                           placeholder="225.00"
                           className="rounded-lg pl-9"
                           min={0}
@@ -347,7 +387,9 @@ export function CreateBillingDialog({
                           id="currentQuotaNumber"
                           type="number"
                           value={formData.currentQuotaNumber}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, currentQuotaNumber: e.target.value }))}
+                          onChange={(e) =>
+                            setFormData((prev) => ({ ...prev, currentQuotaNumber: e.target.value }))
+                          }
                           placeholder="1"
                           className="rounded-lg pl-9"
                           min={1}
@@ -364,7 +406,9 @@ export function CreateBillingDialog({
                         id="totalQuotas"
                         type="number"
                         value={formData.totalQuotas}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, totalQuotas: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, totalQuotas: e.target.value }))
+                        }
                         placeholder="220"
                         className="rounded-lg"
                         min={1}
@@ -383,7 +427,9 @@ export function CreateBillingDialog({
                         id="advancePayment"
                         type="number"
                         value={formData.advancePayment}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, advancePayment: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, advancePayment: e.target.value }))
+                        }
                         placeholder="0.00"
                         className="rounded-lg pl-9"
                         min={0}
@@ -410,7 +456,9 @@ export function CreateBillingDialog({
                       <Input
                         id="receiptId"
                         value={formData.receiptId}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, receiptId: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, receiptId: e.target.value }))
+                        }
                         placeholder="Ej: REC-2025-001"
                         className="rounded-lg"
                       />
@@ -423,7 +471,9 @@ export function CreateBillingDialog({
                       <Input
                         id="confirmationNumber"
                         value={formData.confirmationNumber}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, confirmationNumber: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, confirmationNumber: e.target.value }))
+                        }
                         placeholder="Ej: 123456789"
                         className="rounded-lg"
                       />
@@ -432,10 +482,12 @@ export function CreateBillingDialog({
 
                   <div className="flex items-center justify-between rounded-lg border p-4">
                     <div className="flex items-center gap-3">
-                      <CheckCircle className={cn(
-                        "h-5 w-5",
-                        formData.verifiedInBank ? "text-green-600" : "text-muted-foreground"
-                      )} />
+                      <CheckCircle
+                        className={cn(
+                          "h-5 w-5",
+                          formData.verifiedInBank ? "text-green-600" : "text-muted-foreground"
+                        )}
+                      />
                       <div>
                         <Label htmlFor="verifiedInBank" className={typography.body.large}>
                           Verificado en Banco
@@ -448,7 +500,9 @@ export function CreateBillingDialog({
                     <Switch
                       id="verifiedInBank"
                       checked={formData.verifiedInBank}
-                      onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, verifiedInBank: checked }))}
+                      onCheckedChange={(checked) =>
+                        setFormData((prev) => ({ ...prev, verifiedInBank: checked }))
+                      }
                     />
                   </div>
                 </div>
@@ -461,9 +515,7 @@ export function CreateBillingDialog({
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-2">
-                      <Label className={typography.label}>
-                        Fecha de Vencimiento
-                      </Label>
+                      <Label className={typography.label}>Fecha de Vencimiento</Label>
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button
@@ -498,7 +550,10 @@ export function CreateBillingDialog({
                                 const year = date.getFullYear();
                                 const month = String(date.getMonth() + 1).padStart(2, "0");
                                 const day = String(date.getDate()).padStart(2, "0");
-                                setFormData((prev) => ({ ...prev, dueDate: `${year}-${month}-${day}` }));
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  dueDate: `${year}-${month}-${day}`,
+                                }));
                               }
                             }}
                             initialFocus
@@ -508,9 +563,7 @@ export function CreateBillingDialog({
                     </div>
 
                     <div className="flex flex-col gap-2">
-                      <Label className={typography.label}>
-                        Fecha de Pago
-                      </Label>
+                      <Label className={typography.label}>Fecha de Pago</Label>
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button
@@ -545,7 +598,10 @@ export function CreateBillingDialog({
                                 const year = date.getFullYear();
                                 const month = String(date.getMonth() + 1).padStart(2, "0");
                                 const day = String(date.getDate()).padStart(2, "0");
-                                setFormData((prev) => ({ ...prev, paymentDate: `${year}-${month}-${day}` }));
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  paymentDate: `${year}-${month}-${day}`,
+                                }));
                               } else {
                                 setFormData((prev) => ({ ...prev, paymentDate: "" }));
                               }
@@ -583,7 +639,9 @@ export function CreateBillingDialog({
                     <Textarea
                       id="comments"
                       value={formData.comments}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, comments: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, comments: e.target.value }))
+                      }
                       placeholder="Comentarios visibles para el cliente..."
                       rows={2}
                       className="rounded-lg resize-none"
@@ -611,7 +669,9 @@ export function CreateBillingDialog({
             disabled={isCreating || !isFormValid}
             className={cn(
               "font-semibold shadow-md hover:shadow-lg transition-all duration-200",
-              !isCreating && isFormValid && "bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/95 !opacity-100",
+              !isCreating &&
+                isFormValid &&
+                "bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/95 !opacity-100",
               (isCreating || !isFormValid) && "!opacity-50 cursor-not-allowed"
             )}
           >

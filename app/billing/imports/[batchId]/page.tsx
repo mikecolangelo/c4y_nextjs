@@ -1,11 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import {
-  ArrowLeft,
   FileSpreadsheet,
-  Calendar,
   CheckCircle2,
   XCircle,
   AlertTriangle,
@@ -15,9 +13,16 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { BackButton } from "@/components/admin/back-button";
 import { Button } from "@/components_shadcn/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components_shadcn/ui/card";
-import { Badge } from "@/components_shadcn/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components_shadcn/ui/card";
+import { StatusBadge } from "@/components/ui";
 import {
   Table,
   TableBody,
@@ -62,7 +67,6 @@ interface WeeklyCollectionRecord {
 type StatusFilter = "all" | "processed" | "duplicate" | "error";
 
 export default function BillingImportDetailPage() {
-  const router = useRouter();
   const params = useParams();
   const batchId = decodeURIComponent(params.batchId as string);
 
@@ -116,31 +120,31 @@ export default function BillingImportDetailPage() {
     switch (status) {
       case "processed":
         return (
-          <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">
-            <CheckCircle2 className="h-3 w-3 mr-1" />
+          <StatusBadge tone="success">
+            <CheckCircle2 />
             Creado
-          </Badge>
+          </StatusBadge>
         );
       case "duplicate":
         return (
-          <Badge variant="secondary" className="bg-amber-100 text-amber-700">
-            <AlertTriangle className="h-3 w-3 mr-1" />
+          <StatusBadge tone="warning">
+            <AlertTriangle />
             Duplicado
-          </Badge>
+          </StatusBadge>
         );
       case "error":
         return (
-          <Badge variant="destructive">
-            <XCircle className="h-3 w-3 mr-1" />
+          <StatusBadge tone="danger">
+            <XCircle />
             Error
-          </Badge>
+          </StatusBadge>
         );
       default:
         return (
-          <Badge variant="outline">
-            <CheckCircle2 className="h-3 w-3 mr-1" />
+          <StatusBadge tone="neutral">
+            <CheckCircle2 />
             Procesado
-          </Badge>
+          </StatusBadge>
         );
     }
   };
@@ -201,18 +205,14 @@ export default function BillingImportDetailPage() {
   };
 
   return (
-    <AdminLayout title={`Lote: ${batchId}`}>
+    <AdminLayout
+      title={`Lote: ${batchId}`}
+      leftActions={<BackButton fallbackHref="/billing/imports" />}
+    >
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => router.push("/billing/imports")}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
             <div>
               <h1 className="text-2xl font-bold tracking-tight">Detalle del Lote</h1>
               <p className="text-muted-foreground font-mono text-sm">{batchId}</p>
@@ -274,10 +274,10 @@ export default function BillingImportDetailPage() {
                   {statusFilter === "all"
                     ? "Todos"
                     : statusFilter === "processed"
-                    ? "Creados"
-                    : statusFilter === "duplicate"
-                    ? "Duplicados"
-                    : "Errores"}
+                      ? "Creados"
+                      : statusFilter === "duplicate"
+                        ? "Duplicados"
+                        : "Errores"}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -334,9 +334,7 @@ export default function BillingImportDetailPage() {
                     {filteredRecords.map((record, idx) => (
                       <TableRow key={record.documentId || record.id}>
                         <TableCell className="font-mono text-xs">{idx + 1}</TableCell>
-                        <TableCell className="font-medium">
-                          {record.receiptNumber || "—"}
-                        </TableCell>
+                        <TableCell className="font-medium">{record.receiptNumber || "—"}</TableCell>
                         <TableCell>
                           {record.clientName || record.client?.displayName || "—"}
                         </TableCell>

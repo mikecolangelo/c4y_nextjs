@@ -4,9 +4,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { 
-  User, 
-  ChevronRight, 
+import {
+  User,
+  ChevronRight,
   Loader2,
   TrendingUp,
   TrendingDown,
@@ -14,24 +14,26 @@ import {
   Banknote,
   CheckCircle2,
   Clock,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components_shadcn/ui/card";
+import { Card, CardContent } from "@/components_shadcn/ui/card";
 import { Button } from "@/components_shadcn/ui/button";
 import { Badge } from "@/components_shadcn/ui/badge";
+import { StatusBadge, type StatusTone } from "@/components/ui";
 import { Avatar, AvatarFallback } from "@/components_shadcn/ui/avatar";
 import { ScrollArea } from "@/components_shadcn/ui/scroll-area";
 import { Separator } from "@/components_shadcn/ui/separator";
 import { Progress } from "@/components_shadcn/ui/progress";
-import { 
+import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
 } from "@/components_shadcn/ui/dialog";
-import { typography, spacing, components } from "@/lib/design-system";
+import { typography, components } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
+import { getInitials } from "@/lib/format";
 import type { BillingRecordCard } from "@/validations/types";
 
 interface ClientPaymentHistoryProps {
@@ -45,6 +47,7 @@ const statusConfig = {
   pagado: {
     label: "Pagado",
     icon: CheckCircle2,
+    tone: "success" as StatusTone,
     bgColor: "bg-green-50 dark:bg-green-950/30",
     textColor: "text-green-700 dark:text-green-400",
     borderColor: "border-green-200 dark:border-green-800",
@@ -52,6 +55,7 @@ const statusConfig = {
   pendiente: {
     label: "Pendiente",
     icon: Clock,
+    tone: "warning" as StatusTone,
     bgColor: "bg-yellow-50 dark:bg-yellow-950/30",
     textColor: "text-yellow-700 dark:text-yellow-400",
     borderColor: "border-yellow-200 dark:border-yellow-800",
@@ -59,6 +63,7 @@ const statusConfig = {
   abonado: {
     label: "Abonado",
     icon: Banknote,
+    tone: "info" as StatusTone,
     bgColor: "bg-purple-50 dark:bg-purple-950/30",
     textColor: "text-purple-700 dark:text-purple-400",
     borderColor: "border-purple-200 dark:border-purple-800",
@@ -66,6 +71,7 @@ const statusConfig = {
   adelanto: {
     label: "Adelanto",
     icon: Banknote,
+    tone: "info" as StatusTone,
     bgColor: "bg-blue-50 dark:bg-blue-950/30",
     textColor: "text-blue-700 dark:text-blue-400",
     borderColor: "border-blue-200 dark:border-blue-800",
@@ -73,6 +79,7 @@ const statusConfig = {
   retrasado: {
     label: "Retrasado",
     icon: AlertCircle,
+    tone: "danger" as StatusTone,
     bgColor: "bg-red-50 dark:bg-red-950/30",
     textColor: "text-red-700 dark:text-red-400",
     borderColor: "border-red-200 dark:border-red-800",
@@ -92,32 +99,32 @@ export function ClientPaymentHistory({
 
   const loadClientPayments = useCallback(async () => {
     if (!clientDocumentId) return;
-    
+
     try {
       setIsLoading(true);
       setError(null);
-      
+
       // Cargar todos los pagos y filtrar por cliente
       const response = await fetch("/api/billing");
       if (!response.ok) {
         throw new Error("Error al cargar pagos");
       }
-      
+
       const data = await response.json();
       const allPayments = data.data || [];
-      
+
       // Filtrar por cliente
       const clientPayments = allPayments.filter(
         (p: BillingRecordCard) => p.clientDocumentId === clientDocumentId
       );
-      
+
       // Ordenar por fecha (más reciente primero)
       clientPayments.sort((a: BillingRecordCard, b: BillingRecordCard) => {
         const dateA = new Date(a.paymentDate || a.dueDate || 0);
         const dateB = new Date(b.paymentDate || b.dueDate || 0);
         return dateB.getTime() - dateA.getTime();
       });
-      
+
       setPayments(clientPayments);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
@@ -149,15 +156,6 @@ export function ClientPaymentHistory({
     }
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
   // Calcular estadísticas
   const stats = {
     total: payments.length,
@@ -173,9 +171,7 @@ export function ClientPaymentHistory({
       .reduce((sum, p) => sum + p.amount, 0),
   };
 
-  const progressPercentage = stats.total > 0 
-    ? Math.round((stats.pagados / stats.total) * 100) 
-    : 0;
+  const progressPercentage = stats.total > 0 ? Math.round((stats.pagados / stats.total) * 100) : 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -188,9 +184,7 @@ export function ClientPaymentHistory({
               </AvatarFallback>
             </Avatar>
             <div>
-              <DialogTitle className={typography.h3}>
-                Historial de Pagos
-              </DialogTitle>
+              <DialogTitle className={typography.h3}>Historial de Pagos</DialogTitle>
               <DialogDescription className="flex items-center gap-2 mt-1">
                 <User className="h-3 w-3" />
                 {clientName}
@@ -225,7 +219,7 @@ export function ClientPaymentHistory({
                       </span>
                     </div>
                     <Progress value={progressPercentage} className="h-2" />
-                    
+
                     {/* Estadísticas */}
                     <div className="grid grid-cols-2 gap-4 mt-2">
                       <div className="flex items-center gap-2">
@@ -251,24 +245,24 @@ export function ClientPaymentHistory({
                     {/* Badges de estado */}
                     <div className="flex flex-wrap gap-2">
                       {stats.pagados > 0 && (
-                        <Badge className={cn(statusConfig.pagado.bgColor, statusConfig.pagado.textColor, "border", statusConfig.pagado.borderColor)}>
+                        <StatusBadge tone={statusConfig.pagado.tone}>
                           {stats.pagados} pagados
-                        </Badge>
+                        </StatusBadge>
                       )}
                       {stats.adelantos > 0 && (
-                        <Badge className={cn(statusConfig.adelanto.bgColor, statusConfig.adelanto.textColor, "border", statusConfig.adelanto.borderColor)}>
+                        <StatusBadge tone={statusConfig.adelanto.tone}>
                           {stats.adelantos} adelantos
-                        </Badge>
+                        </StatusBadge>
                       )}
                       {stats.pendientes > 0 && (
-                        <Badge className={cn(statusConfig.pendiente.bgColor, statusConfig.pendiente.textColor, "border", statusConfig.pendiente.borderColor)}>
+                        <StatusBadge tone={statusConfig.pendiente.tone}>
                           {stats.pendientes} pendientes
-                        </Badge>
+                        </StatusBadge>
                       )}
                       {stats.retrasados > 0 && (
-                        <Badge className={cn(statusConfig.retrasado.bgColor, statusConfig.retrasado.textColor, "border", statusConfig.retrasado.borderColor)}>
+                        <StatusBadge tone={statusConfig.retrasado.tone}>
                           {stats.retrasados} retrasados
-                        </Badge>
+                        </StatusBadge>
                       )}
                     </div>
                   </div>
@@ -282,7 +276,9 @@ export function ClientPaymentHistory({
                 {payments.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                     <Banknote className="h-12 w-12 mb-2 opacity-50" />
-                    <p className={typography.body.base}>No hay pagos registrados para este cliente</p>
+                    <p className={typography.body.base}>
+                      No hay pagos registrados para este cliente
+                    </p>
                   </div>
                 ) : (
                   <div className="flex flex-col gap-3">
@@ -304,12 +300,14 @@ export function ClientPaymentHistory({
                           }}
                         >
                           <div className="flex items-center gap-3">
-                            <div className={cn(
-                              "h-8 w-8 rounded-full flex items-center justify-center",
-                              config.bgColor,
-                              "border",
-                              config.borderColor
-                            )}>
+                            <div
+                              className={cn(
+                                "h-8 w-8 rounded-full flex items-center justify-center",
+                                config.bgColor,
+                                "border",
+                                config.borderColor
+                              )}
+                            >
                               <StatusIcon className={cn("h-4 w-4", config.textColor)} />
                             </div>
                             <div>
@@ -325,15 +323,16 @@ export function ClientPaymentHistory({
                               </div>
                               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                 <Calendar className="h-3 w-3" />
-                                {payment.paymentDate 
+                                {payment.paymentDate
                                   ? `Pagado: ${formatDate(payment.paymentDate)}`
-                                  : `Vence: ${formatDate(payment.dueDate)}`
-                                }
+                                  : `Vence: ${formatDate(payment.dueDate)}`}
                               </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className={cn(typography.body.large, "font-bold", config.textColor)}>
+                            <span
+                              className={cn(typography.body.large, "font-bold", config.textColor)}
+                            >
                               {payment.amountLabel}
                             </span>
                             <ChevronRight className="h-4 w-4 text-muted-foreground" />

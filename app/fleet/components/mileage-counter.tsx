@@ -4,10 +4,21 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components_shadcn/ui/button";
 import { Input } from "@/components_shadcn/ui/input";
 import { Label } from "@/components_shadcn/ui/label";
-import { Gauge, AlertTriangle, Loader2, RotateCcw, History, User, Wrench, ClipboardList } from "lucide-react";
+import {
+  Gauge,
+  AlertTriangle,
+  Loader2,
+  RotateCcw,
+  History,
+  User,
+  Wrench,
+  ClipboardList,
+  Trash2,
+} from "lucide-react";
 import { MaintenanceOrderDialog } from "./maintenance-order-dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
+import { computeNewMileage, pickHistoryHighlightKey } from "./mileage-utils";
 import type { FleetMileageHistoryItem } from "@/validations/types";
 import {
   Dialog,
@@ -56,17 +67,23 @@ export function MileageCounter({
   const remainingKm = Math.max(0, localInterval - distanceSinceLastOilChange);
   const progressPercent = Math.min(100, (distanceSinceLastOilChange / localInterval) * 100);
 
-  const isWarning = distanceSinceLastOilChange >= warningThreshold && distanceSinceLastOilChange < localInterval;
+  const isWarning =
+    distanceSinceLastOilChange >= warningThreshold && distanceSinceLastOilChange < localInterval;
   const isDanger = distanceSinceLastOilChange >= localInterval;
 
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   const [showMileageDialog, setShowMileageDialog] = useState(false);
   const [newMileage, setNewMileage] = useState("");
+  // "set" = establecer el kilometraje total final; "add" = sumar X km al actual
+  const [updateMode, setUpdateMode] = useState<"set" | "add">("set");
 
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [history, setHistory] = useState<FleetMileageHistoryItem[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  // Kilometraje a resaltar al abrir el historial desde un estado del vehículo
+  const [highlightMileage, setHighlightMileage] = useState<number | null>(null);
+  const highlightRowRef = useRef<HTMLDivElement | null>(null);
 
   const [showMaintenanceDialog, setShowMaintenanceDialog] = useState(false);
 
@@ -86,9 +103,71 @@ export function MileageCounter({
   }, [vehicleId]);
 
   const handleOpenHistoryDialog = useCallback(() => {
+    setHighlightMileage(null);
     setShowHistoryDialog(true);
     loadHistory();
   }, [loadHistory]);
+
+  // Abrir el historial y resaltar un kilometraje al recibir el evento desde un
+  // estado del vehículo ("Ver en historial").
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      const m = typeof detail?.mileage === "number" ? detail.mileage : null;
+      setHighlightMileage(m);
+      setShowHistoryDialog(true);
+      loadHistory();
+    };
+    window.addEventListener("c4y:open-mileage-history", handler as EventListener);
+    return () => window.removeEventListener("c4y:open-mileage-history", handler as EventListener);
+  }, [loadHistory]);
+
+  // Identifica el item del historial más cercano al kilometraje a resaltar.
+  const highlightTargetKey = pickHistoryHighlightKey(history, highlightMileage);
+
+  // Hacer scroll al item resaltado cuando el historial está listo.
+  useEffect(() => {
+    if (
+      showHistoryDialog &&
+      highlightMileage != null &&
+      !isLoadingHistory &&
+      highlightRowRef.current
+    ) {
+      highlightRowRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [showHistoryDialog, highlightMileage, isLoadingHistory, history]);
+
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDeleteHistoryEntry = useCallback(
+    async (recordId: string) => {
+      setDeletingId(recordId);
+      try {
+        const res = await fetch(
+          `/api/fleet/${vehicleId}/mileage?recordId=${encodeURIComponent(recordId)}`,
+          { method: "DELETE" }
+        );
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || `Error del servidor: ${res.status}`);
+        }
+        const result = await res.json().catch(() => ({}));
+        // Si el backend recalculó el kilometraje actual, reflejarlo en el pill
+        if (result?.data?.currentMileage !== undefined && result.data.currentMileage !== null) {
+          setLocalMileage(result.data.currentMileage);
+        }
+        toast.success("Registro de kilometraje eliminado");
+        await loadHistory();
+        if (onMileageUpdated) onMileageUpdated();
+      } catch (error) {
+        console.error("Error eliminando registro de kilometraje:", error);
+        toast.error(error instanceof Error ? error.message : "No se pudo eliminar el registro");
+      } finally {
+        setDeletingId(null);
+      }
+    },
+    [vehicleId, loadHistory, onMileageUpdated]
+  );
 
   const handleResetOilChange = useCallback(async () => {
     if (isLoading || isProcessingRef.current) {
@@ -103,19 +182,32 @@ export function MileageCounter({
       toast.info("Ya hay una operación en curso, espera un momento");
       return;
     }
+    setUpdateMode("set");
     setNewMileage(localMileage.toString());
     setShowMileageDialog(true);
     loadHistory();
   }, [isLoading, localMileage, loadHistory]);
 
   const handleConfirmMileageUpdate = useCallback(async () => {
-    const mileageValue = parseInt(newMileage, 10);
-    if (isNaN(mileageValue) || mileageValue < 0) {
-      toast.error("Por favor ingrese un kilometraje válido (entero >= 0)");
+    const raw = parseInt(newMileage, 10);
+    if (isNaN(raw) || raw < 0) {
+      toast.error(
+        updateMode === "add"
+          ? "Ingrese una cantidad de km válida (entero >= 0)"
+          : "Por favor ingrese un kilometraje válido (entero >= 0)"
+      );
       return;
     }
 
-    if (mileageValue < localMileage) {
+    if (updateMode === "add" && raw <= 0) {
+      toast.error("La cantidad a sumar debe ser mayor a 0");
+      return;
+    }
+
+    // En modo "add" el valor final es el actual + la cantidad ingresada
+    const mileageValue = computeNewMileage(updateMode, raw, localMileage);
+
+    if (mileageValue === null) {
       toast.error("El kilometraje no puede ser menor al actual", {
         description: `Kilometraje actual: ${formatNumber(localMileage)} km`,
       });
@@ -141,7 +233,9 @@ export function MileageCounter({
       const data = result.data;
       setLocalMileage(data.newMileage);
 
-      toast.success(`Kilometraje actualizado para ${vehicleName}: ${formatNumber(data.newMileage)} km`);
+      toast.success(
+        `Kilometraje actualizado para ${vehicleName}: ${formatNumber(data.newMileage)} km`
+      );
 
       if (onMileageUpdated) onMileageUpdated();
 
@@ -161,7 +255,7 @@ export function MileageCounter({
         isProcessingRef.current = false;
       }, 300);
     }
-  }, [newMileage, vehicleId, vehicleName, onMileageUpdated, localMileage]);
+  }, [newMileage, vehicleId, vehicleName, onMileageUpdated, localMileage, updateMode]);
 
   const handleConfirmReset = useCallback(async () => {
     isProcessingRef.current = true;
@@ -196,7 +290,9 @@ export function MileageCounter({
       setShowConfirmDialog(false);
     } catch (error) {
       console.error("Error registrando cambio de aceite:", error);
-      toast.error(error instanceof Error ? error.message : "No se pudo registrar el cambio de aceite");
+      toast.error(
+        error instanceof Error ? error.message : "No se pudo registrar el cambio de aceite"
+      );
     } finally {
       setIsLoading(false);
       setTimeout(() => {
@@ -252,7 +348,9 @@ export function MileageCounter({
             <Gauge className="h-3.5 w-3.5" />
             <span>{formatNumber(localMileage)} km</span>
             {(isWarning || isDanger) && (
-              <AlertTriangle className={cn("h-3.5 w-3.5", isDanger ? "text-red-500" : "text-yellow-500")} />
+              <AlertTriangle
+                className={cn("h-3.5 w-3.5", isDanger ? "text-red-500" : "text-yellow-500")}
+              />
             )}
           </div>
           <div className="flex items-center gap-1">
@@ -361,14 +459,18 @@ export function MileageCounter({
           <div className="flex justify-between text-xs">
             <span
               className={cn(
-                isDanger ? "text-red-600 font-medium" : isWarning ? "text-yellow-600" : "text-muted-foreground"
+                isDanger
+                  ? "text-red-600 font-medium"
+                  : isWarning
+                    ? "text-yellow-600"
+                    : "text-muted-foreground"
               )}
             >
               {isDanger
                 ? `⚠️ Superado por ${formatNumber(distanceSinceLastOilChange - localInterval)} km`
                 : isWarning
-                ? `⚡ Restan ${formatNumber(remainingKm)} km`
-                : `✓ ${formatNumber(remainingKm)} km restantes`}
+                  ? `⚡ Restan ${formatNumber(remainingKm)} km`
+                  : `✓ ${formatNumber(remainingKm)} km restantes`}
             </span>
           </div>
         </div>
@@ -458,10 +560,16 @@ export function MileageCounter({
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Confirmar Cambio de Aceite</DialogTitle>
-            <DialogDescription>¿Confirmas que el cambio de aceite ha sido realizado?</DialogDescription>
+            <DialogDescription>
+              ¿Confirmas que el cambio de aceite ha sido realizado?
+            </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowConfirmDialog(false)} disabled={isLoading}>
+            <Button
+              variant="outline"
+              onClick={() => setShowConfirmDialog(false)}
+              disabled={isLoading}
+            >
               Cancelar
             </Button>
             <Button onClick={handleConfirmReset} disabled={isLoading}>
@@ -477,13 +585,45 @@ export function MileageCounter({
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Actualizar Kilometraje</DialogTitle>
-            <DialogDescription>Ingrese el nuevo valor de kilometraje para {vehicleName}</DialogDescription>
+            <DialogDescription>
+              Ingrese el nuevo valor de kilometraje para {vehicleName}
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            {/* Selector de modo: establecer total final o sumar X km */}
+            <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-1">
+              <Button
+                type="button"
+                variant={updateMode === "set" ? "default" : "ghost"}
+                size="sm"
+                className="h-8 text-xs font-semibold"
+                onClick={() => {
+                  setUpdateMode("set");
+                  setNewMileage(localMileage.toString());
+                }}
+              >
+                Establecer total
+              </Button>
+              <Button
+                type="button"
+                variant={updateMode === "add" ? "default" : "ghost"}
+                size="sm"
+                className="h-8 text-xs font-semibold"
+                onClick={() => {
+                  setUpdateMode("add");
+                  setNewMileage("");
+                }}
+              >
+                Sumar (+km)
+              </Button>
+            </div>
+
             <div className="grid gap-2">
               <Label htmlFor="newMileage" className="flex items-center gap-2">
                 <Gauge className="h-4 w-4" />
-                Nuevo kilometraje (km)
+                {updateMode === "add"
+                  ? "Kilómetros a sumar (+km)"
+                  : "Kilometraje actual final (km)"}
               </Label>
               <Input
                 id="newMileage"
@@ -496,7 +636,18 @@ export function MileageCounter({
                 className="col-span-3"
                 autoFocus
               />
-              <p className="text-xs text-muted-foreground">Kilometraje actual: {formatNumber(localMileage)} km</p>
+              <p className="text-xs text-muted-foreground">
+                Kilometraje actual: {formatNumber(localMileage)} km
+                {updateMode === "add" && newMileage && !isNaN(parseInt(newMileage, 10)) && (
+                  <>
+                    {" "}
+                    → Nuevo total:{" "}
+                    <span className="font-semibold text-foreground">
+                      {formatNumber(localMileage + Math.max(0, parseInt(newMileage, 10) || 0))} km
+                    </span>
+                  </>
+                )}
+              </p>
             </div>
 
             <div className="grid gap-2">
@@ -529,9 +680,13 @@ export function MileageCounter({
                               </span>
                             ) : (
                               <>
-                                <span className="text-sm font-medium">{formatNumber(item.previousMileage)} km</span>
+                                <span className="text-sm font-medium">
+                                  {formatNumber(item.previousMileage)} km
+                                </span>
                                 <span className="text-xs text-muted-foreground">→</span>
-                                <span className="text-sm font-bold text-primary">{formatNumber(item.newMileage)} km</span>
+                                <span className="text-sm font-bold text-primary">
+                                  {formatNumber(item.newMileage)} km
+                                </span>
                                 {diff > 0 && (
                                   <span className="text-xs font-medium text-green-600 bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded">
                                     +{formatNumber(diff)} km
@@ -568,7 +723,11 @@ export function MileageCounter({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowMileageDialog(false)} disabled={isLoading}>
+            <Button
+              variant="outline"
+              onClick={() => setShowMileageDialog(false)}
+              disabled={isLoading}
+            >
               Cancelar
             </Button>
             <Button onClick={handleConfirmMileageUpdate} disabled={isLoading}>
@@ -594,14 +753,22 @@ export function MileageCounter({
       />
 
       {/* Diálogo para ver historial completo */}
-      <Dialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
+      <Dialog
+        open={showHistoryDialog}
+        onOpenChange={(open) => {
+          setShowHistoryDialog(open);
+          if (!open) setHighlightMileage(null);
+        }}
+      >
         <DialogContent className="sm:max-w-[550px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <History className="h-5 w-5" />
               Historial de Kilometraje
             </DialogTitle>
-            <DialogDescription>Registro de todos los cambios de kilometraje para {vehicleName}</DialogDescription>
+            <DialogDescription>
+              Registro de todos los cambios de kilometraje para {vehicleName}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="py-4">
@@ -614,17 +781,26 @@ export function MileageCounter({
               <div className="text-center py-8 text-muted-foreground">
                 <History className="h-10 w-10 mx-auto mb-3 opacity-50" />
                 <p className="text-sm">No hay registros de cambios de kilometraje aún.</p>
-                <p className="text-xs mt-1">Los cambios se guardarán automáticamente cada vez que actualices el kilometraje.</p>
+                <p className="text-xs mt-1">
+                  Los cambios se guardarán automáticamente cada vez que actualices el kilometraje.
+                </p>
               </div>
             ) : (
               <div className="space-y-3">
                 {history.map((item, index) => {
                   const diff = item.newMileage - item.previousMileage;
                   const isOilChange = item.changeType === "oil_change_reset";
+                  const itemKey = item.documentId ?? String(item.id);
+                  const isHighlighted =
+                    highlightTargetKey != null && itemKey === highlightTargetKey;
                   return (
                     <div
                       key={item.id}
-                      className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                      ref={isHighlighted ? highlightRowRef : undefined}
+                      className={cn(
+                        "flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors",
+                        isHighlighted && "border-primary ring-2 ring-primary/40 bg-primary/5"
+                      )}
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -635,9 +811,13 @@ export function MileageCounter({
                             </span>
                           ) : (
                             <>
-                              <span className="text-sm font-medium">{formatNumber(item.previousMileage)} km</span>
+                              <span className="text-sm font-medium">
+                                {formatNumber(item.previousMileage)} km
+                              </span>
                               <span className="text-xs text-muted-foreground">→</span>
-                              <span className="text-sm font-bold text-primary">{formatNumber(item.newMileage)} km</span>
+                              <span className="text-sm font-bold text-primary">
+                                {formatNumber(item.newMileage)} km
+                              </span>
                               {diff > 0 && (
                                 <span className="text-xs font-medium text-green-600 bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded">
                                   +{formatNumber(diff)} km
@@ -669,11 +849,29 @@ export function MileageCounter({
                           <p className="text-xs text-muted-foreground mt-1 italic">{item.notes}</p>
                         )}
                       </div>
-                      {index === 0 && (
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-primary bg-primary/10 px-2 py-1 rounded-full shrink-0 ml-2">
-                          Último
-                        </span>
-                      )}
+                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                        {index === 0 && (
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-primary bg-primary/10 px-2 py-1 rounded-full">
+                            Último
+                          </span>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                          onClick={() =>
+                            handleDeleteHistoryEntry(item.documentId ?? String(item.id))
+                          }
+                          disabled={deletingId === (item.documentId ?? String(item.id))}
+                          aria-label="Eliminar registro de kilometraje"
+                        >
+                          {deletingId === (item.documentId ?? String(item.id)) ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   );
                 })}

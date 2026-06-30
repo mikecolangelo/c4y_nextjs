@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { ChangeEvent } from "react";
 import { toast } from "@/lib/toast";
+import { compressImage } from "@/lib/image-compression";
 
 export interface UseVehicleImageReturn {
   // Estados
@@ -11,7 +12,7 @@ export interface UseVehicleImageReturn {
   shouldRemoveImage: boolean;
   isUploading: boolean;
   uploadProgress: number;
-  
+
   // Métodos
   handleImageInputChange: (event: ChangeEvent<HTMLInputElement>) => void;
   handleRemoveImage: () => void;
@@ -22,13 +23,7 @@ export interface UseVehicleImageReturn {
 }
 
 // Tipos de imagen permitidos
-const VALID_IMAGE_TYPES = [
-  "image/jpeg",
-  "image/jpg",
-  "image/png",
-  "image/gif",
-  "image/webp",
-];
+const VALID_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
 
 // Tamaño máximo: 10MB
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -39,7 +34,7 @@ export function useVehicleImage(initialImageUrl?: string | null): UseVehicleImag
   const [shouldRemoveImage, setShouldRemoveImage] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  
+
   // Ref para limpiar objectURLs
   const objectUrlRef = useRef<string | null>(null);
 
@@ -61,7 +56,7 @@ export function useVehicleImage(initialImageUrl?: string | null): UseVehicleImag
     if (objectUrlRef.current) {
       URL.revokeObjectURL(objectUrlRef.current);
     }
-    
+
     const objectUrl = URL.createObjectURL(file);
     objectUrlRef.current = objectUrl;
     return objectUrl;
@@ -75,66 +70,69 @@ export function useVehicleImage(initialImageUrl?: string | null): UseVehicleImag
     if (!VALID_IMAGE_TYPES.includes(file.type)) {
       return `Tipo de archivo no válido: ${file.type}. Solo se permiten: JPG, PNG, GIF, WebP.`;
     }
-    
+
     // Validar tamaño
     if (file.size > MAX_FILE_SIZE) {
       return `Archivo demasiado grande: ${(file.size / 1024 / 1024).toFixed(2)}MB. Máximo: 10MB.`;
     }
-    
+
     return null;
   }, []);
 
   /**
    * Manejar selección de imagen desde input file
    */
-  const handleImageInputChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    
-    if (!file) {
-      console.log("[useVehicleImage] No se seleccionó ningún archivo");
-      return;
-    }
+  const handleImageInputChange = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
 
-    console.log("[useVehicleImage] Archivo seleccionado:", {
-      name: file.name,
-      type: file.type,
-      size: `${(file.size / 1024).toFixed(2)}KB`,
-    });
+      if (!file) {
+        console.log("[useVehicleImage] No se seleccionó ningún archivo");
+        return;
+      }
 
-    // Validar
-    const error = validateImageFile(file);
-    if (error) {
-      toast.error("Error de validación", { description: error });
-      event.target.value = ""; // Limpiar input
-      return;
-    }
+      console.log("[useVehicleImage] Archivo seleccionado:", {
+        name: file.name,
+        type: file.type,
+        size: `${(file.size / 1024).toFixed(2)}KB`,
+      });
 
-    // Crear preview y guardar archivo
-    const preview = createImagePreview(file);
-    setImagePreview(preview);
-    setSelectedImageFile(file);
-    setShouldRemoveImage(false);
-    
-    toast.success("Imagen seleccionada", {
-      description: `${file.name} (${(file.size / 1024).toFixed(1)}KB)`,
-    });
+      // Validar
+      const error = validateImageFile(file);
+      if (error) {
+        toast.error("Error de validación", { description: error });
+        event.target.value = ""; // Limpiar input
+        return;
+      }
 
-    // Limpiar input para permitir seleccionar el mismo archivo de nuevo
-    event.target.value = "";
-  }, [validateImageFile, createImagePreview]);
+      // Crear preview y guardar archivo
+      const preview = createImagePreview(file);
+      setImagePreview(preview);
+      setSelectedImageFile(file);
+      setShouldRemoveImage(false);
+
+      toast.success("Imagen seleccionada", {
+        description: `${file.name} (${(file.size / 1024).toFixed(1)}KB)`,
+      });
+
+      // Limpiar input para permitir seleccionar el mismo archivo de nuevo
+      event.target.value = "";
+    },
+    [validateImageFile, createImagePreview]
+  );
 
   /**
    * Marcar imagen para eliminar
    */
   const handleRemoveImage = useCallback(() => {
     console.log("[useVehicleImage] Marcando imagen para eliminar");
-    
+
     // Limpiar preview si es objectURL
     if (objectUrlRef.current && imagePreview?.startsWith("blob:")) {
       URL.revokeObjectURL(objectUrlRef.current);
       objectUrlRef.current = null;
     }
-    
+
     setImagePreview(null);
     setSelectedImageFile(null);
     setShouldRemoveImage(true);
@@ -145,13 +143,13 @@ export function useVehicleImage(initialImageUrl?: string | null): UseVehicleImag
    */
   const handleRestoreOriginalImage = useCallback((originalImageUrl: string | null) => {
     console.log("[useVehicleImage] Restaurando imagen original:", originalImageUrl);
-    
+
     // Limpiar objectURL si existe
     if (objectUrlRef.current) {
       URL.revokeObjectURL(objectUrlRef.current);
       objectUrlRef.current = null;
     }
-    
+
     setImagePreview(originalImageUrl);
     setSelectedImageFile(null);
     setShouldRemoveImage(false);
@@ -178,8 +176,8 @@ export function useVehicleImage(initialImageUrl?: string | null): UseVehicleImag
 
     try {
       const formData = new FormData();
-      formData.append("files", selectedImageFile);
-      
+      formData.append("files", await compressImage(selectedImageFile));
+
       console.log("[useVehicleImage] Iniciando subida...", {
         fileName: selectedImageFile.name,
         fileSize: selectedImageFile.size,
@@ -198,7 +196,7 @@ export function useVehicleImage(initialImageUrl?: string | null): UseVehicleImag
 
       if (!response.ok) {
         let errorMessage = `Error ${response.status}: No se pudo subir la imagen`;
-        
+
         try {
           const errorData = await response.json();
           errorMessage = errorData?.error || errorMessage;
@@ -206,7 +204,7 @@ export function useVehicleImage(initialImageUrl?: string | null): UseVehicleImag
         } catch {
           // Usar mensaje por defecto
         }
-        
+
         throw new Error(errorMessage);
       }
 
@@ -222,13 +220,12 @@ export function useVehicleImage(initialImageUrl?: string | null): UseVehicleImag
 
       toast.success("Imagen subida correctamente");
       return result.data.id;
-
     } catch (error) {
       console.error("[useVehicleImage] Error subiendo imagen:", error);
-      
+
       const message = error instanceof Error ? error.message : "Error desconocido al subir imagen";
       toast.error("Error al subir imagen", { description: message });
-      
+
       throw error;
     } finally {
       setIsUploading(false);
@@ -241,13 +238,13 @@ export function useVehicleImage(initialImageUrl?: string | null): UseVehicleImag
    */
   const resetImageState = useCallback((newImageUrl?: string | null) => {
     console.log("[useVehicleImage] Resetear estado:", newImageUrl);
-    
+
     // Limpiar objectURL si existe
     if (objectUrlRef.current) {
       URL.revokeObjectURL(objectUrlRef.current);
       objectUrlRef.current = null;
     }
-    
+
     setImagePreview(newImageUrl ?? null);
     setSelectedImageFile(null);
     setShouldRemoveImage(false);
@@ -263,7 +260,7 @@ export function useVehicleImage(initialImageUrl?: string | null): UseVehicleImag
       URL.revokeObjectURL(objectUrlRef.current);
       objectUrlRef.current = null;
     }
-    
+
     setSelectedImageFile(null);
     setShouldRemoveImage(false);
   }, [imagePreview]);
@@ -275,7 +272,7 @@ export function useVehicleImage(initialImageUrl?: string | null): UseVehicleImag
     shouldRemoveImage,
     isUploading,
     uploadProgress,
-    
+
     // Métodos
     handleImageInputChange,
     handleRemoveImage,

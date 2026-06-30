@@ -1,4 +1,4 @@
-import { getCurrentUserProfile, type CurrentUserProfile } from "./auth";
+import { getCurrentUserProfileViaJwt, type CurrentUserProfile } from "./auth";
 
 /**
  * Roles permitidos para acceder al módulo de Flota y operaciones administrativas.
@@ -26,7 +26,7 @@ export async function requireAdmin(): Promise<{
   role: string;
   profile: CurrentUserProfile;
 }> {
-  const profile = await getCurrentUserProfile();
+  const profile = await getCurrentUserProfileViaJwt();
 
   if (!profile || !ALLOWED_ROLES.includes(profile.role)) {
     throw new AdminRequiredError();

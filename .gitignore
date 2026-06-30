@@ -51,3 +51,13 @@ next-env.d.ts
 
 *.log
 
+# Backup / scratch files
+*.bak
+*.bak.*
+*.old
+*.orig
+*.tmp
+
+
+# Local env with secrets (token) — never commit
+.env.development
