@@ -303,10 +303,28 @@ export interface AppointmentRawAttributes {
   location?: string;
   contactPhone?: string;
   contactEmail?: string;
-  client?: { data?: { id: number; documentId?: string; attributes?: { fullName?: string; email?: string; phone?: string } } } | ClientData;
-  vehicle?: { data?: { id: number; documentId?: string; attributes?: { name?: string; placa?: string } } } | VehicleData;
+  client?:
+    | {
+        data?: {
+          id: number;
+          documentId?: string;
+          attributes?: { fullName?: string; email?: string; phone?: string };
+        };
+      }
+    | ClientData;
+  vehicle?:
+    | { data?: { id: number; documentId?: string; attributes?: { name?: string; placa?: string } } }
+    | VehicleData;
   deal?: { data?: { id: number; documentId?: string; attributes?: { title?: string } } } | DealData;
-  assignedTo?: { data?: { id: number; documentId?: string; attributes?: { displayName?: string; email?: string } } } | AssignedToData;
+  assignedTo?:
+    | {
+        data?: {
+          id: number;
+          documentId?: string;
+          attributes?: { displayName?: string; email?: string };
+        };
+      }
+    | AssignedToData;
   serviceOrder?: { data?: { id: number; documentId?: string } } | ServiceOrderData;
 }
 
@@ -517,7 +535,11 @@ export interface FleetVehicleRawAttributes {
   oilChangeInterval?: number;
   lastOilChangeMileage?: number;
   oilChangeNotificationSent?: boolean;
-  image?: FleetVehicleImage | { data?: { id?: number; attributes?: FleetVehicleImage } | null } | number | null;
+  image?:
+    | FleetVehicleImage
+    | { data?: { id?: number; attributes?: FleetVehicleImage } | null }
+    | number
+    | null;
   responsables?: Array<{
     id?: number;
     documentId?: string;
@@ -670,6 +692,8 @@ export interface VehicleState {
     alternativeText?: string;
   }>;
   authorDocumentId?: string;
+  /** Kilometraje del vehículo al registrar el estado (ancla con el historial). */
+  mileage?: number;
   author?: {
     id?: number;
     documentId?: string;
@@ -720,7 +744,15 @@ export interface FleetVehicleUpdatePayload {
 }
 
 // Recurrence Pattern Types
-export type RecurrencePattern = "daily" | "weekly" | "biweekly" | "monthly" | "bimonthly" | "quarterly" | "semiannual" | "annual";
+export type RecurrencePattern =
+  | "daily"
+  | "weekly"
+  | "biweekly"
+  | "monthly"
+  | "bimonthly"
+  | "quarterly"
+  | "semiannual"
+  | "annual";
 
 // Strapi Image Type
 export interface StrapiImage {
@@ -747,9 +779,33 @@ export interface ServiceOrderRawAttributes {
   completedDate?: string;
   notes?: string;
   totalCost?: number;
-  service?: { data?: { id: number; documentId?: string; attributes?: { name?: string; price?: number; coverage?: string } } } | { id?: number; documentId?: string; name?: string; price?: number; coverage?: string };
-  fleet?: { data?: { id: number; documentId?: string; attributes?: { name?: string; vin?: string; placa?: string } } } | { id?: number; documentId?: string; name?: string; vin?: string; placa?: string };
-  createdBy?: { data?: { id: number; documentId?: string; attributes?: { displayName?: string; email?: string } } } | { id?: number; documentId?: string; displayName?: string; email?: string };
+  service?:
+    | {
+        data?: {
+          id: number;
+          documentId?: string;
+          attributes?: { name?: string; price?: number; coverage?: string };
+        };
+      }
+    | { id?: number; documentId?: string; name?: string; price?: number; coverage?: string };
+  fleet?:
+    | {
+        data?: {
+          id: number;
+          documentId?: string;
+          attributes?: { name?: string; vin?: string; placa?: string };
+        };
+      }
+    | { id?: number; documentId?: string; name?: string; vin?: string; placa?: string };
+  createdBy?:
+    | {
+        data?: {
+          id: number;
+          documentId?: string;
+          attributes?: { displayName?: string; email?: string };
+        };
+      }
+    | { id?: number; documentId?: string; displayName?: string; email?: string };
 }
 
 export interface ServiceOrderRaw {
@@ -911,7 +967,13 @@ export interface VehicleDocumentPayload {
 }
 
 // Reminder Types
-export type ReminderModule = "fleet" | "calendar" | "billing" | "contracts" | "inventory" | "services";
+export type ReminderModule =
+  | "fleet"
+  | "calendar"
+  | "billing"
+  | "contracts"
+  | "inventory"
+  | "services";
 export type ReminderType = "unique" | "recurring";
 
 export interface FleetReminder {

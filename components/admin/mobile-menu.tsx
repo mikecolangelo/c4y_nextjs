@@ -1,7 +1,6 @@
 "use client";
 
-import type { ComponentType } from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
@@ -13,87 +12,33 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components_shadcn/ui/sheet";
-import {
-  Users,
-  Settings,
-  Package,
-  Car,
-  CreditCard,
-  Cog,
-  BarChart3,
-} from "lucide-react";
 import { spacing, typography } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
 import { resolveNavHref } from "@/lib/permissions";
 import { useMyPermissions } from "@/lib/use-my-permissions";
+import { useMenuOrder } from "@/lib/use-menu-order";
+import { adminNavSections, sortMenuItemsByOrder, isHiddenForRole } from "@/lib/menu-items";
 
-interface NavItem {
-  href: string;
-  label: string;
-  icon: ComponentType<{ className?: string }>;
-  /** Clave de módulo en la matriz de permisos. */
-  module: string;
-}
-
-export interface NavSection {
-  label: string;
-  items: NavItem[];
-}
-
-export const adminNavSections: NavSection[] = [
-  {
-    label: "Aplicación",
-    items: [
-      {
-        href: "/dashboard",
-        label: "Panel",
-        icon: BarChart3,
-        module: "dashboard",
-      },
-      {
-        href: "/users",
-        label: "Contactos",
-        icon: Users,
-        module: "users",
-      },
-      {
-        href: "/adm-services",
-        label: "Servicios",
-        icon: Settings,
-        module: "adm-services",
-      },
-      {
-        href: "/stock",
-        label: "Inventario",
-        icon: Package,
-        module: "stock",
-      },
-      {
-        href: "/fleet",
-        label: "Flota",
-        icon: Car,
-        module: "fleet",
-      },
-      {
-        href: "/billing",
-        label: "Facturación",
-        icon: CreditCard,
-        module: "billing",
-      },
-      {
-        href: "/settings",
-        label: "Configuración",
-        icon: Cog,
-        module: "settings",
-      },
-    ],
-  },
-];
+// Re-exportado para conservar las importaciones existentes (spotlight, tests).
+// La fuente única vive ahora en `@/lib/menu-items`.
+export { adminNavSections } from "@/lib/menu-items";
+export type { NavItem, NavSection } from "@/lib/menu-items";
 
 export function MobileMenu() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const { role, permissions, loading } = useMyPermissions();
+  const { order, hidden } = useMenuOrder();
+
+  // Aplica el orden guardado en Configuración a cada sección del menú.
+  const sections = useMemo(
+    () =>
+      adminNavSections.map((section) => ({
+        ...section,
+        items: sortMenuItemsByOrder(section.items, order),
+      })),
+    [order]
+  );
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -103,20 +48,34 @@ export function MobileMenu() {
           <span className="sr-only">Abrir menú</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[300px] sm:w-[400px] [&>button]:hidden bg-background/80 backdrop-blur-sm">
+      <SheetContent
+        side="left"
+        className="w-[300px] sm:w-[400px] [&>button]:hidden bg-background/80 backdrop-blur-sm"
+      >
         <SheetHeader>
           <SheetTitle>Menú de Navegación</SheetTitle>
         </SheetHeader>
         <nav className={cn("mt-6 flex flex-col", spacing.gap.large)}>
-          {adminNavSections.map((section) => {
-            // Filtrar items según los permisos del usuario (canAccess por módulo)
+          {sections.map((section) => {
+            // Mostrar un item si el usuario tiene acceso (canAccess) Y no está
+            // oculto del menú para su rol (visibilidad configurable, no afecta
+            // el acceso por URL).
             const filteredItems = loading
               ? []
-              : section.items.filter((item) => permissions[item.module]?.canAccess);
+              : section.items.filter(
+                  (item) =>
+                    permissions[item.module]?.canAccess &&
+                    !isHiddenForRole(hidden, item.module, role)
+                );
 
             return (
               <div key={section.label} className={cn("flex flex-col", spacing.gap.small)}>
-                <p className={cn(typography.label, "px-4 uppercase tracking-wide text-muted-foreground/80")}>
+                <p
+                  className={cn(
+                    typography.label,
+                    "px-4 uppercase tracking-wide text-muted-foreground/80"
+                  )}
+                >
                   {section.label}
                 </p>
                 <div className={cn("flex flex-col", spacing.gap.small)}>
@@ -150,4 +109,3 @@ export function MobileMenu() {
     </Sheet>
   );
 }
-

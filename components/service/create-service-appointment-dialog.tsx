@@ -1,5 +1,7 @@
 "use client";
 
+import { clientLogger } from "@/lib/client-logger";
+
 import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
@@ -85,7 +87,7 @@ export function CreateServiceAppointmentDialog({
       const items = Array.isArray(result.data) ? result.data : Array.isArray(result) ? result : [];
       setInventoryItems(items);
     } catch (error) {
-      console.error("Error loading inventory:", error);
+      clientLogger.error("Error loading inventory:", error);
       toast.error("No se pudieron cargar los repuestos");
     } finally {
       setIsLoadingInventory(false);
@@ -101,7 +103,7 @@ export function CreateServiceAppointmentDialog({
       const { data } = await response.json();
       setServices(data || []);
     } catch (error) {
-      console.error("Error loading services:", error);
+      clientLogger.error("Error loading services:", error);
     } finally {
       setIsLoadingServices(false);
     }
@@ -127,7 +129,7 @@ export function CreateServiceAppointmentDialog({
         setVehicles(vehicleOptions);
       }
     } catch (error) {
-      console.error("Error loading vehicles:", error);
+      clientLogger.error("Error loading vehicles:", error);
     } finally {
       setIsLoadingVehicles(false);
     }
@@ -177,7 +179,9 @@ export function CreateServiceAppointmentDialog({
   };
 
   const handleRemoveService = (serviceId: string | number) => {
-    setSelectedServices(selectedServices.filter((s) => s.documentId !== serviceId && s.id !== serviceId));
+    setSelectedServices(
+      selectedServices.filter((s) => s.documentId !== serviceId && s.id !== serviceId)
+    );
   };
 
   // Handlers de inventario
@@ -216,7 +220,10 @@ export function CreateServiceAppointmentDialog({
     );
   };
 
-  const partsCost = usedItems.reduce((sum, item) => sum + (item.quantity * item.unitPriceAtMoment), 0);
+  const partsCost = usedItems.reduce(
+    (sum, item) => sum + item.quantity * item.unitPriceAtMoment,
+    0
+  );
   const laborCost = parseFloat(formData.laborCost) || 0;
 
   const handleSubmit = async () => {
@@ -249,9 +256,12 @@ export function CreateServiceAppointmentDialog({
         description: formData.description || undefined,
         type: "mantenimiento",
         scheduledAt: scheduledAt.toISOString(),
-        durationMinutes: formData.durationMinutes ? parseInt(formData.durationMinutes, 10) : undefined,
+        durationMinutes: formData.durationMinutes
+          ? parseInt(formData.durationMinutes, 10)
+          : undefined,
         location: formData.location || undefined,
-        service: formData.serviceId && formData.serviceId !== "none" ? formData.serviceId : undefined,
+        service:
+          formData.serviceId && formData.serviceId !== "none" ? formData.serviceId : undefined,
         vehicle: formData.fleetVehicleId !== "none" ? formData.fleetVehicleId : undefined,
         status: "pendiente",
       };
@@ -304,7 +314,7 @@ export function CreateServiceAppointmentDialog({
       onOpenChange(false);
       onSuccess?.();
     } catch (error) {
-      console.error("Error creating appointment:", error);
+      clientLogger.error("Error creating appointment:", error);
       toast.error(error instanceof Error ? error.message : "Error al crear la cita");
     } finally {
       setIsLoading(false);
@@ -322,7 +332,8 @@ export function CreateServiceAppointmentDialog({
             Nueva Cita de Servicio
           </DialogTitle>
           <DialogDescription>
-            Programa una nueva cita de mantenimiento. Se creará automáticamente una orden de servicio vinculada.
+            Programa una nueva cita de mantenimiento. Se creará automáticamente una orden de
+            servicio vinculada.
           </DialogDescription>
         </DialogHeader>
 
@@ -347,9 +358,7 @@ export function CreateServiceAppointmentDialog({
               value={formData.serviceId}
               onValueChange={(value) => {
                 setFormData({ ...formData, serviceId: value });
-                const service = services.find(
-                  (s) => s.documentId === value || s.id === value
-                );
+                const service = services.find((s) => s.documentId === value || s.id === value);
                 if (service && !formData.title) {
                   setFormData((prev) => ({ ...prev, title: service.name }));
                 }
@@ -357,12 +366,17 @@ export function CreateServiceAppointmentDialog({
               disabled={isLoadingServices}
             >
               <SelectTrigger id="service">
-                <SelectValue placeholder={isLoadingServices ? "Cargando..." : "Seleccionar servicio"} />
+                <SelectValue
+                  placeholder={isLoadingServices ? "Cargando..." : "Seleccionar servicio"}
+                />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Sin servicio específico</SelectItem>
                 {services.map((service) => (
-                  <SelectItem key={service.documentId || service.id} value={service.documentId || String(service.id)}>
+                  <SelectItem
+                    key={service.documentId || service.id}
+                    value={service.documentId || String(service.id)}
+                  >
                     {service.name} {service.price && service.price > 0 && `- $${service.price}`}
                   </SelectItem>
                 ))}
@@ -426,7 +440,9 @@ export function CreateServiceAppointmentDialog({
               disabled={isLoadingVehicles}
             >
               <SelectTrigger id="fleetVehicle">
-                <SelectValue placeholder={isLoadingVehicles ? "Cargando vehículos..." : "Seleccionar vehículo"} />
+                <SelectValue
+                  placeholder={isLoadingVehicles ? "Cargando vehículos..." : "Seleccionar vehículo"}
+                />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Seleccionar vehículo...</SelectItem>
@@ -438,9 +454,7 @@ export function CreateServiceAppointmentDialog({
               </SelectContent>
             </Select>
             {selectedVehicle && (
-              <p className="text-xs text-muted-foreground">
-                VIN: {selectedVehicle.vin}
-              </p>
+              <p className="text-xs text-muted-foreground">VIN: {selectedVehicle.vin}</p>
             )}
           </div>
 

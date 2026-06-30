@@ -2,7 +2,6 @@
 
 import { Card, CardContent } from "@/components_shadcn/ui/card";
 import { Button } from "@/components_shadcn/ui/button";
-import { Separator } from "@/components_shadcn/ui/separator";
 import { Skeleton } from "@/components_shadcn/ui/skeleton";
 import { Car } from "lucide-react";
 import type { CSSProperties } from "react";
@@ -10,6 +9,7 @@ import { spacing, typography } from "@/lib/design-system";
 import type { FleetVehicleCard } from "@/validations/types";
 import type { FleetViewMode } from "./fleet-header-actions";
 import { FleetVehicleViews } from "./fleet-vehicle-views";
+import type { AcrossPagesBannerState } from "@/components/ui/selection";
 
 interface FleetVehiclesSectionProps {
   isLoading: boolean;
@@ -25,6 +25,9 @@ interface FleetVehiclesSectionProps {
   selectedVehicles: Set<string>;
   onToggleVehicleSelection: (vehicleId: string) => void;
   onSelectAll: () => void;
+  acrossPagesBanner?: AcrossPagesBannerState;
+  onSelectAllAcrossPages?: () => void;
+  onRevertAcrossPages?: () => void;
   onNavigateToDetails: (vehicleId: string) => void;
   onNavigateToEdit: (vehicleId: string) => void;
   onDuplicateVehicle: (vehicle: FleetVehicleCard) => Promise<void>;
@@ -53,6 +56,9 @@ export function FleetVehiclesSection({
   selectedVehicles,
   onToggleVehicleSelection,
   onSelectAll,
+  acrossPagesBanner,
+  onSelectAllAcrossPages,
+  onRevertAcrossPages,
   onNavigateToDetails,
   onNavigateToEdit,
   onDuplicateVehicle,
@@ -70,7 +76,9 @@ export function FleetVehiclesSection({
             className="!bg-transparent shadow-sm backdrop-blur-sm border rounded-lg"
             style={glassStyle}
           >
-            <CardContent className={`flex items-start ${spacing.gap.medium} ${spacing.card.padding}`}>
+            <CardContent
+              className={`flex items-start ${spacing.gap.medium} ${spacing.card.padding}`}
+            >
               <Skeleton className="h-24 w-24 shrink-0 rounded-lg sm:h-28 sm:w-28" />
               <div className={`flex flex-1 flex-col ${spacing.gap.small}`}>
                 <div className="flex items-center justify-between">
@@ -139,6 +147,9 @@ export function FleetVehiclesSection({
       selectedVehicles={selectedVehicles}
       onToggleVehicleSelection={onToggleVehicleSelection}
       onSelectAll={onSelectAll}
+      acrossPagesBanner={acrossPagesBanner}
+      onSelectAllAcrossPages={onSelectAllAcrossPages}
+      onRevertAcrossPages={onRevertAcrossPages}
       onNavigateToDetails={onNavigateToDetails}
       onNavigateToEdit={onNavigateToEdit}
       onDuplicateVehicle={onDuplicateVehicle}
@@ -148,4 +159,3 @@ export function FleetVehiclesSection({
     />
   );
 }
-

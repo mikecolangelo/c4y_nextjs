@@ -8,7 +8,9 @@ interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
-const normalizeImages = (imagesData: any): Array<{ id?: number; url?: string; alternativeText?: string }> => {
+const normalizeImages = (
+  imagesData: any
+): Array<{ id?: number; url?: string; alternativeText?: string }> => {
   if (!imagesData) return [];
   if (Array.isArray(imagesData)) {
     return imagesData.map((img: any) => {
@@ -28,7 +30,11 @@ const normalizeImages = (imagesData: any): Array<{ id?: number; url?: string; al
         imageUrl = img.url;
         imageAlt = img.alternativeText;
       }
-      return { id: imageId, url: imageUrl ? strapiImages.getURL(imageUrl) : undefined, alternativeText: imageAlt };
+      return {
+        id: imageId,
+        url: imageUrl ? strapiImages.getURL(imageUrl) : undefined,
+        alternativeText: imageAlt,
+      };
     });
   }
   if (imagesData?.data && Array.isArray(imagesData.data)) {
@@ -54,7 +60,15 @@ export async function GET(_: Request, context: RouteContext) {
       filters: {
         vehicle: { documentId: { $eq: id } },
       },
-      fields: ["id", "documentId", "comment", "authorDocumentId", "createdAt", "updatedAt"],
+      fields: [
+        "id",
+        "documentId",
+        "comment",
+        "authorDocumentId",
+        "mileage",
+        "createdAt",
+        "updatedAt",
+      ],
       populate: {
         images: {
           fields: ["id", "url", "alternativeText"],
@@ -129,27 +143,35 @@ export async function POST(request: Request, context: RouteContext) {
         { status: 403 }
       );
     }
-    const body = (await request.json()) as { data?: { comment?: string; images?: number[]; authorDocumentId?: string } };
+    const body = (await request.json()) as {
+      data?: { comment?: string; images?: number[]; authorDocumentId?: string; mileage?: number };
+    };
     if (!body?.data) {
       return NextResponse.json({ error: "Los datos del estado son requeridos." }, { status: 400 });
     }
 
-    const { comment, images, authorDocumentId } = body.data;
+    const { comment, images, authorDocumentId, mileage } = body.data;
 
     if ((!images || images.length === 0) && !comment?.trim()) {
-      return NextResponse.json({ error: "Debes proporcionar al menos una imagen o un comentario." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Debes proporcionar al menos una imagen o un comentario." },
+        { status: 400 }
+      );
     }
 
     if (images && images.length > 10) {
-      return NextResponse.json({ error: "No se permiten más de 10 imágenes por estado." }, { status: 400 });
+      return NextResponse.json(
+        { error: "No se permiten más de 10 imágenes por estado." },
+        { status: 400 }
+      );
     }
 
     const { id } = await context.params;
 
-    // Resolver vehículo por documentId
+    // Resolver vehículo por documentId (incluye currentMileage para anclar el estado)
     const vehicleQuery = qs.stringify({
       filters: { documentId: { $eq: id } },
-      fields: ["id"],
+      fields: ["id", "currentMileage"],
     });
 
     const vehicleRes = await fetch(`${STRAPI_BASE_URL}/api/fleets?${vehicleQuery}`, {
@@ -159,11 +181,20 @@ export async function POST(request: Request, context: RouteContext) {
 
     if (!vehicleRes.ok) throw new Error("No se pudo obtener el vehículo");
     const vehicleJson = await vehicleRes.json();
-    const vehicleId = vehicleJson.data?.[0]?.id;
+    const vehicleRecord = vehicleJson.data?.[0];
+    const vehicleId = vehicleRecord?.id;
 
     if (!vehicleId) {
       return NextResponse.json({ error: "Vehículo no encontrado." }, { status: 404 });
     }
+
+    // Anclar el estado al kilometraje: usar el enviado o el actual del vehículo
+    const resolvedMileage =
+      typeof mileage === "number" && !isNaN(mileage)
+        ? mileage
+        : typeof vehicleRecord?.currentMileage === "number"
+          ? vehicleRecord.currentMileage
+          : parseInt(vehicleRecord?.currentMileage ?? "", 10);
 
     const payload: any = {
       vehicle: vehicleId,
@@ -171,6 +202,9 @@ export async function POST(request: Request, context: RouteContext) {
     };
     if (comment?.trim()) payload.comment = comment.trim();
     if (images && images.length > 0) payload.images = images;
+    if (typeof resolvedMileage === "number" && !isNaN(resolvedMileage)) {
+      payload.mileage = resolvedMileage;
+    }
 
     const createRes = await fetch(`${STRAPI_BASE_URL}/api/vehicle-states`, {
       method: "POST",

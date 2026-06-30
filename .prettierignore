@@ -1,0 +1,17 @@
+# Build output
+.next/
+.next-prod-deploy/
+out/
+build/
+dist/
+coverage/
+
+# Dependencies & lockfiles
+node_modules/
+pnpm-lock.yaml
+
+# Static assets
+public/
+
+# Logs and generated noise
+*.log

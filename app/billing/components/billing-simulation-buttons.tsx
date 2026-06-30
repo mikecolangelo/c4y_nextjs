@@ -65,7 +65,7 @@ export function BillingSimulationButtons({
   // Solo mostrar si es admin y modo pruebas está activo
   if (!isTestModeEnabled) {
     return (
-      <div className="p-3 bg-gray-100 rounded-lg text-sm text-gray-600">
+      <div className="p-3 bg-muted rounded-lg text-sm text-muted-foreground">
         <Bug className="h-4 w-4 inline mr-2" />
         Modo pruebas desactivado. Actívalo en Configuración &gt; Facturación.
       </div>
@@ -98,7 +98,9 @@ export function BillingSimulationButtons({
         throw new Error(data.error || "Error en simulación");
       }
 
-      toast.success(`Se generaron ${data.generatedCount} facturas exitosamente. Próximo vencimiento: ${data.dueDate}`);
+      toast.success(
+        `Se generaron ${data.generatedCount} facturas exitosamente. Próximo vencimiento: ${data.dueDate}`
+      );
 
       onSimulateComplete?.();
     } catch (error) {
@@ -132,10 +134,10 @@ export function BillingSimulationButtons({
       } else {
         toast.warning(
           `${data.overdueCount} facturas marcadas como vencidas (overdue). ` +
-          `Penalidad total aplicada: $${data.totalPenaltyAmount.toFixed(2)}`
+            `Penalidad total aplicada: $${data.totalPenaltyAmount.toFixed(2)}`
         );
       }
-      
+
       onSimulateFridayData?.(data);
       onSimulateComplete?.(); // Recargar datos
     } catch (error) {
@@ -179,9 +181,12 @@ export function BillingSimulationButtons({
               <AlertDialogHeader>
                 <AlertDialogTitle>¿Generar facturas de simulación?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Esto generará facturas para todos los financiamientos activos como si fuera martes de facturación.
-                  <br /><br />
-                  <strong>Nota:</strong> Las facturas generadas se marcarán como simuladas y pueden eliminarse después.
+                  Esto generará facturas para todos los financiamientos activos como si fuera martes
+                  de facturación.
+                  <br />
+                  <br />
+                  <strong>Nota:</strong> Las facturas generadas se marcarán como simuladas y pueden
+                  eliminarse después.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
