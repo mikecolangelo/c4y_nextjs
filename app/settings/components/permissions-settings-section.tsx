@@ -80,6 +80,8 @@ export function PermissionsSettingsSection() {
   const [modules, setModules] = useState<ModuleDefinition[]>([]);
   const [matrix, setMatrix] = useState<FullMatrix>({});
   const [roles, setRoles] = useState<Role[]>([]);
+  // Rol seleccionado en las tabs. `null` => usar el default calculado.
+  const [activeRole, setActiveRole] = useState<string | null>(null);
 
   // Estado del diálogo de crear/editar rol.
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
@@ -117,6 +119,11 @@ export function PermissionsSettingsSection() {
   const roleTabs = useMemo(() => roles.filter((r) => r.isActive), [roles]);
 
   const defaultTab = roleTabs.find((r) => r.key === "driver")?.key ?? roleTabs[0]?.key ?? "admin";
+
+  // Tab activo (controlado): respeta la selección del usuario y cae al default
+  // si el rol elegido ya no existe (p.ej. tras eliminarlo).
+  const activeTab =
+    activeRole && roleTabs.some((r) => r.key === activeRole) ? activeRole : defaultTab;
 
   const getPerm = (role: string, moduleKey: string): ModulePermission =>
     matrix[role]?.[moduleKey] ?? emptyPermission();
@@ -322,7 +329,7 @@ export function PermissionsSettingsSection() {
           </div>
         </div>
 
-        <Tabs value={defaultTab} className="w-full" key={defaultTab}>
+        <Tabs value={activeTab} onValueChange={setActiveRole} className="w-full">
           <TabsList className="w-full justify-start flex-wrap h-auto gap-1 bg-transparent p-0 mb-4">
             {roleTabs.map((role) => (
               <TabsTrigger
