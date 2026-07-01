@@ -9,9 +9,8 @@ import { Textarea } from "@/components_shadcn/ui/textarea";
 import { Input } from "@/components_shadcn/ui/input";
 import { Label } from "@/components_shadcn/ui/label";
 import { Skeleton } from "@/components_shadcn/ui/skeleton";
-import { 
-  ArrowLeft, 
-  MoreVertical, 
+import {
+  MoreVertical,
   Edit,
   Trash2,
   Package,
@@ -23,7 +22,7 @@ import {
   Zap,
   Wrench,
   Loader2,
-  DollarSign
+  DollarSign,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -33,6 +32,7 @@ import {
 } from "@/components_shadcn/ui/dropdown-menu";
 import { spacing, typography } from "@/lib/design-system";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { BackButton } from "@/components/admin/back-button";
 import { toast } from "@/lib/toast";
 import type { InventoryItemCard, StockStatus, InventoryIcon } from "@/validations/types";
 import { formatDistanceToNow } from "date-fns";
@@ -141,16 +141,7 @@ export default function StockDetailsPage() {
     loadItem();
   }, [loadItem]);
 
-  const backButton = (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => router.back()}
-      className="h-10 w-10 flex items-center justify-center rounded-full"
-    >
-      <ArrowLeft className="h-5 w-5" />
-    </Button>
-  );
+  const backButton = <BackButton fallbackHref="/stock" />;
 
   const loadNotes = useCallback(async () => {
     if (!itemId) return;
@@ -247,7 +238,7 @@ export default function StockDetailsPage() {
         console.log("Notas filtradas:", filtered.length, "de", prev.length);
         return filtered;
       });
-      
+
       toast.success("Nota eliminada correctamente");
     } catch (error) {
       console.error("Error deleting note:", error);
@@ -367,11 +358,11 @@ export default function StockDetailsPage() {
   if (!itemData) {
     return (
       <AdminLayout title="Pieza no encontrada" showFilterAction leftActions={backButton}>
-        <section className={`flex flex-col items-center justify-center ${spacing.gap.base} min-h-[400px]`}>
+        <section
+          className={`flex flex-col items-center justify-center ${spacing.gap.base} min-h-[400px]`}
+        >
           <p className={typography.body.large}>La pieza solicitada no existe.</p>
-          <Button onClick={() => router.push("/stock")}>
-            Volver a Inventario
-          </Button>
+          <Button onClick={() => router.push("/stock")}>Volver a Inventario</Button>
         </section>
       </AdminLayout>
     );
@@ -385,19 +376,16 @@ export default function StockDetailsPage() {
         {/* Información de la Pieza */}
         <Card className="shadow-sm ring-1 ring-inset ring-border/50">
           <CardContent className={`flex flex-col items-center ${spacing.gap.base} p-6 relative`}>
-            {/* Botones de navegación */}
-            <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-10 w-10 rounded-full flex items-center justify-center"
-                onClick={() => router.back()}
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
+            {/* Acciones de la pieza. La navegación "volver" vive en el menú
+                (header), no en la tarjeta, para no duplicar el control. */}
+            <div className="absolute top-4 right-4 flex items-center justify-end z-10">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full flex items-center justify-center">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 rounded-full flex items-center justify-center"
+                  >
                     <MoreVertical className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -405,8 +393,8 @@ export default function StockDetailsPage() {
                   <DropdownMenuItem className="cursor-pointer" onClick={() => setIsEditing(true)}>
                     Editar Pieza
                   </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    variant="destructive" 
+                  <DropdownMenuItem
+                    variant="destructive"
                     className="cursor-pointer"
                     onClick={handleDelete}
                     disabled={isDeleting}
@@ -419,15 +407,15 @@ export default function StockDetailsPage() {
             </div>
 
             {/* Icono */}
-            <div className={`flex items-center justify-center w-16 h-16 rounded-lg bg-primary/10 text-primary mt-8`}>
+            <div
+              className={`flex items-center justify-center w-16 h-16 rounded-lg bg-primary/10 text-primary mt-8`}
+            >
               <IconComponent className="h-8 w-8" />
             </div>
 
             {/* Código y Badge */}
             <div className="flex flex-col items-center text-center">
-              <h2 className={`${typography.h3} text-center`}>
-                {itemData.code}
-              </h2>
+              <h2 className={`${typography.h3} text-center`}>{itemData.code}</h2>
               <p className={`${typography.body.small} mt-1 text-muted-foreground`}>
                 {itemData.description}
               </p>
@@ -568,8 +556,10 @@ export default function StockDetailsPage() {
                           assignedTo: itemData.assignedTo || "",
                           location: itemData.location || "",
                           description: itemData.description,
-                          unitCost: itemData.unitCost !== undefined ? itemData.unitCost.toString() : "",
-                          salePrice: itemData.salePrice !== undefined ? itemData.salePrice.toString() : "",
+                          unitCost:
+                            itemData.unitCost !== undefined ? itemData.unitCost.toString() : "",
+                          salePrice:
+                            itemData.salePrice !== undefined ? itemData.salePrice.toString() : "",
                         });
                       }
                     }}
@@ -618,8 +608,12 @@ export default function StockDetailsPage() {
                   <div className={`flex items-center ${spacing.gap.medium}`}>
                     <AlertCircle className="h-5 w-5 text-muted-foreground shrink-0" />
                     <div className="flex-1">
-                      <p className={`${typography.body.small} text-muted-foreground`}>Stock Mínimo</p>
-                      <p className={typography.body.base}>{itemData.minStock} {itemData.unit || "unidades"}</p>
+                      <p className={`${typography.body.small} text-muted-foreground`}>
+                        Stock Mínimo
+                      </p>
+                      <p className={typography.body.base}>
+                        {itemData.minStock} {itemData.unit || "unidades"}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -627,8 +621,12 @@ export default function StockDetailsPage() {
                   <div className={`flex items-center ${spacing.gap.medium}`}>
                     <CheckCircle className="h-5 w-5 text-muted-foreground shrink-0" />
                     <div className="flex-1">
-                      <p className={`${typography.body.small} text-muted-foreground`}>Stock Máximo</p>
-                      <p className={typography.body.base}>{itemData.maxStock} {itemData.unit || "unidades"}</p>
+                      <p className={`${typography.body.small} text-muted-foreground`}>
+                        Stock Máximo
+                      </p>
+                      <p className={typography.body.base}>
+                        {itemData.maxStock} {itemData.unit || "unidades"}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -663,9 +661,15 @@ export default function StockDetailsPage() {
                   <div className={`flex items-center ${spacing.gap.medium}`}>
                     <Package className="h-5 w-5 text-muted-foreground shrink-0" />
                     <div className="flex-1">
-                      <p className={`${typography.body.small} text-muted-foreground`}>Última Reposición</p>
+                      <p className={`${typography.body.small} text-muted-foreground`}>
+                        Última Reposición
+                      </p>
                       <p className={typography.body.base}>
-                        {new Date(itemData.lastRestocked).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+                        {new Date(itemData.lastRestocked).toLocaleDateString("es-ES", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
                       </p>
                     </div>
                   </div>
@@ -690,10 +694,7 @@ export default function StockDetailsPage() {
             ) : notes.length > 0 ? (
               <div className={`flex flex-col ${spacing.gap.medium} max-h-60 overflow-y-auto mb-4`}>
                 {notes.map((noteItem) => (
-                  <div
-                    key={noteItem.id}
-                    className="bg-muted/50 rounded-lg p-3 space-y-1 group"
-                  >
+                  <div key={noteItem.id} className="bg-muted/50 rounded-lg p-3 space-y-1 group">
                     <p className="text-sm text-foreground whitespace-pre-wrap">
                       {noteItem.content}
                     </p>

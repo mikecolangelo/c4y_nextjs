@@ -3,7 +3,7 @@ import {
   fetchServiceByIdFromStrapi,
   updateServiceInStrapi,
   deleteServiceInStrapi,
-} from "@/lib/services";
+} from "@/features/services";
 import { requireAdmin } from "@/lib/admin-guard";
 import type { ServiceUpdatePayload } from "@/validations/types";
 
@@ -19,10 +19,7 @@ export async function GET(_: Request, context: RouteContext) {
     const service = await fetchServiceByIdFromStrapi(id);
 
     if (!service) {
-      return NextResponse.json(
-        { error: "Servicio no encontrado" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Servicio no encontrado" }, { status: 404 });
     }
 
     return NextResponse.json({ data: service });

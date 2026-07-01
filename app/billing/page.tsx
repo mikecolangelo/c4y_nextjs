@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  CreditCard, 
-  Receipt, 
-  Plus, 
-  Loader2, 
-  Trash2, 
+import {
+  CreditCard,
+  Receipt,
+  Plus,
+  Loader2,
+  Trash2,
   MoreVertical,
   FileText,
   AlertTriangle,
@@ -27,7 +27,6 @@ const ALLOWED_ROLES = ["admin", "super-admin"];
 import { SearchInput } from "@/components/ui/search-input";
 import { Card, CardContent } from "@/components_shadcn/ui/card";
 import { Button } from "@/components_shadcn/ui/button";
-import { Badge } from "@/components_shadcn/ui/badge";
 import { Input } from "@/components_shadcn/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components_shadcn/ui/tabs";
 import {
@@ -61,39 +60,46 @@ import { QuotaCalculator } from "./components/quota-calculator";
 import { PaymentTimeline, type PaymentRecord } from "./components/payment-timeline";
 import { BillingSimulationButtons } from "./components/billing-simulation-buttons";
 import { SimulateOverdueModal } from "./components/simulate-overdue-modal";
-import { EmailConfigPanel } from "./components/email-config-panel";
-import { SendEmailDialog } from "./components/send-email-dialog";
 
 // Types
 import type { FinancingCard as FinancingCardType } from "@/lib/financing";
 import type { BillingRecordCard } from "@/lib/billing";
 
 type TabValue = "financings" | "payments" | "calculator" | "timeline" | "email-config";
-type StatusFilter = "all" | "activo" | "en_mora" | "completado" | "inactivo" | "pagado" | "pendiente" | "adelanto" | "retrasado";
+type StatusFilter =
+  | "all"
+  | "activo"
+  | "en_mora"
+  | "completado"
+  | "inactivo"
+  | "pagado"
+  | "pendiente"
+  | "adelanto"
+  | "retrasado";
 
 export default function BillingPage() {
   const router = useRouter();
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
-  
+
   // Tab state
   const [activeTab, setActiveTab] = useState<TabValue>("financings");
-  
+
   // Search and filters
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [dateFilter, setDateFilter] = useState("");
-  
+
   // Data states
   const [financings, setFinancings] = useState<FinancingCardType[]>([]);
   const [payments, setPayments] = useState<BillingRecordCard[]>([]);
   const [isLoadingFinancings, setIsLoadingFinancings] = useState(true);
   const [isLoadingPayments, setIsLoadingPayments] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Dialog states
   const [isCreateFinancingOpen, setIsCreateFinancingOpen] = useState(false);
   const [isCreatePaymentOpen, setIsCreatePaymentOpen] = useState(false);
-  
+
   // Simulation states
   const [isTestModeEnabled, setIsTestModeEnabled] = useState(false);
   const [overdueModalOpen, setOverdueModalOpen] = useState(false);
@@ -115,16 +121,21 @@ export default function BillingPage() {
     }>;
   } | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState("");
-  
+
   // Delete state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{ type: "financing" | "payment"; item: FinancingCardType | BillingRecordCard } | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{
+    type: "financing" | "payment";
+    item: FinancingCardType | BillingRecordCard;
+  } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Email dialog state
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [emailFinancing, setEmailFinancing] = useState<FinancingCardType | null>(null);
-  const [emailTemplates, setEmailTemplates] = useState<import("@/lib/email-config").EmailTemplate[]>([]);
+  const [emailTemplates, setEmailTemplates] = useState<
+    import("@/lib/email-config").EmailTemplate[]
+  >([]);
 
   // Fetch email templates for send dialog
   const fetchEmailTemplates = useCallback(async () => {
@@ -178,14 +189,16 @@ export default function BillingPage() {
       if (response.ok) {
         const data = await response.json();
         const configs = data.data || [];
-        const testModeConfig = configs.find((c: { key?: string; value?: string }) => c.key === "billing-test-mode-enabled");
+        const testModeConfig = configs.find(
+          (c: { key?: string; value?: string }) => c.key === "billing-test-mode-enabled"
+        );
         setIsTestModeEnabled(testModeConfig?.value === "true");
       }
     } catch (err) {
       console.error("Error loading test mode config:", err);
     }
   }, []);
-  
+
   // Fetch current user role
   const fetchCurrentUser = useCallback(async () => {
     try {
@@ -209,7 +222,11 @@ export default function BillingPage() {
   }, [fetchFinancings, fetchPayments, fetchTestModeConfig, fetchCurrentUser, fetchEmailTemplates]);
 
   // Handle delete
-  const handleDeleteClick = (e: React.MouseEvent, type: "financing" | "payment", item: FinancingCardType | BillingRecordCard) => {
+  const handleDeleteClick = (
+    e: React.MouseEvent,
+    type: "financing" | "payment",
+    item: FinancingCardType | BillingRecordCard
+  ) => {
     e.stopPropagation();
     setItemToDelete({ type, item });
     setDeleteDialogOpen(true);
@@ -220,23 +237,27 @@ export default function BillingPage() {
 
     setIsDeleting(true);
     try {
-      const endpoint = itemToDelete.type === "financing" 
-        ? `/api/financing/${itemToDelete.item.documentId}`
-        : `/api/billing/${itemToDelete.item.documentId}`;
-      
+      const endpoint =
+        itemToDelete.type === "financing"
+          ? `/api/financing/${itemToDelete.item.documentId}`
+          : `/api/billing/${itemToDelete.item.documentId}`;
+
       const response = await fetch(endpoint, { method: "DELETE" });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Error al eliminar");
       }
 
-      const identifier = itemToDelete.type === "financing" 
-        ? (itemToDelete.item as FinancingCardType).financingNumber 
-        : (itemToDelete.item as BillingRecordCard).receiptNumber;
-      
-      toast.success(`${itemToDelete.type === "financing" ? "Financiamiento" : "Pago"} ${identifier} eliminado`);
-      
+      const identifier =
+        itemToDelete.type === "financing"
+          ? (itemToDelete.item as FinancingCardType).financingNumber
+          : (itemToDelete.item as BillingRecordCard).receiptNumber;
+
+      toast.success(
+        `${itemToDelete.type === "financing" ? "Financiamiento" : "Pago"} ${identifier} eliminado`
+      );
+
       if (itemToDelete.type === "financing") {
         // Al eliminar un financiamiento, también refrescar pagos para eliminar huérfanos de la UI
         fetchFinancings();
@@ -255,35 +276,35 @@ export default function BillingPage() {
 
   // Filter financings
   const filteredFinancings = financings.filter((f) => {
-    const matchesSearch = 
+    const matchesSearch =
       f.financingNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (f.vehicleName?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
       (f.clientName?.toLowerCase() || "").includes(searchQuery.toLowerCase());
-    
+
     const matchesStatus = statusFilter === "all" || f.status === statusFilter;
-    
+
     return matchesSearch && matchesStatus;
   });
 
   // Filter payments
   const filteredPayments = payments.filter((p) => {
     // Filtro defensivo: excluir pagos huérfanos (cuyo financiamiento ya no existe)
-    const isOrphan = p.financingDocumentId && 
-      !financings.some(f => f.documentId === p.financingDocumentId);
+    const isOrphan =
+      p.financingDocumentId && !financings.some((f) => f.documentId === p.financingDocumentId);
     if (isOrphan) return false;
-    
-    const matchesSearch = 
+
+    const matchesSearch =
       (p.receiptNumber?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
       (p.clientName?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
       (p.financingNumber?.toLowerCase() || "").includes(searchQuery.toLowerCase());
-    
+
     const matchesStatus = statusFilter === "all" || p.status === statusFilter;
-    
+
     let matchesDate = true;
     if (dateFilter && p.dueDate) {
       matchesDate = p.dueDate === dateFilter;
     }
-    
+
     return matchesSearch && matchesStatus && matchesDate;
   });
 
@@ -295,7 +316,7 @@ export default function BillingPage() {
         { value: "activo", label: "Activo", color: "text-green-600" },
         { value: "en_mora", label: "En Mora", color: "text-red-600" },
         { value: "completado", label: "Completado", color: "text-blue-600" },
-        { value: "inactivo", label: "Inactivo", color: "text-gray-600" },
+        { value: "inactivo", label: "Inactivo", color: "text-muted-foreground" },
       ];
     }
     return [
@@ -318,15 +339,15 @@ export default function BillingPage() {
   // Stats
   const financingStats = {
     total: financings.length,
-    activos: financings.filter(f => f.status === "activo").length,
-    enMora: financings.filter(f => f.status === "en_mora").length,
+    activos: financings.filter((f) => f.status === "activo").length,
+    enMora: financings.filter((f) => f.status === "en_mora").length,
     totalBalance: financings.reduce((sum, f) => sum + f.currentBalance, 0),
   };
 
   const paymentStats = {
     total: payments.length,
-    pagados: payments.filter(p => p.status === "pagado").length,
-    pendientes: payments.filter(p => p.status === "pendiente").length,
+    pagados: payments.filter((p) => p.status === "pagado").length,
+    pendientes: payments.filter((p) => p.status === "pendiente").length,
     totalAmount: payments.reduce((sum, p) => sum + p.amount, 0),
   };
 
@@ -378,7 +399,7 @@ export default function BillingPage() {
           Historial de Importaciones
         </Button>
       </div>
-      
+
       {/* Simulation Buttons (only in test mode) */}
       <BillingSimulationButtons
         isTestModeEnabled={isTestModeEnabled}
@@ -446,7 +467,9 @@ export default function BillingPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className={`grid w-full h-10 ${ALLOWED_ROLES.includes(currentUserRole) ? "grid-cols-5" : "grid-cols-4"}`}>
+        <TabsList
+          className={`grid w-full h-10 ${ALLOWED_ROLES.includes(currentUserRole) ? "grid-cols-5" : "grid-cols-4"}`}
+        >
           <TabsTrigger value="financings" className="flex items-center gap-1.5 text-xs">
             <FileText className="h-4 w-4" />
             Financiamientos
@@ -746,18 +769,20 @@ export default function BillingPage() {
           <PaymentTimeline
             payments={payments
               .filter((p) => p.amount >= 0)
-              .map((p): PaymentRecord => ({
-                id: p.documentId, // Usar documentId para operaciones CRUD
-                invoiceNumber: p.receiptNumber || "",
-                amount: p.amount,
-                status: p.status as "pagado" | "pendiente" | "adelanto" | "retrasado",
-                dueDate: p.dueDate || new Date().toISOString(),
-                paymentDate: p.paymentDate,
-                quotaNumber: p.quotaNumber,
-                lateFeeAmount: p.lateFeeAmount,
-                currency: p.currency,
-                clientName: p.clientName,
-              }))}
+              .map(
+                (p): PaymentRecord => ({
+                  id: p.documentId, // Usar documentId para operaciones CRUD
+                  invoiceNumber: p.receiptNumber || "",
+                  amount: p.amount,
+                  status: p.status as "pagado" | "pendiente" | "adelanto" | "retrasado",
+                  dueDate: p.dueDate || new Date().toISOString(),
+                  paymentDate: p.paymentDate,
+                  quotaNumber: p.quotaNumber,
+                  lateFeeAmount: p.lateFeeAmount,
+                  currency: p.currency,
+                  clientName: p.clientName,
+                })
+              )}
             isLoading={isLoadingPayments}
             maxHeight="500px"
             showSummary={true}
@@ -775,16 +800,16 @@ export default function BillingPage() {
                 variant: "destructive",
               });
               if (!confirmed) return;
-              
+
               try {
                 const response = await fetch(`/api/billing/${payment.id}`, {
                   method: "DELETE",
                 });
-                
+
                 if (!response.ok) {
                   throw new Error("Error al eliminar el pago");
                 }
-                
+
                 toast.success("Pago eliminado correctamente");
                 fetchPayments(); // Refrescar lista
               } catch (err) {
@@ -805,12 +830,12 @@ export default function BillingPage() {
                     },
                   }),
                 });
-                
+
                 if (!response.ok) {
                   const errorData = await response.json();
                   throw new Error(errorData.error || "Error al registrar el pago");
                 }
-                
+
                 toast.success(`Pago ${payment.invoiceNumber} registrado correctamente`);
                 fetchPayments(); // Refrescar lista
                 fetchFinancings(); // Refrescar financiamientos (saldo actualizado)
@@ -869,7 +894,7 @@ export default function BillingPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
+
       {/* Diálogo de confirmación genérico */}
       <ConfirmDialogComponent />
     </AdminLayout>

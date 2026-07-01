@@ -9,7 +9,6 @@ import {
   FileSpreadsheet,
   AlertTriangle,
   CheckCircle2,
-  XCircle,
   ArrowLeft,
   Loader2,
   FileWarning,
@@ -20,7 +19,13 @@ import {
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { Button } from "@/components_shadcn/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components_shadcn/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components_shadcn/ui/card";
 import { Progress } from "@/components_shadcn/ui/progress";
 import { Badge } from "@/components_shadcn/ui/badge";
 import {
@@ -31,11 +36,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components_shadcn/ui/table";
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/components_shadcn/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components_shadcn/ui/alert";
 import {
   Select,
   SelectContent,
@@ -89,7 +90,9 @@ export default function UsersImportPage() {
   const [rawHeaders, setRawHeaders] = useState<string[]>([]);
   const [columnMapping, setColumnMapping] = useState<(keyof LeadImportRow | null)[]>([]);
   const [parsedRows, setParsedRows] = useState<LeadImportRow[]>([]);
-  const [unmappedColumns, setUnmappedColumns] = useState<Array<{ header: string; index: number; sampleValues: (string | number | null)[] }>>([]);
+  const [unmappedColumns, setUnmappedColumns] = useState<
+    Array<{ header: string; index: number; sampleValues: (string | number | null)[] }>
+  >([]);
   const [headerValidation, setHeaderValidation] = useState<ValidationResult | null>(null);
   const [progress, setProgress] = useState(0);
   const [progressLabel, setProgressLabel] = useState("");
@@ -147,43 +150,45 @@ export default function UsersImportPage() {
     toast.success(`${validatedRows.length} registros listos para importar`);
   }, [columnMapping, parsedRows]);
 
-  const processFile = useCallback(
-    async (file: File) => {
-      try {
-        setFileName(file.name);
-        const buffer = await file.arrayBuffer();
-        const { headers, mappedHeaders, rows, unmappedColumns: unmapped } = parseLeadImportFile(buffer, file.name);
+  const processFile = useCallback(async (file: File) => {
+    try {
+      setFileName(file.name);
+      const buffer = await file.arrayBuffer();
+      const {
+        headers,
+        mappedHeaders,
+        rows,
+        unmappedColumns: unmapped,
+      } = parseLeadImportFile(buffer, file.name);
 
-        setRawHeaders(headers);
-        setColumnMapping(mappedHeaders);
-        setUnmappedColumns(unmapped);
+      setRawHeaders(headers);
+      setColumnMapping(mappedHeaders);
+      setUnmappedColumns(unmapped);
 
-        const headerCheck = validateHeaders(mappedHeaders);
-        setHeaderValidation(headerCheck);
+      const headerCheck = validateHeaders(mappedHeaders);
+      setHeaderValidation(headerCheck);
 
-        if (!headerCheck.valid) {
-          toast.info(
-            `Columnas no detectadas: ${headerCheck.missing.map((m) => FIELD_LABELS[m]).join(", ")}. Se importarán con valores vacíos.`
-          );
-        }
-
-        const validatedRows = rows.map((row) => {
-          const errors = validateRow(row);
-          return { ...row, _errors: errors };
-        });
-        checkIntraFileDuplicates(validatedRows);
-
-        setParsedRows(validatedRows);
-        setPhase("preview");
-        toast.success(`Archivo analizado: ${validatedRows.length} registros detectados`);
-      } catch (err) {
-        console.error(err);
-        setPhase("error");
-        toast.error(err instanceof Error ? err.message : "Error al leer el archivo");
+      if (!headerCheck.valid) {
+        toast.info(
+          `Columnas no detectadas: ${headerCheck.missing.map((m) => FIELD_LABELS[m]).join(", ")}. Se importarán con valores vacíos.`
+        );
       }
-    },
-    []
-  );
+
+      const validatedRows = rows.map((row) => {
+        const errors = validateRow(row);
+        return { ...row, _errors: errors };
+      });
+      checkIntraFileDuplicates(validatedRows);
+
+      setParsedRows(validatedRows);
+      setPhase("preview");
+      toast.success(`Archivo analizado: ${validatedRows.length} registros detectados`);
+    } catch (err) {
+      console.error(err);
+      setPhase("error");
+      toast.error(err instanceof Error ? err.message : "Error al leer el archivo");
+    }
+  }, []);
 
   const handleFileInput = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -247,6 +252,14 @@ export default function UsersImportPage() {
           hireDate: row.hireDate,
           workSchedule: row.workSchedule,
           role: row.role,
+          identificationNumber: row.identificationNumber,
+          address: row.address,
+          dateOfBirth: row.dateOfBirth,
+          specialties: row.specialties,
+          emergencyContactName: row.emergencyContactName,
+          emergencyContactPhone: row.emergencyContactPhone,
+          linkedin: row.linkedin,
+          driverLicense: row.driverLicense,
         }));
 
         setProgressLabel(`Procesando ${Math.min(i + batchSize, total)} de ${total}...`);
@@ -427,7 +440,8 @@ export default function UsersImportPage() {
                         onValueChange={(value) => {
                           setColumnMapping((prev) => {
                             const next = [...prev];
-                            next[idx] = value === "unmapped" ? null : (value as keyof LeadImportRow);
+                            next[idx] =
+                              value === "unmapped" ? null : (value as keyof LeadImportRow);
                             return next;
                           });
                         }}
@@ -453,9 +467,7 @@ export default function UsersImportPage() {
                 <Button variant="outline" onClick={resetState}>
                   Cancelar
                 </Button>
-                <Button onClick={handleConfirmMapping}>
-                  Confirmar Mapeo y Continuar
-                </Button>
+                <Button onClick={handleConfirmMapping}>Confirmar Mapeo y Continuar</Button>
               </div>
             </CardContent>
           </Card>
@@ -469,20 +481,14 @@ export default function UsersImportPage() {
                 <FileSpreadsheet className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                 <span className="font-medium">{fileName}</span>
                 <Badge variant="secondary">{parsedRows.length} registros</Badge>
-                {errorCount > 0 && (
-                  <Badge variant="destructive">{errorCount} con errores</Badge>
-                )}
+                {errorCount > 0 && <Badge variant="destructive">{errorCount} con errores</Badge>}
               </div>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={resetState} className="gap-1">
                   <Trash2 className="h-3.5 w-3.5" />
                   Limpiar
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={handleUpload}
-                  className="gap-1"
-                >
+                <Button size="sm" onClick={handleUpload} className="gap-1">
                   <Upload className="h-3.5 w-3.5" />
                   Importar Leads
                 </Button>
@@ -490,19 +496,30 @@ export default function UsersImportPage() {
             </div>
 
             {errorCount > 0 && (
-              <Alert variant="default" className="bg-amber-50 border-amber-200 dark:bg-amber-950/50 dark:border-amber-800">
+              <Alert
+                variant="default"
+                className="bg-amber-50 border-amber-200 dark:bg-amber-950/50 dark:border-amber-800"
+              >
                 <FileWarning className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                <AlertTitle className="text-amber-800 dark:text-amber-300">Advertencias de formato</AlertTitle>
+                <AlertTitle className="text-amber-800 dark:text-amber-300">
+                  Advertencias de formato
+                </AlertTitle>
                 <AlertDescription className="text-amber-700 dark:text-amber-400">
-                  Hay {errorCount} filas con advertencias (formato de email o teléfono). Se importarán de todas formas.
+                  Hay {errorCount} filas con advertencias (formato de email o teléfono). Se
+                  importarán de todas formas.
                 </AlertDescription>
               </Alert>
             )}
 
             {unmappedColumns.length > 0 && (
-              <Alert variant="default" className="bg-orange-50 border-orange-200 dark:bg-orange-950/50 dark:border-orange-800">
+              <Alert
+                variant="default"
+                className="bg-orange-50 border-orange-200 dark:bg-orange-950/50 dark:border-orange-800"
+              >
                 <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-                <AlertTitle className="text-orange-800 dark:text-orange-300">Columnas no reconocidas</AlertTitle>
+                <AlertTitle className="text-orange-800 dark:text-orange-300">
+                  Columnas no reconocidas
+                </AlertTitle>
                 <AlertDescription className="text-orange-700 dark:text-orange-400">
                   Estas columnas del Excel no fueron detectadas automáticamente y no se importarán:
                   <ul className="mt-1 ml-4 list-disc">
@@ -635,9 +652,7 @@ export default function UsersImportPage() {
               <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
               <div>
                 <p className="font-medium">{progressLabel}</p>
-                <p className="text-sm text-muted-foreground">
-                  Por favor no cierres esta ventana
-                </p>
+                <p className="text-sm text-muted-foreground">Por favor no cierres esta ventana</p>
               </div>
               <Progress value={progress} className="w-full max-w-md mx-auto" />
               <p className="text-xs text-muted-foreground">{progress}% completado</p>
@@ -668,16 +683,22 @@ export default function UsersImportPage() {
                     <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">
                       {result.summary.created}
                     </p>
-                    <p className="text-xs text-emerald-600 dark:text-emerald-400 uppercase">Creados exitosamente</p>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 uppercase">
+                      Creados exitosamente
+                    </p>
                   </div>
                   <div className="bg-amber-100 rounded-lg border border-amber-200 p-4 text-center dark:bg-amber-900/50 dark:border-amber-800">
                     <p className="text-2xl font-bold text-amber-700 dark:text-amber-400">
                       {result.summary.duplicated}
                     </p>
-                    <p className="text-xs text-amber-600 dark:text-amber-400 uppercase">Duplicados omitidos</p>
+                    <p className="text-xs text-amber-600 dark:text-amber-400 uppercase">
+                      Duplicados omitidos
+                    </p>
                   </div>
                   <div className="bg-red-100 rounded-lg border border-red-200 p-4 text-center dark:bg-red-900/50 dark:border-red-800">
-                    <p className="text-2xl font-bold text-red-700 dark:text-red-400">{result.summary.errors}</p>
+                    <p className="text-2xl font-bold text-red-700 dark:text-red-400">
+                      {result.summary.errors}
+                    </p>
                     <p className="text-xs text-red-600 dark:text-red-400 uppercase">Errores</p>
                   </div>
                 </div>
@@ -719,12 +740,13 @@ export default function UsersImportPage() {
                         .map((d, idx) => (
                           <TableRow key={idx}>
                             <TableCell className="font-mono">{d.index}</TableCell>
-                            <TableCell className="font-medium">
-                              {d.displayName || "—"}
-                            </TableCell>
+                            <TableCell className="font-medium">{d.displayName || "—"}</TableCell>
                             <TableCell>
                               {d.status === "duplicate" ? (
-                                <Badge variant="secondary" className="bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400">
+                                <Badge
+                                  variant="secondary"
+                                  className="bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400"
+                                >
                                   Duplicado
                                 </Badge>
                               ) : (

@@ -1,5 +1,7 @@
 "use client";
 
+import { clientLogger } from "@/lib/client-logger";
+
 import { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
@@ -13,17 +15,15 @@ import { Button } from "@/ui/button";
 import { Input } from "@/ui/input";
 import { Label } from "@/ui/label";
 import { Textarea } from "@/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/ui/select";
 import { Loader2, Calendar, Clock, Truck, Wrench, Plus } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { ServiceSelector, type ServiceOption } from "./service-selector";
-import { InventoryItemSelector, type UsedItem, type InventoryItemOption } from "./inventory-item-selector";
+import {
+  InventoryItemSelector,
+  type UsedItem,
+  type InventoryItemOption,
+} from "./inventory-item-selector";
 import { CostSummary } from "./cost-summary";
 import type { ServiceTemplateItem } from "@/validations/types";
 
@@ -92,7 +92,7 @@ export function CreateServiceOrderDialog({
       const items = Array.isArray(result.data) ? result.data : Array.isArray(result) ? result : [];
       setInventoryItems(items);
     } catch (error) {
-      console.error("Error loading inventory:", error);
+      clientLogger.error("Error loading inventory:", error);
       toast.error("No se pudieron cargar los repuestos");
     } finally {
       setIsLoadingInventory(false);
@@ -108,7 +108,7 @@ export function CreateServiceOrderDialog({
       const { data } = await response.json();
       setServices(data || []);
     } catch (error) {
-      console.error("Error loading services:", error);
+      clientLogger.error("Error loading services:", error);
     } finally {
       setIsLoadingServices(false);
     }
@@ -134,7 +134,7 @@ export function CreateServiceOrderDialog({
         setVehicles(vehicleOptions);
       }
     } catch (error) {
-      console.error("Error loading vehicles:", error);
+      clientLogger.error("Error loading vehicles:", error);
     } finally {
       setIsLoadingVehicles(false);
     }
@@ -161,71 +161,75 @@ export function CreateServiceOrderDialog({
   }, [isOpen, loadServices, loadVehicles, loadInventory]);
 
   // Helper: extrae ítems de plantilla de un servicio (defaultTemplate > maintenanceKits)
-  const extractTemplateItems = useCallback((service: ServiceOption): ServiceTemplateItem[] | undefined => {
-    if (service.defaultTemplate && service.defaultTemplate.length > 0) {
-      return service.defaultTemplate;
-    }
-    const defaultKit = service.maintenanceKits?.find((k) => k.isActive !== false);
-    if (defaultKit?.kitItems && defaultKit.kitItems.length > 0) {
-      return defaultKit.kitItems.map((ki) => ({
-        inventoryItemId: ki.inventoryItem.id,
-        code: ki.inventoryItem.code,
-        description: ki.inventoryItem.description,
-        quantity: ki.quantity,
-        salePrice: ki.inventoryItem.salePrice,
-      }));
-    }
-    return undefined;
-  }, []);
-
-  const handleAddService = useCallback((service: ServiceOption, skipTemplateLoad = false) => {
-    setSelectedServices((prev) => {
-      if (prev.find((s) => s.documentId === service.documentId || s.id === service.id)) {
-        return prev;
+  const extractTemplateItems = useCallback(
+    (service: ServiceOption): ServiceTemplateItem[] | undefined => {
+      if (service.defaultTemplate && service.defaultTemplate.length > 0) {
+        return service.defaultTemplate;
       }
-      return [...prev, service];
-    });
+      const defaultKit = service.maintenanceKits?.find((k) => k.isActive !== false);
+      if (defaultKit?.kitItems && defaultKit.kitItems.length > 0) {
+        return defaultKit.kitItems.map((ki) => ({
+          inventoryItemId: ki.inventoryItem.id,
+          code: ki.inventoryItem.code,
+          description: ki.inventoryItem.description,
+          quantity: ki.quantity,
+          salePrice: ki.inventoryItem.salePrice,
+        }));
+      }
+      return undefined;
+    },
+    []
+  );
 
-    if (skipTemplateLoad) return;
-
-    const templateItems = extractTemplateItems(service);
-    if (!templateItems || templateItems.length === 0) return;
-
-    setUsedItems((prev) => {
-      const next = [...prev];
-      for (const tpl of templateItems) {
-        // Buscar en inventario cargado para obtener ID real, stock y precio actual
-        const invMatch = inventoryItems.find(
-          (inv: InventoryItemOption) =>
-            String(inv.id) === String(tpl.inventoryItemId) ||
-            String(inv.documentId) === String(tpl.inventoryItemId) ||
-            inv.code === tpl.code
-        );
-
-        // Usar siempre el id numérico (no documentId) para que el backend
-        // pueda vincular la relación correctamente via Query Engine
-        const targetId = invMatch
-          ? String(invMatch.id)
-          : String(tpl.inventoryItemId);
-
-        const existing = next.find((u) => String(u.inventoryItem) === targetId);
-        if (existing) {
-          existing.quantity += tpl.quantity;
-        } else {
-          next.push({
-            inventoryItem: targetId,
-            code: tpl.code || (invMatch?.code ?? ""),
-            description: tpl.description || (invMatch?.description ?? ""),
-            quantity: tpl.quantity,
-            unitPriceAtMoment: invMatch
-              ? Number(invMatch.salePrice ?? invMatch.unitCost ?? tpl.salePrice ?? 0)
-              : Number(tpl.salePrice ?? 0),
-          });
+  const handleAddService = useCallback(
+    (service: ServiceOption, skipTemplateLoad = false) => {
+      setSelectedServices((prev) => {
+        if (prev.find((s) => s.documentId === service.documentId || s.id === service.id)) {
+          return prev;
         }
-      }
-      return next;
-    });
-  }, [inventoryItems, extractTemplateItems]);
+        return [...prev, service];
+      });
+
+      if (skipTemplateLoad) return;
+
+      const templateItems = extractTemplateItems(service);
+      if (!templateItems || templateItems.length === 0) return;
+
+      setUsedItems((prev) => {
+        const next = [...prev];
+        for (const tpl of templateItems) {
+          // Buscar en inventario cargado para obtener ID real, stock y precio actual
+          const invMatch = inventoryItems.find(
+            (inv: InventoryItemOption) =>
+              String(inv.id) === String(tpl.inventoryItemId) ||
+              String(inv.documentId) === String(tpl.inventoryItemId) ||
+              inv.code === tpl.code
+          );
+
+          // Usar siempre el id numérico (no documentId) para que el backend
+          // pueda vincular la relación correctamente via Query Engine
+          const targetId = invMatch ? String(invMatch.id) : String(tpl.inventoryItemId);
+
+          const existing = next.find((u) => String(u.inventoryItem) === targetId);
+          if (existing) {
+            existing.quantity += tpl.quantity;
+          } else {
+            next.push({
+              inventoryItem: targetId,
+              code: tpl.code || (invMatch?.code ?? ""),
+              description: tpl.description || (invMatch?.description ?? ""),
+              quantity: tpl.quantity,
+              unitPriceAtMoment: invMatch
+                ? Number(invMatch.salePrice ?? invMatch.unitCost ?? tpl.salePrice ?? 0)
+                : Number(tpl.salePrice ?? 0),
+            });
+          }
+        }
+        return next;
+      });
+    },
+    [inventoryItems, extractTemplateItems]
+  );
 
   // Aplicar presets una vez que los datos base estén cargados
   useEffect(() => {
@@ -262,8 +266,7 @@ export function CreateServiceOrderDialog({
         // Buscar en inventoryItems por id, documentId o código
         const match = inventoryItems.find(
           (inv: InventoryItemOption) =>
-            String(inv.id) === String(preset.inventoryItemId) ||
-            inv.code === preset.code
+            String(inv.id) === String(preset.inventoryItemId) || inv.code === preset.code
         );
         if (match) {
           mapped.push({
@@ -298,7 +301,9 @@ export function CreateServiceOrderDialog({
   ]);
 
   const handleRemoveService = (serviceId: string | number) => {
-    setSelectedServices(selectedServices.filter((s) => s.documentId !== serviceId && s.id !== serviceId));
+    setSelectedServices(
+      selectedServices.filter((s) => s.documentId !== serviceId && s.id !== serviceId)
+    );
   };
 
   const handleAddInventoryItem = (item: any) => {
@@ -336,7 +341,10 @@ export function CreateServiceOrderDialog({
     );
   };
 
-  const partsCost = usedItems.reduce((sum, item) => sum + (item.quantity * item.unitPriceAtMoment), 0);
+  const partsCost = usedItems.reduce(
+    (sum, item) => sum + item.quantity * item.unitPriceAtMoment,
+    0
+  );
   const laborCost = parseFloat(formData.laborCost) || 0;
   const servicesCost = selectedServices.reduce((sum, s) => sum + (s.price || 0), 0);
 
@@ -366,9 +374,10 @@ export function CreateServiceOrderDialog({
         summary: formData.summary || undefined,
         vehicle: vehicleId ? Number(vehicleId) : undefined,
         laborCost,
-        services: selectedServices.length > 0
-          ? selectedServices.map((s) => Number(s.id)).filter((id) => !isNaN(id))
-          : undefined,
+        services:
+          selectedServices.length > 0
+            ? selectedServices.map((s) => Number(s.id)).filter((id) => !isNaN(id))
+            : undefined,
       };
 
       const body: Record<string, unknown> = { data: payload };
@@ -383,7 +392,7 @@ export function CreateServiceOrderDialog({
             );
             const resolvedId = inv ? Number(inv.id) : Number(item.inventoryItem);
             if (isNaN(resolvedId)) {
-              console.warn(
+              clientLogger.warn(
                 "[CreateServiceOrder] No se pudo resolver id numérico para inventoryItem:",
                 item.inventoryItem
               );
@@ -396,10 +405,10 @@ export function CreateServiceOrderDialog({
             };
           })
           .filter(Boolean) as Array<{
-            inventoryItem: number;
-            quantity: number;
-            unitPriceAtMoment: number;
-          }>;
+          inventoryItem: number;
+          quantity: number;
+          unitPriceAtMoment: number;
+        }>;
       }
 
       const response = await fetch("/api/service-orders", {
@@ -423,7 +432,7 @@ export function CreateServiceOrderDialog({
       onOpenChange(false);
       onSuccess?.();
     } catch (error) {
-      console.error("Error creating service order:", error);
+      clientLogger.error("Error creating service order:", error);
       toast.error(error instanceof Error ? error.message : "Error al crear la orden de servicio");
     } finally {
       setIsLoading(false);
@@ -458,7 +467,9 @@ export function CreateServiceOrderDialog({
               disabled={isLoadingVehicles}
             >
               <SelectTrigger id="fleetVehicle">
-                <SelectValue placeholder={isLoadingVehicles ? "Cargando vehículos..." : "Seleccionar vehículo"} />
+                <SelectValue
+                  placeholder={isLoadingVehicles ? "Cargando vehículos..." : "Seleccionar vehículo"}
+                />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Seleccionar vehículo...</SelectItem>
@@ -470,9 +481,7 @@ export function CreateServiceOrderDialog({
               </SelectContent>
             </Select>
             {selectedVehicle && (
-              <p className="text-xs text-muted-foreground">
-                VIN: {selectedVehicle.vin}
-              </p>
+              <p className="text-xs text-muted-foreground">VIN: {selectedVehicle.vin}</p>
             )}
           </div>
 

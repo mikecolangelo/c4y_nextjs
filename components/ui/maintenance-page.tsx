@@ -2,73 +2,79 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components_shadcn/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components_shadcn/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components_shadcn/ui/card";
 import { Wrench, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 // Estilos de fallback inline por si el CSS global no carga
 const fallbackStyles = {
   container: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: '100vh',
-    padding: '16px',
-    backgroundColor: '#f3f4f6', // gray-100
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: "100vh",
+    padding: "16px",
+    backgroundColor: "#f3f4f6", // gray-100
   } as const,
   card: {
-    width: '100%',
-    maxWidth: '28rem',
-    padding: '32px',
-    backgroundColor: '#ffffff',
-    borderRadius: '0.75rem',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+    width: "100%",
+    maxWidth: "28rem",
+    padding: "32px",
+    backgroundColor: "#ffffff",
+    borderRadius: "0.75rem",
+    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
   } as const,
   header: {
-    textAlign: 'center' as const,
-    marginBottom: '24px',
+    textAlign: "center" as const,
+    marginBottom: "24px",
   },
   iconContainer: {
-    display: 'flex',
-    justifyContent: 'center',
-    marginBottom: '16px',
+    display: "flex",
+    justifyContent: "center",
+    marginBottom: "16px",
   },
   iconWrapper: {
-    padding: '16px',
-    borderRadius: '9999px',
-    backgroundColor: 'rgba(234, 179, 8, 0.1)', // primary/10
+    padding: "16px",
+    borderRadius: "9999px",
+    backgroundColor: "rgba(234, 179, 8, 0.1)", // primary/10
   },
   title: {
-    fontSize: '1.875rem',
-    fontWeight: '700',
-    color: '#eab308', // primary
-    marginBottom: '8px',
+    fontSize: "1.875rem",
+    fontWeight: "700",
+    color: "#eab308", // primary
+    marginBottom: "8px",
   },
   description: {
-    fontSize: '1rem',
-    color: '#6b7280', // gray-500
+    fontSize: "1rem",
+    color: "#6b7280", // gray-500
   },
   content: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '16px',
-    alignItems: 'center',
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "16px",
+    alignItems: "center",
   },
   button: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '12px 24px',
-    backgroundColor: '#000000',
-    color: '#ffffff',
-    borderRadius: '0.5rem',
-    textDecoration: 'none',
-    fontWeight: '600',
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "12px 24px",
+    backgroundColor: "#000000",
+    color: "#ffffff",
+    borderRadius: "0.5rem",
+    textDecoration: "none",
+    fontWeight: "600",
   },
   footer: {
-    fontSize: '0.875rem',
-    color: '#9ca3af', // gray-400
-    textAlign: 'center' as const,
+    fontSize: "0.875rem",
+    color: "#9ca3af", // gray-400
+    textAlign: "center" as const,
   },
 };
 
@@ -151,25 +157,25 @@ export function MaintenancePage() {
           text-align: center;
         }
       `}</style>
-      
+
       {/* Contenedor con clases de Tailwind + fallback */}
-      <div 
+      <div
         className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 px-4 maintenance-fallback"
         style={fallbackStyles.container}
       >
-        <Card 
-          className="w-full max-w-md py-8 px-8 bg-white maintenance-fallback-card"
+        <Card
+          className="w-full max-w-md py-8 px-8 bg-card maintenance-fallback-card"
           style={fallbackStyles.card}
         >
-          <CardHeader 
+          <CardHeader
             className="space-y-4 pb-6 text-center maintenance-fallback-header"
             style={fallbackStyles.header}
           >
-            <div 
+            <div
               className="flex justify-center maintenance-fallback-icon"
               style={fallbackStyles.iconContainer}
             >
-              <div 
+              <div
                 className="rounded-full bg-primary/10 p-4 maintenance-fallback-icon-inner"
                 style={fallbackStyles.iconWrapper}
               >
@@ -180,30 +186,26 @@ export function MaintenancePage() {
                 )}
               </div>
             </div>
-            <CardTitle 
+            <CardTitle
               className="text-3xl font-bold text-primary maintenance-fallback-title"
               style={fallbackStyles.title}
             >
               Under Maintenance
             </CardTitle>
-            <CardDescription 
+            <CardDescription
               className="text-base maintenance-fallback-desc"
               style={fallbackStyles.description}
             >
               We&apos;re working on something amazing. The website will be available soon.
             </CardDescription>
           </CardHeader>
-          <CardContent 
+          <CardContent
             className="space-y-4 maintenance-fallback-content"
             style={fallbackStyles.content}
           >
             <div className="flex justify-center">
-              <Button
-                asChild
-                variant="default"
-                className="btn-black flex items-center gap-2"
-              >
-                <Link 
+              <Button asChild variant="default" className="btn-black flex items-center gap-2">
+                <Link
                   href="/dashboard"
                   className="maintenance-fallback-button"
                   style={fallbackStyles.button}
@@ -217,7 +219,7 @@ export function MaintenancePage() {
                 </Link>
               </Button>
             </div>
-            <p 
+            <p
               className="text-sm text-muted-foreground text-center maintenance-fallback-footer"
               style={fallbackStyles.footer}
             >

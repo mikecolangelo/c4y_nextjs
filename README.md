@@ -1,50 +1,91 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Car4You — Frontend
 
-## Getting Started
+Admin panel for Car4You, built with **Next.js 14 (App Router)**, React 18,
+TypeScript and Tailwind CSS. It talks to the Strapi backend over REST.
 
-### Install shadcn/ui Components
+## Tech stack
 
-This project uses [shadcn/ui](https://ui.shadcn.com/) components. The components are stored in `/components_shadcn/` and should be installed using the shadcn CLI:
+- **Next.js 14** (App Router, server components, route handlers under `app/api`)
+- **TypeScript**, **Tailwind CSS v4**, **shadcn/ui** (in `components_shadcn/`)
+- **pino** for structured logging
+- **Vitest** + Testing Library for unit/component tests
+- **pnpm** as the package manager
+
+## Prerequisites
+
+- Node.js `>=20`
+- pnpm `10.x`
+- A running instance of the Car4You Strapi backend
+
+## Environment
+
+Environment variables are loaded by Next.js. Per-environment files
+(`.env.development`, `.env.production`) are committed **without secrets**. The
+key variable is the backend URL:
 
 ```bash
-pnpx shadcn@latest add button calendar card carousel checkbox context-menu dialog drawer form hover-card input label menubar navigation-menu pagination popover progress radio-group resizable scroll-area select separator sheet sidebar skeleton slider switch table tabs textarea toggle-group toggle tooltip
+STRAPI_BASE_URL="http://localhost:1337"
 ```
 
-Or install them individually:
+## Getting started
 
 ```bash
-pnpx shadcn@latest add button
-pnpx shadcn@latest add card
-# ... etc
+pnpm install
+pnpm dev          # http://localhost:3000
 ```
 
-**Note:** The components in `/components_shadcn/` are ignored by git (see `.gitignore`). Make sure to install them after cloning the repository.
+## Available scripts
 
-### Run the Development Server
+| Script                         | Description                                       |
+| ------------------------------ | ------------------------------------------------- |
+| `pnpm dev`                     | Start the dev server                              |
+| `pnpm build`                   | Production build (output in `.next-prod-deploy/`) |
+| `pnpm start`                   | Serve the production build                        |
+| `pnpm lint`                    | Run ESLint (`next lint`)                          |
+| `pnpm format` / `format:check` | Apply / verify Prettier formatting                |
+| `pnpm typecheck`               | `tsc --noEmit`                                    |
+| `pnpm test`                    | Run the Vitest suite                              |
 
-First, run the development server:
+## Project structure
+
+```
+app/                # App Router pages and route handlers (app/api/*)
+components/         # Feature/UI components
+components_shadcn/  # shadcn/ui primitives
+features/          # Feature-based modules (data layer + hooks + components)
+  services/        # Services feature: api/, hooks/, components/, types/, utils/
+lib/               # Shared utilities (config, auth, logger, client-logger…)
+validations/       # Shared types and schemas
+```
+
+New feature work should follow the **feature-based** layout under `features/`:
+keep data fetching in `api/`, stateful logic in `hooks/`, and presentation in
+`components/`, exposing a public API through the feature's `index.ts` barrel.
+
+## Code quality & conventions
+
+- **Prettier** owns formatting; **ESLint** (`eslint-config-next`) owns linting.
+- **Husky** runs `lint-staged` on `pre-commit` (ESLint `--fix` + Prettier) and
+  **commitlint** on `commit-msg`.
+- Commit messages must follow **Conventional Commits**, e.g.
+  `feat(services): add maintenance kit picker`.
+
+## Logging
+
+Use the central loggers instead of `console.*`:
+
+- Server code (route handlers, `lib/*`): `import { logger } from "@/lib/logger"`
+  (pino; `debug` in dev, `warn` in prod).
+- Client components (`"use client"`): `import { clientLogger } from "@/lib/client-logger"`.
+
+`console.*` is additionally stripped from production bundles by
+`compiler.removeConsole` in `next.config.js` (keeping `error`/`warn`).
+
+## Testing
 
 ```bash
-pnpm dev
+pnpm test
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Tests live next to the code they cover (e.g. `app/api/**/__tests__`,
+`components/**/__tests__`).

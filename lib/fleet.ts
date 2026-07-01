@@ -1,5 +1,6 @@
 import qs from "qs";
-import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "./config";
+import { STRAPI_BASE_URL } from "./config";
+import { getCurrentUserJwt } from "./auth";
 import { strapiImages } from "./strapi-images";
 import type {
   FleetVehicleCard,
@@ -65,7 +66,22 @@ const populateImageQueryString = qs.stringify(populateImageConfig, { encodeValue
 
 const listQueryString = qs.stringify(
   {
-    fields: ["name", "vin", "price", "condition", "brand", "model", "year", "imageAlt", "placa", "billingInitials", "currentMileage", "lastOilChangeMileage", "oilChangeNotificationSent"],
+    fields: [
+      "name",
+      "vin",
+      "price",
+      "condition",
+      "brand",
+      "model",
+      "year",
+      "imageAlt",
+      "placa",
+      "billingInitials",
+      "currentMileage",
+      "lastOilChangeMileage",
+      "oilChangeInterval",
+      "oilChangeNotificationSent",
+    ],
     populate: {
       ...populateImageConfig.populate,
       // Incluir financiamiento para verificar si el vehículo tiene uno activo
@@ -87,7 +103,9 @@ type FleetVehicleImageRelation = {
   } | null;
 };
 
-const extractAttributes = (entry: FleetVehicleRaw): FleetVehicleRawAttributes & {
+const extractAttributes = (
+  entry: FleetVehicleRaw
+): FleetVehicleRawAttributes & {
   id?: number | string;
   documentId?: string;
 } => {
@@ -114,36 +132,34 @@ const getImageData = (image: FleetVehicleRawAttributes["image"]) => {
   return image as FleetVehicleImage;
 };
 
-type ImageSize = 'thumbnail' | 'small' | 'medium' | 'large' | 'original';
+type ImageSize = "thumbnail" | "small" | "medium" | "large" | "original";
 
 const getImageUrl = (
-  imageData: FleetVehicleImage | undefined, 
-  size: ImageSize | 'small' | boolean = 'original'
+  imageData: FleetVehicleImage | undefined,
+  size: ImageSize | "small" | boolean = "original"
 ): string | undefined => {
   if (!imageData) return undefined;
-  
+
   // Compatibilidad con el parámetro booleano anterior
-  const requestedSize: ImageSize = typeof size === 'boolean' 
-    ? (size ? 'small' : 'original')
-    : size;
-  
+  const requestedSize: ImageSize = typeof size === "boolean" ? (size ? "small" : "original") : size;
+
   // Para cards pequeñas, usar formato 'small' si está disponible, sino 'thumbnail', sino la original
-  if (requestedSize === 'small' || requestedSize === 'thumbnail') {
-    if (requestedSize === 'small' && imageData.formats?.small?.url) {
+  if (requestedSize === "small" || requestedSize === "thumbnail") {
+    if (requestedSize === "small" && imageData.formats?.small?.url) {
       return strapiImages.getURL(imageData.formats.small.url);
     }
     if (imageData.formats?.thumbnail?.url) {
       return strapiImages.getURL(imageData.formats.thumbnail.url);
     }
   }
-  
+
   // Para imágenes medianas (como en listas)
-  if (requestedSize === 'medium' && imageData.formats?.medium?.url) {
+  if (requestedSize === "medium" && imageData.formats?.medium?.url) {
     return strapiImages.getURL(imageData.formats.medium.url);
   }
-  
+
   // Para imágenes grandes (como en headers), preferir large, luego medium, luego original
-  if (requestedSize === 'large') {
+  if (requestedSize === "large") {
     if (imageData.formats?.large?.url) {
       return strapiImages.getURL(imageData.formats.large.url);
     }
@@ -151,12 +167,15 @@ const getImageUrl = (
       return strapiImages.getURL(imageData.formats.medium.url);
     }
   }
-  
+
   // Para vista completa o si no hay formato específico, usar la imagen original
   return imageData.url ? strapiImages.getURL(imageData.url) : undefined;
 };
 
-const normalizeVehicle = (entry: FleetVehicleRaw, useSmallImage = false): FleetVehicleCard | null => {
+const normalizeVehicle = (
+  entry: FleetVehicleRaw,
+  useSmallImage = false
+): FleetVehicleCard | null => {
   const attributes = extractAttributes(entry);
   if (!attributes.name || !attributes.vin) {
     return null;
@@ -169,16 +188,20 @@ const normalizeVehicle = (entry: FleetVehicleRaw, useSmallImage = false): FleetV
     imageData?.alternativeText ?? attributes.imageAlt ?? attributes.name ?? "Vehículo";
   const idSource = attributes.id ?? attributes.documentId ?? attributes.vin;
   const documentId = attributes.documentId ?? String(idSource);
-  
+
   // Incluir datos completos de la imagen con formats para uso optimizado
-  const fullImageData = imageData ? {
-    url: imageData.url,
-    alternativeText: imageData.alternativeText,
-    formats: imageData.formats,
-  } : undefined;
+  const fullImageData = imageData
+    ? {
+        url: imageData.url,
+        alternativeText: imageData.alternativeText,
+        formats: imageData.formats,
+      }
+    : undefined;
 
   // Helper para obtener avatar
-  const getAvatarData = (avatar: FleetVehicleImage | { data?: { attributes?: FleetVehicleImage } | null } | undefined) => {
+  const getAvatarData = (
+    avatar: FleetVehicleImage | { data?: { attributes?: FleetVehicleImage } | null } | undefined
+  ) => {
     if (!avatar) return undefined;
     if ("data" in (avatar as FleetVehicleImageRelation)) {
       return (avatar as FleetVehicleImageRelation).data?.attributes ?? undefined;
@@ -189,7 +212,8 @@ const normalizeVehicle = (entry: FleetVehicleRaw, useSmallImage = false): FleetV
   // Normalizar assignedDrivers
   // En Strapi v4, las relaciones manyToMany pueden venir como { data: [...] } o directamente como array
   const assignedDriversRaw = attributes.assignedDrivers as any;
-  const assignedDriversData = assignedDriversRaw?.data || (Array.isArray(assignedDriversRaw) ? assignedDriversRaw : []);
+  const assignedDriversData =
+    assignedDriversRaw?.data || (Array.isArray(assignedDriversRaw) ? assignedDriversRaw : []);
   const assignedDrivers = assignedDriversData.map((driver: any) => {
     // El driver puede venir con attributes o directamente con los campos
     const driverAttrs = driver.attributes || driver;
@@ -199,16 +223,19 @@ const normalizeVehicle = (entry: FleetVehicleRaw, useSmallImage = false): FleetV
       documentId: driver.documentId || driverAttrs?.documentId,
       displayName: driverAttrs?.displayName,
       email: driverAttrs?.email,
-      avatar: avatarData ? {
-        url: avatarData.url,
-        alternativeText: avatarData.alternativeText,
-      } : undefined,
+      avatar: avatarData
+        ? {
+            url: avatarData.url,
+            alternativeText: avatarData.alternativeText,
+          }
+        : undefined,
     };
   });
 
   // Normalizar responsables
   const responsablesRaw = attributes.responsables as any;
-  const responsablesData = responsablesRaw?.data || (Array.isArray(responsablesRaw) ? responsablesRaw : []);
+  const responsablesData =
+    responsablesRaw?.data || (Array.isArray(responsablesRaw) ? responsablesRaw : []);
   const responsables = responsablesData.map((resp: any) => {
     // El resp puede venir con attributes o directamente con los campos
     const respAttrs = resp.attributes || resp;
@@ -218,16 +245,19 @@ const normalizeVehicle = (entry: FleetVehicleRaw, useSmallImage = false): FleetV
       documentId: resp.documentId || respAttrs?.documentId,
       displayName: respAttrs?.displayName,
       email: respAttrs?.email,
-      avatar: avatarData ? {
-        url: avatarData.url,
-        alternativeText: avatarData.alternativeText,
-      } : undefined,
+      avatar: avatarData
+        ? {
+            url: avatarData.url,
+            alternativeText: avatarData.alternativeText,
+          }
+        : undefined,
     };
   });
 
   // Normalizar interestedDrivers (conductores interesados)
   const interestedDriversRaw = attributes.interestedDrivers as any;
-  const interestedDriversData = interestedDriversRaw?.data || (Array.isArray(interestedDriversRaw) ? interestedDriversRaw : []);
+  const interestedDriversData =
+    interestedDriversRaw?.data || (Array.isArray(interestedDriversRaw) ? interestedDriversRaw : []);
   const interestedDrivers = interestedDriversData.map((driver: any) => {
     // El driver puede venir con attributes o directamente con los campos
     const driverAttrs = driver.attributes || driver;
@@ -237,16 +267,19 @@ const normalizeVehicle = (entry: FleetVehicleRaw, useSmallImage = false): FleetV
       documentId: driver.documentId || driverAttrs?.documentId,
       displayName: driverAttrs?.displayName,
       email: driverAttrs?.email,
-      avatar: avatarData ? {
-        url: avatarData.url,
-        alternativeText: avatarData.alternativeText,
-      } : undefined,
+      avatar: avatarData
+        ? {
+            url: avatarData.url,
+            alternativeText: avatarData.alternativeText,
+          }
+        : undefined,
     };
   });
 
   // Normalizar currentDrivers (conductores actuales)
   const currentDriversRaw = attributes.currentDrivers as any;
-  const currentDriversData = currentDriversRaw?.data || (Array.isArray(currentDriversRaw) ? currentDriversRaw : []);
+  const currentDriversData =
+    currentDriversRaw?.data || (Array.isArray(currentDriversRaw) ? currentDriversRaw : []);
   const currentDrivers = currentDriversData.map((driver: any) => {
     // El driver puede venir con attributes o directamente con los campos
     const driverAttrs = driver.attributes || driver;
@@ -256,16 +289,19 @@ const normalizeVehicle = (entry: FleetVehicleRaw, useSmallImage = false): FleetV
       documentId: driver.documentId || driverAttrs?.documentId,
       displayName: driverAttrs?.displayName,
       email: driverAttrs?.email,
-      avatar: avatarData ? {
-        url: avatarData.url,
-        alternativeText: avatarData.alternativeText,
-      } : undefined,
+      avatar: avatarData
+        ? {
+            url: avatarData.url,
+            alternativeText: avatarData.alternativeText,
+          }
+        : undefined,
     };
   });
 
   // Normalizar interestedPersons (personas interesadas)
   const interestedPersonsRaw = attributes.interestedPersons as any;
-  const interestedPersonsData = interestedPersonsRaw?.data || (Array.isArray(interestedPersonsRaw) ? interestedPersonsRaw : []);
+  const interestedPersonsData =
+    interestedPersonsRaw?.data || (Array.isArray(interestedPersonsRaw) ? interestedPersonsRaw : []);
   const interestedPersons = interestedPersonsData.map((person: any) => {
     // La persona puede venir con attributes o directamente con los campos
     const personAttrs = person.attributes || person;
@@ -277,10 +313,12 @@ const normalizeVehicle = (entry: FleetVehicleRaw, useSmallImage = false): FleetV
       email: personAttrs?.email,
       phone: personAttrs?.phone,
       status: personAttrs?.status,
-      avatar: avatarData ? {
-        url: avatarData.url,
-        alternativeText: avatarData.alternativeText,
-      } : undefined,
+      avatar: avatarData
+        ? {
+            url: avatarData.url,
+            alternativeText: avatarData.alternativeText,
+          }
+        : undefined,
     };
   });
 
@@ -288,20 +326,22 @@ const normalizeVehicle = (entry: FleetVehicleRaw, useSmallImage = false): FleetV
   const financingRaw = attributes.financing as any;
   const financingData = financingRaw?.data || financingRaw;
   const financingAttrs = financingData?.attributes || financingData;
-  const financing = financingData ? {
-    id: financingData.id,
-    documentId: financingData.documentId || financingAttrs?.documentId,
-    financingNumber: financingAttrs?.financingNumber,
-    status: financingAttrs?.status,
-    totalAmount: financingAttrs?.totalAmount,
-    paidQuotas: financingAttrs?.paidQuotas,
-    totalQuotas: financingAttrs?.totalQuotas,
-    quotaAmount: financingAttrs?.quotaAmount,
-    currentBalance: financingAttrs?.currentBalance,
-    totalPaid: financingAttrs?.totalPaid,
-    nextDueDate: financingAttrs?.nextDueDate,
-    partialPaymentCredit: financingAttrs?.partialPaymentCredit,
-  } : undefined;
+  const financing = financingData
+    ? {
+        id: financingData.id,
+        documentId: financingData.documentId || financingAttrs?.documentId,
+        financingNumber: financingAttrs?.financingNumber,
+        status: financingAttrs?.status,
+        totalAmount: financingAttrs?.totalAmount,
+        paidQuotas: financingAttrs?.paidQuotas,
+        totalQuotas: financingAttrs?.totalQuotas,
+        quotaAmount: financingAttrs?.quotaAmount,
+        currentBalance: financingAttrs?.currentBalance,
+        totalPaid: financingAttrs?.totalPaid,
+        nextDueDate: financingAttrs?.nextDueDate,
+        partialPaymentCredit: financingAttrs?.partialPaymentCredit,
+      }
+    : undefined;
 
   return {
     id: String(idSource),
@@ -320,6 +360,7 @@ const normalizeVehicle = (entry: FleetVehicleRaw, useSmallImage = false): FleetV
     color: attributes.color ?? undefined,
     currentMileage: attributes.currentMileage ?? undefined,
     lastOilChangeMileage: attributes.lastOilChangeMileage ?? undefined,
+    oilChangeInterval: attributes.oilChangeInterval ?? undefined,
     oilChangeNotificationSent: attributes.oilChangeNotificationSent ?? undefined,
     fuelType: attributes.fuelType ?? undefined,
     transmission: attributes.transmission ?? undefined,
@@ -336,13 +377,14 @@ const normalizeVehicle = (entry: FleetVehicleRaw, useSmallImage = false): FleetV
 };
 
 export async function fetchFleetVehiclesFromStrapi(): Promise<FleetVehicleCard[]> {
+  const jwt = await getCurrentUserJwt();
   const url = `${STRAPI_BASE_URL}/api/fleets?${listQueryString}`;
   const response = await fetch(url, {
     headers: {
-      Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      Authorization: `Bearer ${jwt ?? ""}`,
     },
     cache: "force-cache",
-    next: { revalidate: 300, tags: ['fleet'] },
+    next: { revalidate: 300, tags: ["fleet"] },
   });
 
   if (!response.ok) {
@@ -374,10 +416,7 @@ const buildFleetDetailQuery = (id: string | number) => {
   const normalizedId = String(id);
   const filters = isNumericId(id)
     ? {
-        $or: [
-          { id: { $eq: Number(id) } },
-          { documentId: { $eq: normalizedId } },
-        ],
+        $or: [{ id: { $eq: Number(id) } }, { documentId: { $eq: normalizedId } }],
       }
     : {
         documentId: { $eq: normalizedId },
@@ -386,7 +425,26 @@ const buildFleetDetailQuery = (id: string | number) => {
   return qs.stringify(
     {
       filters,
-      fields: ["name", "vin", "price", "condition", "brand", "model", "year", "color", "fuelType", "transmission", "imageAlt", "nextMaintenanceDate", "placa", "billingInitials", "currentMileage", "lastOilChangeMileage", "oilChangeNotificationSent"],
+      fields: [
+        "name",
+        "vin",
+        "price",
+        "condition",
+        "brand",
+        "model",
+        "year",
+        "color",
+        "fuelType",
+        "transmission",
+        "imageAlt",
+        "nextMaintenanceDate",
+        "placa",
+        "billingInitials",
+        "currentMileage",
+        "lastOilChangeMileage",
+        "oilChangeInterval",
+        "oilChangeNotificationSent",
+      ],
       populate: {
         ...populateImageConfigForDetails.populate,
         interestedPersons: {
@@ -398,7 +456,20 @@ const buildFleetDetailQuery = (id: string | number) => {
           },
         },
         financing: {
-          fields: ["id", "documentId", "financingNumber", "status", "totalAmount", "paidQuotas", "totalQuotas", "quotaAmount", "currentBalance", "totalPaid", "nextDueDate", "partialPaymentCredit"],
+          fields: [
+            "id",
+            "documentId",
+            "financingNumber",
+            "status",
+            "totalAmount",
+            "paidQuotas",
+            "totalQuotas",
+            "quotaAmount",
+            "currentBalance",
+            "totalPaid",
+            "nextDueDate",
+            "partialPaymentCredit",
+          ],
         },
       },
       pagination: { pageSize: 1 },
@@ -410,7 +481,26 @@ const buildFleetDetailQuery = (id: string | number) => {
 const buildFleetDirectQuery = () => {
   return qs.stringify(
     {
-      fields: ["name", "vin", "price", "condition", "brand", "model", "year", "color", "fuelType", "transmission", "imageAlt", "nextMaintenanceDate", "placa", "billingInitials", "currentMileage", "lastOilChangeMileage", "oilChangeNotificationSent"],
+      fields: [
+        "name",
+        "vin",
+        "price",
+        "condition",
+        "brand",
+        "model",
+        "year",
+        "color",
+        "fuelType",
+        "transmission",
+        "imageAlt",
+        "nextMaintenanceDate",
+        "placa",
+        "billingInitials",
+        "currentMileage",
+        "lastOilChangeMileage",
+        "oilChangeInterval",
+        "oilChangeNotificationSent",
+      ],
       populate: {
         ...populateImageConfigForDetails.populate,
         interestedPersons: {
@@ -422,7 +512,20 @@ const buildFleetDirectQuery = () => {
           },
         },
         financing: {
-          fields: ["id", "documentId", "financingNumber", "status", "totalAmount", "paidQuotas", "totalQuotas", "quotaAmount", "currentBalance", "totalPaid", "nextDueDate", "partialPaymentCredit"],
+          fields: [
+            "id",
+            "documentId",
+            "financingNumber",
+            "status",
+            "totalAmount",
+            "paidQuotas",
+            "totalQuotas",
+            "quotaAmount",
+            "currentBalance",
+            "totalPaid",
+            "nextDueDate",
+            "partialPaymentCredit",
+          ],
         },
       },
     },
@@ -433,19 +536,20 @@ const buildFleetDirectQuery = () => {
 export async function fetchFleetVehicleByIdFromStrapi(
   id: string | number
 ): Promise<FleetVehicleCard | null> {
+  const jwt = await getCurrentUserJwt();
   // Strapi v5: Usar endpoint directo para documentId, query para ID numérico
   const isDocId = !isNumericId(id);
-  
+
   const directQuery = buildFleetDirectQuery();
 
   if (isDocId) {
     // Usar endpoint directo /api/fleets/:documentId para Strapi v5
     const response = await fetch(`${STRAPI_BASE_URL}/api/fleets/${id}?${directQuery}`, {
       headers: {
-        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        Authorization: `Bearer ${jwt ?? ""}`,
       },
       cache: "force-cache",
-      next: { revalidate: 300, tags: ['fleet'] },
+      next: { revalidate: 300, tags: ["fleet"] },
     });
 
     if (response.status === 404) {
@@ -460,15 +564,15 @@ export async function fetchFleetVehicleByIdFromStrapi(
     const entry = payload?.data;
     return entry ? normalizeVehicle(entry) : null;
   }
-  
+
   // Para IDs numéricos, usar query tradicional
   const detailQuery = buildFleetDetailQuery(id);
   const response = await fetch(`${STRAPI_BASE_URL}/api/fleets?${detailQuery}`, {
     headers: {
-      Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      Authorization: `Bearer ${jwt ?? ""}`,
     },
     cache: "force-cache",
-    next: { revalidate: 300, tags: ['fleet'] },
+    next: { revalidate: 300, tags: ["fleet"] },
   });
 
   if (response.status === 404) {
@@ -487,19 +591,20 @@ export async function fetchFleetVehicleByIdFromStrapi(
 export async function fetchFleetVehicleRawFromStrapi(
   id: string | number
 ): Promise<FleetVehicleRaw | null> {
+  const jwt = await getCurrentUserJwt();
   // Strapi v5: Usar endpoint directo para documentId, query para ID numérico
   const isDocId = !isNumericId(id);
-  
+
   const directQuery = buildFleetDirectQuery();
 
   if (isDocId) {
     // Usar endpoint directo /api/fleets/:documentId para Strapi v5
     const response = await fetch(`${STRAPI_BASE_URL}/api/fleets/${id}?${directQuery}`, {
       headers: {
-        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        Authorization: `Bearer ${jwt ?? ""}`,
       },
       cache: "force-cache",
-      next: { revalidate: 300, tags: ['fleet'] },
+      next: { revalidate: 300, tags: ["fleet"] },
     });
 
     if (response.status === 404) {
@@ -513,15 +618,15 @@ export async function fetchFleetVehicleRawFromStrapi(
     const payload = (await response.json()) as StrapiResponse<FleetVehicleRaw>;
     return payload?.data ?? null;
   }
-  
+
   // Para IDs numéricos, usar query tradicional
   const detailQuery = buildFleetDetailQuery(id);
   const response = await fetch(`${STRAPI_BASE_URL}/api/fleets?${detailQuery}`, {
     headers: {
-      Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      Authorization: `Bearer ${jwt ?? ""}`,
     },
     cache: "force-cache",
-    next: { revalidate: 300, tags: ['fleet'] },
+    next: { revalidate: 300, tags: ["fleet"] },
   });
 
   if (response.status === 404) {
@@ -549,6 +654,7 @@ export async function updateFleetVehicleInStrapi(
   id: string | number,
   data: FleetVehicleUpdatePayload
 ): Promise<FleetVehicleCard> {
+  const jwt = await getCurrentUserJwt();
   const documentId = await resolveFleetDocumentId(id);
 
   if (!documentId) {
@@ -560,12 +666,12 @@ export async function updateFleetVehicleInStrapi(
   const strapiData: any = { ...data };
 
   // Convertir relaciones a arrays de IDs numéricos
-  const relationFields = ['responsables', 'assignedDrivers', 'interestedDrivers', 'currentDrivers'];
-  relationFields.forEach(field => {
+  const relationFields = ["responsables", "assignedDrivers", "interestedDrivers", "currentDrivers"];
+  relationFields.forEach((field) => {
     if (field in strapiData && Array.isArray(strapiData[field])) {
-      const numericIds = strapiData[field].map((id: any) =>
-        typeof id === 'number' ? id : parseInt(id, 10)
-      ).filter((id: any) => !isNaN(id));
+      const numericIds = strapiData[field]
+        .map((id: any) => (typeof id === "number" ? id : parseInt(id, 10)))
+        .filter((id: any) => !isNaN(id));
 
       if (numericIds.length === 0) {
         delete strapiData[field];
@@ -580,7 +686,7 @@ export async function updateFleetVehicleInStrapi(
   // Solo enviar estos campos si están presentes en el objeto data (incluso si es un array vacío para limpiar explícitamente).
   // Si no están presentes, Strapi mantendrá los valores existentes.
 
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.NODE_ENV === "development") {
     console.log("📤 Enviando a Strapi:", {
       responsables: strapiData.responsables,
       assignedDrivers: strapiData.assignedDrivers,
@@ -606,15 +712,15 @@ export async function updateFleetVehicleInStrapi(
   };
   const populateQueryString = qs.stringify(populateQuery, { encodeValuesOnly: true });
   const url = `${STRAPI_BASE_URL}/api/fleets/${documentId}?${populateQueryString}`;
-  
-  if (process.env.NODE_ENV === 'development') {
+
+  if (process.env.NODE_ENV === "development") {
     console.log("🔗 URL de actualización:", url);
     console.log("📋 Query string:", populateQueryString);
   }
   const response = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      Authorization: `Bearer ${jwt ?? ""}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ data: strapiData }),
@@ -642,8 +748,8 @@ export async function updateFleetVehicleInStrapi(
   }
 
   const payload = (await response.json()) as StrapiResponse<FleetVehicleRaw>;
-  
-  if (process.env.NODE_ENV === 'development') {
+
+  if (process.env.NODE_ENV === "development") {
     const rawData = payload?.data;
     if (rawData) {
       const attrs = extractAttributes(rawData);
@@ -661,13 +767,13 @@ export async function updateFleetVehicleInStrapi(
       });
     }
   }
-  
+
   const vehicle = payload?.data ? normalizeVehicle(payload.data) : null;
   if (!vehicle) {
     throw new Error("No pudimos normalizar la respuesta de Strapi.");
   }
 
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.NODE_ENV === "development") {
     console.log("✅ Vehículo normalizado después de actualizar:", {
       assignedDrivers: vehicle.assignedDrivers,
       responsables: vehicle.responsables,
@@ -680,6 +786,7 @@ export async function updateFleetVehicleInStrapi(
 }
 
 export async function deleteFleetVehicleInStrapi(id: string | number): Promise<void> {
+  const jwt = await getCurrentUserJwt();
   const documentId = await resolveFleetDocumentId(id);
 
   if (!documentId) {
@@ -689,7 +796,7 @@ export async function deleteFleetVehicleInStrapi(id: string | number): Promise<v
   const response = await fetch(`${STRAPI_BASE_URL}/api/fleets/${documentId}`, {
     method: "DELETE",
     headers: {
-      Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      Authorization: `Bearer ${jwt ?? ""}`,
     },
     cache: "no-store",
   });
@@ -709,6 +816,7 @@ export interface FleetVehicleCreatePayload {
   year: number;
   color?: string | null;
   currentMileage?: number | null;
+  oilChangeInterval?: number | null;
   fuelType?: string | null;
   transmission?: string | null;
   image?: number | null;
@@ -724,11 +832,12 @@ export interface FleetVehicleCreatePayload {
 export async function createFleetVehicleInStrapi(
   data: FleetVehicleCreatePayload
 ): Promise<FleetVehicleCard> {
+  const jwt = await getCurrentUserJwt();
   const url = `${STRAPI_BASE_URL}/api/fleets?${populateImageQueryString}`;
   const response = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      Authorization: `Bearer ${jwt ?? ""}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ data }),
@@ -741,8 +850,8 @@ export async function createFleetVehicleInStrapi(
   }
 
   const payload = (await response.json()) as StrapiResponse<FleetVehicleRaw>;
-  
-  if (process.env.NODE_ENV === 'development') {
+
+  if (process.env.NODE_ENV === "development") {
     const rawData = payload?.data;
     if (rawData) {
       const attrs = extractAttributes(rawData);
@@ -758,13 +867,13 @@ export async function createFleetVehicleInStrapi(
       });
     }
   }
-  
+
   const vehicle = payload?.data ? normalizeVehicle(payload.data) : null;
   if (!vehicle) {
     throw new Error("No pudimos normalizar la respuesta de Strapi.");
   }
 
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.NODE_ENV === "development") {
     console.log("✅ Vehículo normalizado:", {
       assignedDrivers: vehicle.assignedDrivers,
       responsables: vehicle.responsables,
@@ -773,4 +882,3 @@ export async function createFleetVehicleInStrapi(
 
   return vehicle;
 }
-

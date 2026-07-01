@@ -50,6 +50,7 @@ import {
 
 // Layout & Design
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { BackButton } from "@/components/admin/back-button";
 import { typography, spacing, components } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
 
@@ -66,13 +67,16 @@ type FinancingStatus = "activo" | "inactivo" | "en_mora" | "completado";
 
 type ExtendedPaymentStatus = "pagado" | "pendiente" | "adelanto" | "retrasado" | "abonado";
 
-const statusConfig: Record<FinancingStatus, {
-  label: string;
-  icon: typeof CheckCircle2;
-  bgColor: string;
-  textColor: string;
-  borderColor: string;
-}> = {
+const statusConfig: Record<
+  FinancingStatus,
+  {
+    label: string;
+    icon: typeof CheckCircle2;
+    bgColor: string;
+    textColor: string;
+    borderColor: string;
+  }
+> = {
   activo: {
     label: "Activo",
     icon: CheckCircle2,
@@ -121,20 +125,20 @@ export default function FinancingDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingPayments, setIsLoadingPayments] = useState(true); // Inicia en true para primera carga
   const [error, setError] = useState<string | null>(null);
-  
+
   // Dialogs
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  
+
   // Simulación
   const [isTestModeEnabled, setIsTestModeEnabled] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState("");
   const [currentWeek, setCurrentWeek] = useState(1); // Semana de simulación actual
-  
+
   // Key para forzar re-render del PaymentTimeline después de generar cuotas
   const [refreshKey, setRefreshKey] = useState(0);
-  
+
   // Confirm dialog hook
   const { confirm, ConfirmDialogComponent } = useConfirmDialog();
 
@@ -142,18 +146,18 @@ export default function FinancingDetailPage() {
   const { totalPaidPositive, totalMultas, creditReal } = useMemo(() => {
     // Solo pagos positivos cuentan como "pagado"
     const totalPaidPositive = payments
-      .filter(p => p.amount > 0)
+      .filter((p) => p.amount > 0)
       .reduce((sum, p) => sum + p.amount, 0);
-    
+
     // Montos negativos = multas
     const totalMultas = payments
-      .filter(p => p.amount < 0)
+      .filter((p) => p.amount < 0)
       .reduce((sum, p) => sum + Math.abs(p.amount), 0);
-    
+
     // Calcular crédito REAL desde los payments (no del financing que puede estar desactualizado)
     // Crédito = excedente de abonos/adelantos (amount - quotaAmount) para pagos que cubren más de una cuota
     const creditFromPayments = payments
-      .filter(p => p.amount > 0 && (p.status === "abonado" || p.status === "adelanto"))
+      .filter((p) => p.amount > 0 && (p.status === "abonado" || p.status === "adelanto"))
       .reduce((sum, p) => {
         const quotaAmount = financing?.quotaAmount || 0;
         const quotasCovered = p.quotasCovered || 1;
@@ -162,10 +166,10 @@ export default function FinancingDetailPage() {
         const creditFromThisPayment = Math.max(0, p.amount - amountForQuotas);
         return sum + creditFromThisPayment;
       }, 0);
-    
+
     // Crédito real = crédito de payments - multas (no puede ser negativo)
     const creditReal = Math.max(0, creditFromPayments - totalMultas);
-    
+
     return { totalPaidPositive, totalMultas, creditReal };
   }, [payments, financing?.quotaAmount]);
 
@@ -176,8 +180,8 @@ export default function FinancingDetailPage() {
     try {
       const timestamp = Date.now();
       const [billingRes, penaltiesRes] = await Promise.all([
-        fetch(`/api/billing?financing=${id}&_t=${timestamp}`, { cache: 'no-store' }),
-        fetch(`/api/penalties?financing=${id}&_t=${timestamp}`, { cache: 'no-store' }),
+        fetch(`/api/billing?financing=${id}&_t=${timestamp}`, { cache: "no-store" }),
+        fetch(`/api/penalties?financing=${id}&_t=${timestamp}`, { cache: "no-store" }),
       ]);
 
       if (billingRes.ok) {
@@ -187,8 +191,8 @@ export default function FinancingDetailPage() {
           records: data.data?.map((p: BillingRecordCard) => ({
             documentId: p.documentId,
             status: p.status,
-            parentRecordId: p.parentRecordId
-          }))
+            parentRecordId: p.parentRecordId,
+          })),
         });
         setPayments(data.data || []);
       } else {
@@ -204,7 +208,7 @@ export default function FinancingDetailPage() {
             documentId: p.documentId,
             status: p.status,
             amountPending: p.amountPending,
-          }))
+          })),
         });
         setPenaltyDebts(data.data || []);
       } else {
@@ -236,7 +240,7 @@ export default function FinancingDetailPage() {
 
       const data = await response.json();
       setFinancing(data.data);
-      
+
       // Fetch payments directamente para asegurar datos actualizados
       await fetchBillingRecords();
     } catch (err) {
@@ -277,14 +281,16 @@ export default function FinancingDetailPage() {
       if (response.ok) {
         const data = await response.json();
         const configs = data.data || [];
-        const testModeConfig = configs.find((c: { key?: string; value?: string }) => c.key === "billing-test-mode-enabled");
+        const testModeConfig = configs.find(
+          (c: { key?: string; value?: string }) => c.key === "billing-test-mode-enabled"
+        );
         setIsTestModeEnabled(testModeConfig?.value === "true");
       }
     } catch (err) {
       console.error("Error loading test mode config:", err);
     }
   }, []);
-  
+
   // Fetch current user role
   const fetchCurrentUser = useCallback(async () => {
     try {
@@ -302,18 +308,16 @@ export default function FinancingDetailPage() {
   useEffect(() => {
     if (id) {
       // Cargar todos los datos en paralelo
-      Promise.all([
-        fetchFinancing(),
-        fetchTestModeConfig(),
-        fetchCurrentUser(),
-      ]).then(() => {
-        // Después de cargar datos, ejecutar auto-cover para cubrir cuotas pendientes
-        triggerAutoCover();
-      }).catch(err => {
-        console.error("Error cargando datos iniciales:", err);
-      });
+      Promise.all([fetchFinancing(), fetchTestModeConfig(), fetchCurrentUser()])
+        .then(() => {
+          // Después de cargar datos, ejecutar auto-cover para cubrir cuotas pendientes
+          triggerAutoCover();
+        })
+        .catch((err) => {
+          console.error("Error cargando datos iniciales:", err);
+        });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]); // Solo depende de id, no de fetchFinancing para evitar loops
 
   // Delete financing
@@ -361,7 +365,7 @@ export default function FinancingDetailPage() {
 
     // Encontrar la última cuota cubierta (pagada o abonada)
     const paidOrAbonadoPayments = payments.filter(
-      p => p.status === "pagado" || p.status === "abonado" || p.status === "adelanto"
+      (p) => p.status === "pagado" || p.status === "abonado" || p.status === "adelanto"
     );
 
     if (paidOrAbonadoPayments.length === 0) {
@@ -371,7 +375,7 @@ export default function FinancingDetailPage() {
 
     // Encontrar el máximo quotaNumber cubierto
     const maxQuotaCovered = Math.max(
-      ...paidOrAbonadoPayments.map(p => (p.quotaNumber || 0) + (p.quotasCovered || 1) - 1)
+      ...paidOrAbonadoPayments.map((p) => (p.quotaNumber || 0) + (p.quotasCovered || 1) - 1)
     );
 
     // Encontrar el pago con la mayor fecha (último pago realizado)
@@ -381,28 +385,38 @@ export default function FinancingDetailPage() {
       return dateB - dateA;
     })[0];
 
-    const baseDate = new Date(lastPayment.dueDate || lastPayment.paymentDate || financing.nextDueDate || new Date());
+    const baseDate = new Date(
+      lastPayment.dueDate || lastPayment.paymentDate || financing.nextDueDate || new Date()
+    );
     const frequency = financing.paymentFrequency || "semanal";
     const nextQuotaNumber = maxQuotaCovered + 1;
 
     // Calcular la fecha de la siguiente cuota
-    let resultDate = new Date(baseDate);
+    const resultDate = new Date(baseDate);
 
     switch (frequency) {
       case "semanal":
         // Sumar semanas desde la fecha base hasta la siguiente cuota
-        resultDate.setDate(resultDate.getDate() + ((nextQuotaNumber - (lastPayment.quotaNumber || 1)) * 7));
+        resultDate.setDate(
+          resultDate.getDate() + (nextQuotaNumber - (lastPayment.quotaNumber || 1)) * 7
+        );
         break;
       case "quincenal":
         // Sumar quincenas desde la fecha base
-        resultDate.setDate(resultDate.getDate() + ((nextQuotaNumber - (lastPayment.quotaNumber || 1)) * 15));
+        resultDate.setDate(
+          resultDate.getDate() + (nextQuotaNumber - (lastPayment.quotaNumber || 1)) * 15
+        );
         break;
       case "mensual":
         // Sumar meses desde la fecha base
-        resultDate.setMonth(resultDate.getMonth() + (nextQuotaNumber - (lastPayment.quotaNumber || 1)));
+        resultDate.setMonth(
+          resultDate.getMonth() + (nextQuotaNumber - (lastPayment.quotaNumber || 1))
+        );
         break;
       default:
-        resultDate.setDate(resultDate.getDate() + ((nextQuotaNumber - (lastPayment.quotaNumber || 1)) * 7));
+        resultDate.setDate(
+          resultDate.getDate() + (nextQuotaNumber - (lastPayment.quotaNumber || 1)) * 7
+        );
     }
 
     return format(resultDate, "d 'de' MMMM, yyyy", { locale: es });
@@ -411,7 +425,7 @@ export default function FinancingDetailPage() {
   // Loading state
   if (isLoading) {
     return (
-      <AdminLayout title="Cargando...">
+      <AdminLayout title="Cargando..." leftActions={<BackButton fallbackHref="/billing" />}>
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -422,7 +436,7 @@ export default function FinancingDetailPage() {
   // Error state
   if (error || !financing) {
     return (
-      <AdminLayout title="Error">
+      <AdminLayout title="Error" leftActions={<BackButton fallbackHref="/billing" />}>
         <Card className={components.card}>
           <CardContent className={cn(spacing.card.padding, "text-center")}>
             <AlertTriangle className="h-12 w-12 mx-auto text-destructive mb-4" />
@@ -440,9 +454,8 @@ export default function FinancingDetailPage() {
   const status = (financing.status as FinancingStatus) || "activo";
   const config = statusConfig[status];
   const StatusIcon = config.icon;
-  const progressPercentage = financing.totalQuotas > 0 
-    ? (financing.paidQuotas / financing.totalQuotas) * 100 
-    : 0;
+  const progressPercentage =
+    financing.totalQuotas > 0 ? (financing.paidQuotas / financing.totalQuotas) * 100 : 0;
 
   // Preselected financing for payment dialog
   const preselectedFinancing: FinancingOption = {
@@ -462,28 +475,19 @@ export default function FinancingDetailPage() {
   };
 
   return (
-    <AdminLayout title="">
-      {/* Back button */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="mb-4 -ml-2"
-        onClick={() => router.push("/billing")}
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Volver
-      </Button>
-
+    <AdminLayout title="" leftActions={<BackButton fallbackHref="/billing" />}>
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <div className={cn(
-              "h-12 w-12 rounded-full flex items-center justify-center",
-              config.bgColor,
-              "border-2",
-              config.borderColor
-            )}>
+            <div
+              className={cn(
+                "h-12 w-12 rounded-full flex items-center justify-center",
+                config.bgColor,
+                "border-2",
+                config.borderColor
+              )}
+            >
               <StatusIcon className={cn("h-6 w-6", config.textColor)} />
             </div>
             <div>
@@ -524,7 +528,10 @@ export default function FinancingDetailPage() {
       {/* Vehicle & Client Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <Card
-          className={cn(components.card, financing.vehicleDocumentId && "cursor-pointer hover:bg-accent/50 transition-colors")}
+          className={cn(
+            components.card,
+            financing.vehicleDocumentId && "cursor-pointer hover:bg-accent/50 transition-colors"
+          )}
           onClick={() => {
             if (financing.vehicleDocumentId) {
               router.push(`/fleet/details/${financing.vehicleDocumentId}`);
@@ -550,7 +557,10 @@ export default function FinancingDetailPage() {
         </Card>
 
         <Card
-          className={cn(components.card, financing.clientDocumentId && "cursor-pointer hover:bg-accent/50 transition-colors")}
+          className={cn(
+            components.card,
+            financing.clientDocumentId && "cursor-pointer hover:bg-accent/50 transition-colors"
+          )}
           onClick={() => {
             if (financing.clientDocumentId) {
               router.push(`/users/details/${financing.clientDocumentId}`);
@@ -585,7 +595,8 @@ export default function FinancingDetailPage() {
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-muted-foreground">Progreso</span>
               <span className={typography.body.large}>
-                {financing.paidQuotas} de {financing.totalQuotas} cuotas ({progressPercentage.toFixed(1)}%)
+                {financing.paidQuotas} de {financing.totalQuotas} cuotas (
+                {progressPercentage.toFixed(1)}%)
               </span>
             </div>
             <Progress value={progressPercentage} className="h-3" />
@@ -624,10 +635,12 @@ export default function FinancingDetailPage() {
 
           {/* Multas aplicadas - solo mostrar si hay multas */}
           {totalMultas > 0 && (
-            <div className={cn(
-              "mt-4 p-3 rounded-lg flex items-center justify-between",
-              "bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800"
-            )}>
+            <div
+              className={cn(
+                "mt-4 p-3 rounded-lg flex items-center justify-between",
+                "bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800"
+              )}
+            >
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
                 <span className="text-sm text-orange-700 dark:text-orange-400">
@@ -647,7 +660,7 @@ export default function FinancingDetailPage() {
 
           {/* Additional Info */}
           <Separator className="my-4" />
-          
+
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -680,15 +693,15 @@ export default function FinancingDetailPage() {
 
           {/* Late fees if any */}
           {financing.totalLateFees > 0 && (
-            <div className={cn(
-              "mt-4 p-3 rounded-lg flex items-center justify-between",
-              "bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800"
-            )}>
+            <div
+              className={cn(
+                "mt-4 p-3 rounded-lg flex items-center justify-between",
+                "bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800"
+              )}
+            >
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
-                <span className="text-sm text-red-700 dark:text-red-400">
-                  Multas Acumuladas
-                </span>
+                <span className="text-sm text-red-700 dark:text-red-400">Multas Acumuladas</span>
               </div>
               <span className="text-sm font-semibold text-red-700 dark:text-red-400">
                 {formatCurrency(financing.totalLateFees)}
@@ -698,15 +711,15 @@ export default function FinancingDetailPage() {
 
           {/* Credit if any (después de descontar multas) */}
           {creditReal > 0 && (
-            <div className={cn(
-              "mt-4 p-3 rounded-lg flex items-center justify-between",
-              "bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800"
-            )}>
+            <div
+              className={cn(
+                "mt-4 p-3 rounded-lg flex items-center justify-between",
+                "bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800"
+              )}
+            >
               <div className="flex items-center gap-2">
                 <Banknote className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                <span className="text-sm text-blue-700 dark:text-blue-400">
-                  Crédito a Favor
-                </span>
+                <span className="text-sm text-blue-700 dark:text-blue-400">Crédito a Favor</span>
               </div>
               <div className="text-right">
                 <span className="text-sm font-semibold text-blue-700 dark:text-blue-400">
@@ -720,25 +733,31 @@ export default function FinancingDetailPage() {
               </div>
             </div>
           )}
-          
+
           {/* Aviso si las multas consumieron todo el crédito */}
           {/* Se muestra si hay multas, no hay crédito real, pero hay abonos/adelantos que sin multas generarían crédito */}
-          {totalMultas > 0 && creditReal === 0 && payments.some(p => p.amount > 0 && (p.status === "abonado" || p.status === "adelanto")) && (
-            <div className={cn(
-              "mt-4 p-3 rounded-lg flex items-center justify-between",
-              "bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800"
-            )}>
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                <span className="text-sm text-amber-700 dark:text-amber-400">
-                  Crédito Consumido
+          {totalMultas > 0 &&
+            creditReal === 0 &&
+            payments.some(
+              (p) => p.amount > 0 && (p.status === "abonado" || p.status === "adelanto")
+            ) && (
+              <div
+                className={cn(
+                  "mt-4 p-3 rounded-lg flex items-center justify-between",
+                  "bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800"
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  <span className="text-sm text-amber-700 dark:text-amber-400">
+                    Crédito Consumido
+                  </span>
+                </div>
+                <span className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+                  Las multas han consumido el crédito
                 </span>
               </div>
-              <span className="text-sm font-semibold text-amber-700 dark:text-amber-400">
-                Las multas han consumido el crédito
-              </span>
-            </div>
-          )}
+            )}
         </CardContent>
       </Card>
 
@@ -749,7 +768,7 @@ export default function FinancingDetailPage() {
         preselectedFinancing={preselectedFinancing}
         onSuccess={() => {
           // Actualizar datos en background sin bloquear
-          fetchFinancing().catch(err => console.error("Error refrescando:", err));
+          fetchFinancing().catch((err) => console.error("Error refrescando:", err));
           toast.success("Pago registrado exitosamente");
         }}
       />
@@ -774,22 +793,23 @@ export default function FinancingDetailPage() {
           const quotaRecords: PaymentRecord[] = (payments || []).map((p): PaymentRecord => {
             // REGLA: Si es hijo (tiene parentRecordId) y es "adelanto", mostrar como "abonado"
             // porque ya está vinculado a una cuota
-            const correctedStatus = (p.parentRecordId && p.status === "adelanto") 
-              ? "abonado" 
-              : p.status;
-            
+            const correctedStatus =
+              p.parentRecordId && p.status === "adelanto" ? "abonado" : p.status;
+
             // Calcular faltante por pagar para adelantos
-            const remainingAmount = correctedStatus === "adelanto" && p.quotaAmountCovered && p.amount
-              ? p.amount - p.quotaAmountCovered
-              : 0;
-            
+            const remainingAmount =
+              correctedStatus === "adelanto" && p.quotaAmountCovered && p.amount
+                ? p.amount - p.quotaAmountCovered
+                : 0;
+
             // Calcular a qué cuota se está adelantando
-            const advanceForQuota = correctedStatus === "adelanto" && p.quotaNumber && p.quotasCovered
-              ? p.quotaNumber + p.quotasCovered
-              : undefined;
-            
+            const advanceForQuota =
+              correctedStatus === "adelanto" && p.quotaNumber && p.quotasCovered
+                ? p.quotaNumber + p.quotasCovered
+                : undefined;
+
             // Mapear hijos si existen
-            const children = p.childRecords?.map(child => ({
+            const children = p.childRecords?.map((child) => ({
               id: child.documentId,
               invoiceNumber: child.receiptNumber || "",
               amount: child.amount,
@@ -802,33 +822,47 @@ export default function FinancingDetailPage() {
               parentId: p.documentId,
               parentReceiptNumber: p.receiptNumber,
             }));
-            
+
             // Calcular balance/disponible según el tipo de record
             let balanceDueParent: number;
             let availableAmount: number | undefined;
-            
-            if (correctedStatus === 'adelanto') {
+
+            if (correctedStatus === "adelanto") {
               // Para adelantos: calcular saldo disponible (amount - hijos consumidos)
-              const totalConsumed = children?.reduce((sum, child) => sum + (child.amount > 0 ? child.amount : 0), 0) || 0;
+              const totalConsumed =
+                children?.reduce((sum, child) => sum + (child.amount > 0 ? child.amount : 0), 0) ||
+                0;
               availableAmount = Math.max(0, p.amount - totalConsumed);
               balanceDueParent = 0; // Los adelantos no tienen "balance pendiente", tienen "disponible"
-            } else if (correctedStatus === 'cubierta' || correctedStatus === 'pagado' || p.parentRecordId) {
+            } else if (
+              correctedStatus === "cubierta" ||
+              correctedStatus === "pagado" ||
+              p.parentRecordId
+            ) {
               // Para cuotas cubiertas o pagadas: balance es 0
               balanceDueParent = 0;
             } else {
               // Para cuotas normales con abonos: calcular balance pendiente
-              const totalAbonos = children?.reduce((sum, child) => sum + (child.amount > 0 ? child.amount : 0), 0) || 0;
+              const totalAbonos =
+                children?.reduce((sum, child) => sum + (child.amount > 0 ? child.amount : 0), 0) ||
+                0;
               // Fallback: si el backend envió remainingQuotaBalance, usarlo cuando no hay hijos visibles
-              if (totalAbonos === 0 && p.remainingQuotaBalance > 0 && p.remainingQuotaBalance < p.amount) {
+              if (
+                totalAbonos === 0 &&
+                p.remainingQuotaBalance > 0 &&
+                p.remainingQuotaBalance < p.amount
+              ) {
                 balanceDueParent = p.remainingQuotaBalance;
               } else {
                 balanceDueParent = Math.max(0, p.amount - totalAbonos);
               }
             }
-            
+
             // DEBUG
-            console.log(`[DEBUG page.tsx] ${p.receiptNumber}: status=${correctedStatus}, amount=${p.amount}, available=${availableAmount}, balanceDue=${balanceDueParent}, children=${children?.length || 0}`);
-            
+            console.log(
+              `[DEBUG page.tsx] ${p.receiptNumber}: status=${correctedStatus}, amount=${p.amount}, available=${availableAmount}, balanceDue=${balanceDueParent}, children=${children?.length || 0}`
+            );
+
             return {
               // Usar status corregido para la UI
               id: p.documentId,
@@ -917,13 +951,17 @@ export default function FinancingDetailPage() {
           }
 
           if (totalGenerated > 0) {
-            toast.success(`Se generaron ${totalGenerated} cuotas pendientes (semanas 1-${currentWeek})`);
+            toast.success(
+              `Se generaron ${totalGenerated} cuotas pendientes (semanas 1-${currentWeek})`
+            );
           } else if (errors.length > 0) {
             console.error("[SimulateTuesday] Errores:", errors);
             toast.error(errors[0] || "Error al generar cuotas");
           } else {
             // No se generó nada y no hay errores: las cuotas ya existen
-            toast.info(`Las cuotas de las semanas 1-${currentWeek} ya existen. No se generaron cuotas nuevas.`);
+            toast.info(
+              `Las cuotas de las semanas 1-${currentWeek} ya existen. No se generaron cuotas nuevas.`
+            );
           }
 
           // Después de generar todas las semanas, actualizar días de atraso de cuotas retrasadas
@@ -939,8 +977,8 @@ export default function FinancingDetailPage() {
 
           // Refrescar datos en background sin bloquear la UI
           fetchFinancing()
-            .then(() => setRefreshKey(prev => prev + 1))
-            .catch(err => console.error("Error refrescando:", err));
+            .then(() => setRefreshKey((prev) => prev + 1))
+            .catch((err) => console.error("Error refrescando:", err));
         }}
         onSimulateFriday={async () => {
           // Calcular fecha de simulación: viernes de la semana actual
@@ -950,12 +988,12 @@ export default function FinancingDetailPage() {
           const daysToTuesday = (2 - startDay + 7) % 7;
           const firstTuesday = new Date(startDate);
           firstTuesday.setDate(startDate.getDate() + daysToTuesday);
-          
+
           // Viernes de la semana simulada (martes + 3 días)
           const baseDate = new Date(firstTuesday);
           baseDate.setDate(firstTuesday.getDate() + (currentWeek - 1) * 7 + 3);
           const simulationDate = baseDate.toISOString().split("T")[0];
-          
+
           const res = await fetch("/api/invoices/simulate-overdue", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -966,10 +1004,12 @@ export default function FinancingDetailPage() {
             if (data.overdueCount === 0) {
               toast("No hay cuotas pendientes por vencer");
             } else {
-              toast.warning(`Semana ${currentWeek}: ${data.overdueCount} cuotas marcadas como retrasadas. Penalidad total: $${data.totalPenaltyAmount?.toFixed(2) || 0}`);
+              toast.warning(
+                `Semana ${currentWeek}: ${data.overdueCount} cuotas marcadas como retrasadas. Penalidad total: $${data.totalPenaltyAmount?.toFixed(2) || 0}`
+              );
             }
             // Refrescar datos en background
-            fetchFinancing().catch(err => console.error("Error refrescando:", err));
+            fetchFinancing().catch((err) => console.error("Error refrescando:", err));
           } else {
             toast.error(data.error || "Error al actualizar cuotas");
           }
@@ -984,32 +1024,34 @@ export default function FinancingDetailPage() {
         onDeletePayment={async (payment) => {
           const confirmed = await confirm({
             title: "Eliminar cuota",
-            description: `¿Estás seguro de que deseas eliminar la cuota ${payment.invoiceNumber}?${payment.children && payment.children.length > 0 ? `\n\n⚠️ Esta cuota tiene ${payment.children.length} pago(s) asociado(s) que también se eliminarán.` : ''}`,
+            description: `¿Estás seguro de que deseas eliminar la cuota ${payment.invoiceNumber}?${payment.children && payment.children.length > 0 ? `\n\n⚠️ Esta cuota tiene ${payment.children.length} pago(s) asociado(s) que también se eliminarán.` : ""}`,
             confirmText: "Eliminar",
             cancelText: "Cancelar",
             variant: "destructive",
           });
-          
+
           if (!confirmed) return;
-          
+
           // Recopilar IDs a eliminar (padre + hijos)
           const idsToDelete = [payment.id];
           if (payment.children && payment.children.length > 0) {
-            payment.children.forEach(child => idsToDelete.push(child.id));
+            payment.children.forEach((child) => idsToDelete.push(child.id));
           }
-          
+
           console.log(`[DeletePayment] Eliminando ${idsToDelete.length} pago(s):`, idsToDelete);
-          
+
           // Actualización optimista - eliminar del estado local inmediatamente (padre + hijos)
-          const updatedPayments = payments.filter(p => !idsToDelete.includes(p.documentId));
+          const updatedPayments = payments.filter((p) => !idsToDelete.includes(p.documentId));
           setPayments(updatedPayments);
-          console.log(`[DeletePayment] Estado local actualizado. Mostrando ${updatedPayments.length} pagos`);
-          
+          console.log(
+            `[DeletePayment] Estado local actualizado. Mostrando ${updatedPayments.length} pagos`
+          );
+
           try {
             const response = await fetch(`/api/billing/${payment.id}`, {
               method: "DELETE",
             });
-            
+
             if (!response.ok) {
               // Si falla, revertir el cambio local
               const errorText = await response.text();
@@ -1017,18 +1059,19 @@ export default function FinancingDetailPage() {
               setPayments(payments); // Revertir
               throw new Error("Error al eliminar la cuota");
             }
-            
+
             console.log(`[DeletePayment] Eliminación en servidor exitosa`);
             toast.success("Cuota y pagos asociados eliminados correctamente");
-            
+
             // Actualizar financing y ejecutar auto-cover en background
-            fetchFinancing().then(() => {
-              console.log(`[DeletePayment] Datos del financing actualizados`);
-              triggerAutoCover();
-            }).catch(err => {
-              console.error(`[DeletePayment] Error actualizando financing:`, err);
-            });
-            
+            fetchFinancing()
+              .then(() => {
+                console.log(`[DeletePayment] Datos del financing actualizados`);
+                triggerAutoCover();
+              })
+              .catch((err) => {
+                console.error(`[DeletePayment] Error actualizando financing:`, err);
+              });
           } catch (err) {
             console.error(`[DeletePayment] Error:`, err);
             toast.error(err instanceof Error ? err.message : "Error al eliminar");
@@ -1048,15 +1091,17 @@ export default function FinancingDetailPage() {
                 },
               }),
             });
-            
+
             if (!response.ok) {
               const errorData = await response.json();
               throw new Error(errorData.error || "Error al registrar el pago");
             }
-            
+
             toast.success(`Pago ${payment.invoiceNumber} registrado correctamente`);
             // Refrescar financiamiento y ejecutar auto-cover en background
-            fetchFinancing().then(() => triggerAutoCover()).catch(err => console.error("Error refrescando:", err));
+            fetchFinancing()
+              .then(() => triggerAutoCover())
+              .catch((err) => console.error("Error refrescando:", err));
           } catch (err) {
             toast.error(err instanceof Error ? err.message : "Error al registrar el pago");
             throw err;
@@ -1064,8 +1109,8 @@ export default function FinancingDetailPage() {
         }}
         // Props para anidación de recibos
         availableParents={payments
-          .filter(p => !p.parentRecordId) // Solo pagos que no son hijos
-          .map(p => ({
+          .filter((p) => !p.parentRecordId) // Solo pagos que no son hijos
+          .map((p) => ({
             id: p.documentId,
             receiptNumber: p.receiptNumber,
             amount: p.amount,
@@ -1082,18 +1127,20 @@ export default function FinancingDetailPage() {
                 },
               }),
             });
-            
+
             if (!response.ok) {
               const errorData = await response.json();
               throw new Error(errorData.error || "Error al asociar el pago");
             }
-            
+
             toast.success("Pago asociado correctamente");
-            
+
             // La API verifica automáticamente si los abonos cubren el monto total
             // y cambia el status del padre a "pagado" si es necesario.
             // Refrescar datos y ejecutar auto-cover en background.
-            fetchFinancing().then(() => triggerAutoCover()).catch(err => console.error("Error refrescando:", err));
+            fetchFinancing()
+              .then(() => triggerAutoCover())
+              .catch((err) => console.error("Error refrescando:", err));
           } catch (err) {
             toast.error(err instanceof Error ? err.message : "Error al asociar el pago");
             throw err;
@@ -1110,12 +1157,12 @@ export default function FinancingDetailPage() {
                 },
               }),
             });
-            
+
             if (!response.ok) {
               const errorData = await response.json();
               throw new Error(errorData.error || "Error al desasociar el pago");
             }
-            
+
             toast.success("Pago desasociado correctamente");
             // Ejecutar auto-cover después de desasociar (puede liberar saldo)
             triggerAutoCover();
@@ -1141,8 +1188,8 @@ export default function FinancingDetailPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar este financiamiento?</AlertDialogTitle>
             <AlertDialogDescription>
-              Estás a punto de eliminar <strong>{financing.financingNumber}</strong>.
-              Esto también eliminará todos los pagos asociados. Esta acción no se puede deshacer.
+              Estás a punto de eliminar <strong>{financing.financingNumber}</strong>. Esto también
+              eliminará todos los pagos asociados. Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1167,7 +1214,7 @@ export default function FinancingDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
+
       {/* Confirm Dialog para eliminación de cuotas */}
       <ConfirmDialogComponent />
     </AdminLayout>
