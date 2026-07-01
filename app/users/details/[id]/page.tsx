@@ -71,6 +71,7 @@ import { FleetReminders } from "@/components/ui/fleet-reminders";
 import type { FleetReminder } from "@/validations/types";
 import { emitReminderToggleCompleted } from "@/lib/reminder-events";
 import { AssignDriverDialog } from "@/components/ui/assign-driver-dialog";
+import { Can } from "@/components/auth/can";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -737,12 +738,14 @@ export default function UserDetailsPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="min-w-[10rem]">
-                  <DropdownMenuItem
-                    className="cursor-pointer"
-                    onClick={() => setIsEditing(!isEditing)}
-                  >
-                    {isEditing ? "Cancelar edición" : "Editar Contacto"}
-                  </DropdownMenuItem>
+                  <Can module="users" action="canUpdate">
+                    <DropdownMenuItem
+                      className="cursor-pointer"
+                      onClick={() => setIsEditing(!isEditing)}
+                    >
+                      {isEditing ? "Cancelar edición" : "Editar Contacto"}
+                    </DropdownMenuItem>
+                  </Can>
                   {(user.role === "driver" || user.role === "admin") && (
                     <DropdownMenuItem
                       className="cursor-pointer"
@@ -761,13 +764,15 @@ export default function UserDetailsPage() {
                       />
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuItem
-                    variant="destructive"
-                    className="cursor-pointer"
-                    onClick={() => setShowDeleteDialog(true)}
-                  >
-                    Eliminar Contacto
-                  </DropdownMenuItem>
+                  <Can module="users" action="canDelete">
+                    <DropdownMenuItem
+                      variant="destructive"
+                      className="cursor-pointer"
+                      onClick={() => setShowDeleteDialog(true)}
+                    >
+                      Eliminar Contacto
+                    </DropdownMenuItem>
+                  </Can>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
