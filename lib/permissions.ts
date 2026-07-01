@@ -15,6 +15,22 @@ export interface ModulePermission {
 
 export type RolePermissions = Record<string, ModulePermission>;
 
+/** Acciones auditables de un módulo (columnas de la matriz de permisos). */
+export type PermissionActionKey = keyof ModulePermission;
+
+/**
+ * ¿El rol con estos permisos puede ejecutar `action` sobre `moduleKey`?
+ * Fuente única de la lógica de acción; el bypass de admin se resuelve en el
+ * contexto (ver `permissions-context`), no aquí.
+ */
+export function can(
+  permissions: RolePermissions,
+  moduleKey: string,
+  action: PermissionActionKey
+): boolean {
+  return !!permissions?.[moduleKey]?.[action];
+}
+
 export interface MyPermissions {
   role: string;
   permissions: RolePermissions;

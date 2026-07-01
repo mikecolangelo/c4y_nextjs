@@ -26,6 +26,7 @@ import { usePaginatedSelection } from "@/hooks/use-paginated-selection";
 import { useBatchDelete } from "@/hooks/use-batch-delete";
 import { DataPagination } from "@/components/ui/data-pagination";
 import { PageSizeSelect } from "@/components/ui/page-size-select";
+import { Can } from "@/components/auth/can";
 import { getInitials } from "@/lib/format";
 import { clientLogger } from "@/lib/client-logger";
 import { BulkActionBar } from "@/components/ui/selection/bulk-action-bar";
@@ -407,25 +408,27 @@ export default function UsersPage() {
 
           {/* Acciones: crear / importar + selector de cantidad por página */}
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <QuickUserCreate
-                onUserCreated={handleUserCreated}
-                trigger={
-                  <Button className="rounded-lg h-9 gap-2 font-semibold">
-                    <Plus className="h-4 w-4" />
-                    Crear Contacto
-                  </Button>
-                }
-              />
-              <Button
-                variant="secondary"
-                className="rounded-lg h-9 gap-2 font-semibold"
-                onClick={() => router.push("/users/import")}
-              >
-                <Upload className="h-4 w-4" />
-                Importar Contactos
-              </Button>
-            </div>
+            <Can module="users" action="canCreate">
+              <div className="flex items-center gap-2">
+                <QuickUserCreate
+                  onUserCreated={handleUserCreated}
+                  trigger={
+                    <Button className="rounded-lg h-9 gap-2 font-semibold">
+                      <Plus className="h-4 w-4" />
+                      Crear Contacto
+                    </Button>
+                  }
+                />
+                <Button
+                  variant="secondary"
+                  className="rounded-lg h-9 gap-2 font-semibold"
+                  onClick={() => router.push("/users/import")}
+                >
+                  <Upload className="h-4 w-4" />
+                  Importar Contactos
+                </Button>
+              </div>
+            </Can>
             <PageSizeSelect value={pageSize} onChange={setPageSize} />
           </div>
         </div>
