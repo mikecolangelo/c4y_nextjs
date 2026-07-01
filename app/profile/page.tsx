@@ -404,7 +404,13 @@ export default function ProfilePage() {
     );
   }
 
-  const roleInfo = roleConfig[user.role];
+  // Los roles personalizados (y "lead") no están en `roleConfig`; caemos a un
+  // display por defecto usando la clave del rol para no romper la página.
+  const roleInfo = roleConfig[user.role as keyof typeof roleConfig] ?? {
+    label: user.role,
+    className: "bg-muted text-muted-foreground",
+    icon: Shield,
+  };
   const RoleIcon = roleInfo.icon;
 
   return (
