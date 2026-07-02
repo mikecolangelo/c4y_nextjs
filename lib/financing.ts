@@ -7,13 +7,50 @@ import qs from "qs";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
 import { formatCurrency } from "./format";
 
+// Import dinámico: este archivo también lo importan componentes cliente (solo
+// por sus tipos/normalizadores), y `lib/auth.ts` usa `next/headers`, que rompe
+// el bundle de cliente si se importa de forma estática.
+async function getJwtForRequest(): Promise<string | null> {
+  const { getCurrentUserJwt } = await import("./auth");
+  return getCurrentUserJwt();
+}
+
 // ============================================================================
 // TIPOS
 // ============================================================================
 
+import {
+  calculateTotalQuotas,
+  calculateQuotaAmount,
+  getDaysInterval,
+  calculateNextDueDate,
+  calculateLateFee,
+  calculateDaysLate,
+  processPayment,
+  calculateFinancingSummary,
+  type PaymentFrequency,
+} from "./financing-calculations";
+
+export type { PaymentFrequency };
+export {
+  calculateTotalQuotas,
+  calculateQuotaAmount,
+  getDaysInterval,
+  calculateNextDueDate,
+  calculateLateFee,
+  calculateDaysLate,
+  processPayment,
+  calculateFinancingSummary,
+};
+
 export type FinancingStatus = "activo" | "inactivo" | "en_mora" | "completado";
-export type PaymentFrequency = "semanal" | "quincenal" | "mensual";
-export type PaymentStatus = "pagado" | "pendiente" | "adelanto" | "retrasado" | "abonado" | "cubierta";
+export type PaymentStatus =
+  | "pagado"
+  | "pendiente"
+  | "adelanto"
+  | "retrasado"
+  | "abonado"
+  | "cubierta";
 
 export interface FinancingRaw {
   id: number;
@@ -181,146 +218,6 @@ export interface PaymentCreatePayload {
 }
 
 // ============================================================================
-// FUNCIONES DE CÁLCULO
-// ============================================================================
-
-/**
- * Calcula el número total de cuotas basado en meses y frecuencia
- */
-export function calculateTotalQuotas(months: number, frequency: PaymentFrequency): number {
-  switch (frequency) {
-    case "semanal":
-      return Math.ceil(months * 4.33);
-    case "quincenal":
-      return months * 2;
-    case "mensual":
-      return months;
-    default:
-      return months;
-  }
-}
-
-/**
- * Calcula el monto de cada cuota
- */
-export function calculateQuotaAmount(totalAmount: number, totalQuotas: number): number {
-  if (totalQuotas <= 0) return 0;
-  return parseFloat((totalAmount / totalQuotas).toFixed(2));
-}
-
-/**
- * Obtiene el intervalo de días entre cuotas
- */
-export function getDaysInterval(frequency: PaymentFrequency): number {
-  switch (frequency) {
-    case "semanal":
-      return 7;
-    case "quincenal":
-      return 15;
-    case "mensual":
-      return 30;
-    default:
-      return 7;
-  }
-}
-
-/**
- * Calcula la siguiente fecha de vencimiento
- */
-export function calculateNextDueDate(
-  startDate: string,
-  frequency: PaymentFrequency,
-  quotaNumber: number = 1
-): string {
-  const start = new Date(startDate);
-  const daysInterval = getDaysInterval(frequency);
-  start.setDate(start.getDate() + daysInterval * quotaNumber);
-  return start.toISOString().split("T")[0];
-}
-
-/**
- * Calcula la multa por atraso (10% diario sobre monto pendiente)
- */
-export function calculateLateFee(
-  pendingAmount: number,
-  daysLate: number,
-  percentage: number = 10
-): number {
-  if (daysLate <= 0 || pendingAmount <= 0) return 0;
-  return parseFloat((pendingAmount * (percentage / 100) * daysLate).toFixed(2));
-}
-
-/**
- * Calcula los días de atraso
- */
-export function calculateDaysLate(dueDate: string, paymentDate?: string): number {
-  const due = new Date(dueDate);
-  const payment = paymentDate ? new Date(paymentDate) : new Date();
-  const diffTime = payment.getTime() - due.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return Math.max(0, diffDays);
-}
-
-/**
- * Procesa un pago y calcula cuotas cubiertas y crédito
- */
-export function processPayment(
-  paymentAmount: number,
-  quotaAmount: number,
-  partialCredit: number = 0
-): { quotasCovered: number; advanceCredit: number; totalApplied: number; isPartialPayment: boolean } {
-  // Total disponible = pago actual + crédito acumulado de pagos anteriores
-  const totalAvailable = paymentAmount + partialCredit;
-  
-  // Tolerancia para errores de punto flotante (0.01 = 1 centavo)
-  const EPSILON = 0.01;
-  
-  // Cuotas completas cubiertas con el total disponible
-  // Usamos una pequeña tolerancia para manejar errores de precisión de punto flotante
-  const rawQuotas = totalAvailable / quotaAmount;
-  const quotasCovered = Math.floor(rawQuotas + EPSILON);
-  
-  // Crédito restante después de cubrir cuotas completas (abono hacia la siguiente cuota)
-  const remainder = totalAvailable - (quotasCovered * quotaAmount);
-  // Si el resto es muy pequeño (error de precisión), considerarlo como 0
-  const advanceCredit = Math.abs(remainder) < EPSILON ? 0 : parseFloat(remainder.toFixed(2));
-  
-  // Total aplicado a cuotas completas
-  const totalApplied = quotasCovered * quotaAmount;
-  
-  // Es un pago parcial si no se completa ninguna cuota nueva
-  const isPartialPayment = quotasCovered === 0;
-
-  return { quotasCovered, advanceCredit, totalApplied, isPartialPayment };
-}
-
-/**
- * Calcula el resumen de un financiamiento
- */
-export function calculateFinancingSummary(
-  totalAmount: number,
-  months: number,
-  frequency: PaymentFrequency
-): {
-  totalQuotas: number;
-  quotaAmount: number;
-  endDate: string;
-  daysInterval: number;
-} {
-  const totalQuotas = calculateTotalQuotas(months, frequency);
-  const quotaAmount = calculateQuotaAmount(totalAmount, totalQuotas);
-  const daysInterval = getDaysInterval(frequency);
-
-  // Calcular fecha estimada de finalización
-  const today = new Date();
-  const totalDays = totalQuotas * daysInterval;
-  today.setDate(today.getDate() + totalDays);
-  const endDate = today.toISOString().split("T")[0];
-
-  return { totalQuotas, quotaAmount, endDate, daysInterval };
-}
-
-// ============================================================================
 // FUNCIONES DE FORMATEO
 // ============================================================================
 
@@ -402,9 +299,8 @@ const normalizePayment = (raw: PaymentRaw): PaymentCard => {
 
 export const normalizeFinancing = (raw: FinancingRaw): FinancingCard => {
   const pendingQuotas = raw.totalQuotas - raw.paidQuotas;
-  const progressPercentage = raw.totalQuotas > 0 
-    ? Math.round((raw.paidQuotas / raw.totalQuotas) * 100) 
-    : 0;
+  const progressPercentage =
+    raw.totalQuotas > 0 ? Math.round((raw.paidQuotas / raw.totalQuotas) * 100) : 0;
 
   const vehicleInfo = raw.vehicle
     ? `${raw.vehicle.brand || ""} ${raw.vehicle.model || ""} ${raw.vehicle.year || ""}`.trim()
@@ -474,7 +370,26 @@ const populateConfig = {
       fields: ["id", "documentId", "displayName", "email", "phone", "identificationNumber"],
     },
     payments: {
-      fields: ["id", "documentId", "receiptNumber", "amount", "currency", "status", "quotaNumber", "quotasCovered", "quotaAmountCovered", "advanceCredit", "lateFeeAmount", "daysLate", "dueDate", "paymentDate", "confirmationNumber", "verifiedInBank", "comments", "createdAt"],
+      fields: [
+        "id",
+        "documentId",
+        "receiptNumber",
+        "amount",
+        "currency",
+        "status",
+        "quotaNumber",
+        "quotasCovered",
+        "quotaAmountCovered",
+        "advanceCredit",
+        "lateFeeAmount",
+        "daysLate",
+        "dueDate",
+        "paymentDate",
+        "confirmationNumber",
+        "verifiedInBank",
+        "comments",
+        "createdAt",
+      ],
       sort: ["quotaNumber:asc"],
     },
   },
@@ -484,19 +399,22 @@ const populateConfig = {
  * Obtener todos los financiamientos
  */
 export async function fetchFinancingsFromStrapi(): Promise<FinancingCard[]> {
-  const query = qs.stringify({
-    status: "published",
-    ...populateConfig,
-    sort: ["createdAt:desc"],
-    pagination: { pageSize: 100 },
-  }, { encodeValuesOnly: true });
+  const query = qs.stringify(
+    {
+      status: "published",
+      ...populateConfig,
+      sort: ["createdAt:desc"],
+      pagination: { pageSize: 100 },
+    },
+    { encodeValuesOnly: true }
+  );
 
   const response = await fetch(`${STRAPI_BASE_URL}/api/financings?${query}`, {
     headers: {
       Authorization: `Bearer ${STRAPI_API_TOKEN}`,
     },
     cache: "force-cache",
-    next: { revalidate: 120, tags: ['financing'] },
+    next: { revalidate: 120, tags: ["financing"] },
   });
 
   if (!response.ok) {
@@ -511,7 +429,9 @@ export async function fetchFinancingsFromStrapi(): Promise<FinancingCard[]> {
 /**
  * Obtener un financiamiento por ID
  */
-export async function fetchFinancingByIdFromStrapi(documentId: string): Promise<FinancingCard | null> {
+export async function fetchFinancingByIdFromStrapi(
+  documentId: string
+): Promise<FinancingCard | null> {
   const query = qs.stringify(populateConfig, { encodeValuesOnly: true });
 
   const response = await fetch(`${STRAPI_BASE_URL}/api/financings/${documentId}?${query}`, {
@@ -519,7 +439,7 @@ export async function fetchFinancingByIdFromStrapi(documentId: string): Promise<
       Authorization: `Bearer ${STRAPI_API_TOKEN}`,
     },
     cache: "force-cache",
-    next: { revalidate: 120, tags: ['financing'] },
+    next: { revalidate: 120, tags: ["financing"] },
   });
 
   if (!response.ok) {
@@ -579,7 +499,9 @@ function generateFinancingNumber(prefix: string = "FIN"): string {
 /**
  * Crear un nuevo financiamiento
  */
-export async function createFinancingInStrapi(payload: FinancingCreatePayload): Promise<FinancingCard> {
+export async function createFinancingInStrapi(
+  payload: FinancingCreatePayload
+): Promise<FinancingCard> {
   // Normalizar relaciones a IDs numéricos — Strapi v5 requiere id numérico en POST/PUT
   const vehicleId = normalizeRelationId(payload.vehicle);
   const clientId = normalizeRelationId(payload.client);
@@ -614,11 +536,12 @@ export async function createFinancingInStrapi(payload: FinancingCreatePayload): 
   };
 
   const query = qs.stringify(populateConfig, { encodeValuesOnly: true });
+  const jwt = await getJwtForRequest();
 
   const response = await fetch(`${STRAPI_BASE_URL}/api/financings?${query}`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      Authorization: `Bearer ${jwt || STRAPI_API_TOKEN}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ data }),
@@ -639,22 +562,23 @@ export async function createFinancingInStrapi(payload: FinancingCreatePayload): 
  */
 export async function updateFinancingInStrapi(
   documentId: string,
-  payload: Partial<FinancingCreatePayload> & { 
-    status?: FinancingStatus; 
-    paidQuotas?: number; 
-    currentBalance?: number; 
-    totalPaid?: number; 
+  payload: Partial<FinancingCreatePayload> & {
+    status?: FinancingStatus;
+    paidQuotas?: number;
+    currentBalance?: number;
+    totalPaid?: number;
     partialPaymentCredit?: number;
     totalLateFees?: number;
     nextDueDate?: string;
   }
 ): Promise<FinancingCard> {
   const query = qs.stringify(populateConfig, { encodeValuesOnly: true });
+  const jwt = await getJwtForRequest();
 
   const response = await fetch(`${STRAPI_BASE_URL}/api/financings/${documentId}?${query}`, {
     method: "PUT",
     headers: {
-      Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      Authorization: `Bearer ${jwt || STRAPI_API_TOKEN}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ data: payload }),
@@ -674,10 +598,11 @@ export async function updateFinancingInStrapi(
  * Eliminar un financiamiento
  */
 export async function deleteFinancingFromStrapi(documentId: string): Promise<void> {
+  const jwt = await getJwtForRequest();
   const response = await fetch(`${STRAPI_BASE_URL}/api/financings/${documentId}`, {
     method: "DELETE",
     headers: {
-      Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      Authorization: `Bearer ${jwt || STRAPI_API_TOKEN}`,
     },
     cache: "no-store",
   });
