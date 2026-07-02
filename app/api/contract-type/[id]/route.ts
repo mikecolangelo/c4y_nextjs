@@ -1,31 +1,31 @@
 import { NextResponse } from "next/server";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
+import { requireModulePermission } from "@/lib/module-guard";
 
 // GET - Obtener un tipo de contrato por ID
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    try {
+      await requireModulePermission("deal", "canRead");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { id } = await params;
 
-    const response = await fetch(
-      `${STRAPI_BASE_URL}/api/contract-types/${id}`,
-      {
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        cache: "no-store",
-      }
-    );
+    const response = await fetch(`${STRAPI_BASE_URL}/api/contract-types/${id}`, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+    });
 
     if (!response.ok) {
       if (response.status === 404) {
-        return NextResponse.json(
-          { error: "Tipo de contrato no encontrado" },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: "Tipo de contrato no encontrado" }, { status: 404 });
       }
       const errorText = await response.text();
       throw new Error(`Error obteniendo tipo de contrato: ${errorText}`);
@@ -43,11 +43,16 @@ export async function GET(
 }
 
 // PUT - Actualizar tipo de contrato
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    try {
+      await requireModulePermission("deal", "canUpdate");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { id } = await params;
     const body = await request.json();
     const { name, description, requiredDocuments, order, isActive } = body;
@@ -59,24 +64,18 @@ export async function PUT(
     if (order !== undefined) updateData.order = order;
     if (isActive !== undefined) updateData.isActive = isActive;
 
-    const response = await fetch(
-      `${STRAPI_BASE_URL}/api/contract-types/${id}`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ data: updateData }),
-      }
-    );
+    const response = await fetch(`${STRAPI_BASE_URL}/api/contract-types/${id}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ data: updateData }),
+    });
 
     if (!response.ok) {
       if (response.status === 404) {
-        return NextResponse.json(
-          { error: "Tipo de contrato no encontrado" },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: "Tipo de contrato no encontrado" }, { status: 404 });
       }
       const errorText = await response.text();
       throw new Error(`Error actualizando tipo de contrato: ${errorText}`);
@@ -94,32 +93,31 @@ export async function PUT(
 }
 
 // DELETE - Eliminar tipo de contrato (soft delete - isActive = false)
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    try {
+      await requireModulePermission("deal", "canDelete");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { id } = await params;
 
     // Soft delete - marcar como inactivo
-    const response = await fetch(
-      `${STRAPI_BASE_URL}/api/contract-types/${id}`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ data: { isActive: false } }),
-      }
-    );
+    const response = await fetch(`${STRAPI_BASE_URL}/api/contract-types/${id}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ data: { isActive: false } }),
+    });
 
     if (!response.ok) {
       if (response.status === 404) {
-        return NextResponse.json(
-          { error: "Tipo de contrato no encontrado" },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: "Tipo de contrato no encontrado" }, { status: 404 });
       }
       const errorText = await response.text();
       throw new Error(`Error eliminando tipo de contrato: ${errorText}`);

@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server";
 import { fetchDealsFromStrapi, createDealInStrapi } from "@/lib/deal";
+import { requireModulePermission } from "@/lib/module-guard";
 import type { DealCreatePayload } from "@/validations/types";
 
 export async function GET() {
   try {
+    try {
+      await requireModulePermission("deal", "canRead");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const deals = await fetchDealsFromStrapi();
     return NextResponse.json({ data: deals });
   } catch (error) {
@@ -17,6 +26,14 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    try {
+      await requireModulePermission("deal", "canCreate");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const body = (await request.json()) as { data?: DealCreatePayload };
 
     if (!body?.data) {
@@ -45,7 +62,10 @@ export async function POST(request: Request) {
     }
 
     // Validar paymentAgreement si está presente (ahora incluye mensual)
-    if (data.paymentAgreement && !["semanal", "quincenal", "mensual"].includes(data.paymentAgreement)) {
+    if (
+      data.paymentAgreement &&
+      !["semanal", "quincenal", "mensual"].includes(data.paymentAgreement)
+    ) {
       return NextResponse.json(
         { error: "El acuerdo de pago debe ser 'semanal', 'quincenal' o 'mensual'." },
         { status: 400 }
@@ -54,10 +74,7 @@ export async function POST(request: Request) {
 
     // Validar price si está presente
     if (data.price !== undefined && data.price < 0) {
-      return NextResponse.json(
-        { error: "El precio no puede ser negativo." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "El precio no puede ser negativo." }, { status: 400 });
     }
 
     const deal = await createDealInStrapi(data);
@@ -65,9 +82,6 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Error creating deal:", error);
     const errorMessage = error instanceof Error ? error.message : "No se pudo crear el contrato.";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

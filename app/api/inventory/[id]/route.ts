@@ -5,6 +5,7 @@ import {
   updateInventoryItemInStrapi,
   deleteInventoryItemInStrapi,
 } from "@/lib/inventory";
+import { requireModulePermission } from "@/lib/module-guard";
 import type { InventoryItemUpdatePayload } from "@/validations/types";
 
 interface RouteContext {
@@ -15,14 +16,19 @@ interface RouteContext {
 
 export async function GET(_: Request, context: RouteContext) {
   try {
+    try {
+      await requireModulePermission("stock", "canRead");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { id } = await context.params;
     const item = await fetchInventoryItemByIdFromStrapi(id);
 
     if (!item) {
-      return NextResponse.json(
-        { error: "Item de inventario no encontrado" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Item de inventario no encontrado" }, { status: 404 });
     }
 
     return NextResponse.json({ data: item });
@@ -37,6 +43,14 @@ export async function GET(_: Request, context: RouteContext) {
 
 export async function PATCH(request: Request, context: RouteContext) {
   try {
+    try {
+      await requireModulePermission("stock", "canUpdate");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const body = (await request.json()) as { data?: InventoryItemUpdatePayload };
 
     if (!body?.data) {
@@ -107,6 +121,14 @@ export async function PUT(request: Request, context: RouteContext) {
 
 export async function DELETE(_: Request, context: RouteContext) {
   try {
+    try {
+      await requireModulePermission("stock", "canDelete");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { id } = await context.params;
     await deleteInventoryItemInStrapi(id);
     revalidateTag("inventory");

@@ -5,14 +5,14 @@ import qs from "qs";
 import { fetchFleetVehicleByIdFromStrapi } from "@/lib/fleet";
 import { strapiImages } from "@/lib/strapi-images";
 import type { FleetDocumentPayload } from "@/validations/types";
-import { requireAdmin } from "@/lib/admin-guard";
+import { requireModulePermission } from "@/lib/module-guard";
 
 // Función helper para obtener el user-profile del usuario actual
 async function getCurrentUserProfile() {
   try {
     const cookieStore = await cookies();
     const jwt = cookieStore.get("jwt")?.value;
-    
+
     if (!jwt) {
       return null;
     }
@@ -31,7 +31,7 @@ async function getCurrentUserProfile() {
 
     const userData = await userResponse.json();
     const userId = userData?.id;
-    
+
     if (!userId) {
       return null;
     }
@@ -48,16 +48,13 @@ async function getCurrentUserProfile() {
       },
     });
 
-    const profileResponse = await fetch(
-      `${STRAPI_BASE_URL}/api/user-profiles?${profileQuery}`,
-      {
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        cache: "no-store",
-      }
-    );
+    const profileResponse = await fetch(`${STRAPI_BASE_URL}/api/user-profiles?${profileQuery}`, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+    });
 
     if (!profileResponse.ok) {
       return null;
@@ -65,12 +62,12 @@ async function getCurrentUserProfile() {
 
     const profileData = await profileResponse.json();
     const profile = profileData.data?.[0];
-    
+
     if (!profile || !profile.documentId) {
       return null;
     }
 
-    return { 
+    return {
       documentId: profile.documentId,
       displayName: profile.displayName || profile.email || "Usuario",
       email: profile.email,
@@ -92,7 +89,7 @@ interface RouteContext {
 export async function GET(_: Request, context: RouteContext) {
   try {
     try {
-      await requireAdmin();
+      await requireModulePermission("fleet", "canRead");
     } catch {
       return NextResponse.json(
         { error: "Acceso restringido: Se requieren permisos de administrador" },
@@ -100,13 +97,10 @@ export async function GET(_: Request, context: RouteContext) {
       );
     }
     const { id } = await context.params;
-    
+
     const vehicle = await fetchFleetVehicleByIdFromStrapi(id);
     if (!vehicle) {
-      return NextResponse.json(
-        { error: "Vehículo no encontrado." },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Vehículo no encontrado." }, { status: 404 });
     }
 
     const vehicleQuery = qs.stringify({
@@ -116,15 +110,12 @@ export async function GET(_: Request, context: RouteContext) {
       fields: ["id"],
     });
 
-    const vehicleResponse = await fetch(
-      `${STRAPI_BASE_URL}/api/fleets?${vehicleQuery}`,
-      {
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-        },
-        cache: "no-store",
-      }
-    );
+    const vehicleResponse = await fetch(`${STRAPI_BASE_URL}/api/fleets?${vehicleQuery}`, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      },
+      cache: "no-store",
+    });
 
     if (!vehicleResponse.ok) {
       throw new Error("No se pudo obtener el vehículo");
@@ -145,7 +136,15 @@ export async function GET(_: Request, context: RouteContext) {
       filters: {
         vehicle: { id: { $eq: vehicleId } },
       },
-      fields: ["id", "documentId", "documentType", "otherDescription", "authorDocumentId", "createdAt", "updatedAt"],
+      fields: [
+        "id",
+        "documentId",
+        "documentType",
+        "otherDescription",
+        "authorDocumentId",
+        "createdAt",
+        "updatedAt",
+      ],
       populate: {
         files: {
           fields: ["id", "url", "name", "mime", "size", "alternativeText"],
@@ -168,25 +167,38 @@ export async function GET(_: Request, context: RouteContext) {
       // Si es 404, el tipo de contenido no existe todavía en Strapi
       // Retornar array vacío en lugar de error
       if (documentResponse.status === 404) {
-        console.warn("Tipo de contenido 'fleet-documents' no encontrado en Strapi. Retornando array vacío.");
+        console.warn(
+          "Tipo de contenido 'fleet-documents' no encontrado en Strapi. Retornando array vacío."
+        );
         return NextResponse.json({ data: [] });
       }
-      
+
       const errorText = await documentResponse.text();
       console.error("Error obteniendo documentos de Strapi:", {
         status: documentResponse.status,
         statusText: documentResponse.statusText,
         errorText,
       });
-      throw new Error(`No se pudieron obtener los documentos: ${errorText || documentResponse.statusText}`);
+      throw new Error(
+        `No se pudieron obtener los documentos: ${errorText || documentResponse.statusText}`
+      );
     }
 
     const documentData = await documentResponse.json();
-    
+
     // Función helper para normalizar archivos
-    const normalizeFiles = (filesData: any): Array<{ id?: number; url?: string; name?: string; mime?: string; size?: number; alternativeText?: string }> => {
+    const normalizeFiles = (
+      filesData: any
+    ): Array<{
+      id?: number;
+      url?: string;
+      name?: string;
+      mime?: string;
+      size?: number;
+      alternativeText?: string;
+    }> => {
       if (!filesData) return [];
-      
+
       // Si es un array directo
       if (Array.isArray(filesData)) {
         return filesData.map((file: any) => {
@@ -196,7 +208,7 @@ export async function GET(_: Request, context: RouteContext) {
           let fileMime: string | undefined;
           let fileSize: number | undefined;
           let fileAlt: string | undefined;
-          
+
           // Si tiene estructura data.attributes
           if (file?.data?.attributes) {
             fileId = file.data.id;
@@ -224,7 +236,7 @@ export async function GET(_: Request, context: RouteContext) {
             fileSize = file.size;
             fileAlt = file.alternativeText;
           }
-          
+
           return {
             id: fileId,
             url: fileUrl ? strapiImages.getURL(fileUrl) : undefined,
@@ -235,12 +247,12 @@ export async function GET(_: Request, context: RouteContext) {
           };
         });
       }
-      
+
       // Si es un objeto con data que contiene array
       if (filesData?.data && Array.isArray(filesData.data)) {
         return normalizeFiles(filesData.data);
       }
-      
+
       return [];
     };
 
@@ -251,7 +263,7 @@ export async function GET(_: Request, context: RouteContext) {
         if (document.files) {
           document.files = normalizeFiles(document.files);
         }
-        
+
         if (document.authorDocumentId) {
           try {
             const authorQuery = qs.stringify({
@@ -286,7 +298,7 @@ export async function GET(_: Request, context: RouteContext) {
             console.error("Error obteniendo autor para documento:", error);
           }
         }
-        
+
         return document;
       })
     );
@@ -295,17 +307,14 @@ export async function GET(_: Request, context: RouteContext) {
   } catch (error) {
     console.error("Error obteniendo documentos del vehículo:", error);
     const errorMessage = error instanceof Error ? error.message : "Error desconocido";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
 // POST - Crear un nuevo documento
 export async function POST(request: Request, context: RouteContext) {
   try {
-    await requireAdmin();
+    await requireModulePermission("fleet", "canCreate");
   } catch {
     return NextResponse.json(
       { error: "Acceso restringido: Se requieren permisos de administrador" },
@@ -316,7 +325,7 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const body = (await request.json()) as { data?: FleetDocumentPayload };
     console.log("📦 Body recibido:", JSON.stringify(body, null, 2));
-    
+
     if (!body?.data) {
       return NextResponse.json(
         { error: "Los datos del documento son requeridos." },
@@ -350,15 +359,12 @@ export async function POST(request: Request, context: RouteContext) {
       fields: ["id"],
     });
 
-    const vehicleResponse = await fetch(
-      `${STRAPI_BASE_URL}/api/fleets?${vehicleQuery}`,
-      {
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-        },
-        cache: "no-store",
-      }
-    );
+    const vehicleResponse = await fetch(`${STRAPI_BASE_URL}/api/fleets?${vehicleQuery}`, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      },
+      cache: "no-store",
+    });
 
     if (!vehicleResponse.ok) {
       throw new Error("No se pudo obtener el vehículo");
@@ -368,10 +374,7 @@ export async function POST(request: Request, context: RouteContext) {
     const vehicleId = vehicleData.data?.[0]?.id;
 
     if (!vehicleId) {
-      return NextResponse.json(
-        { error: "Vehículo no encontrado." },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Vehículo no encontrado." }, { status: 404 });
     }
 
     // Normalizar documentType a ID numérico — Strapi v5 requiere número para relaciones
@@ -380,8 +383,8 @@ export async function POST(request: Request, context: RouteContext) {
       typeof rawDocumentType === "number"
         ? rawDocumentType
         : typeof rawDocumentType === "string"
-        ? Number(rawDocumentType)
-        : NaN;
+          ? Number(rawDocumentType)
+          : NaN;
 
     if (isNaN(documentTypeId)) {
       return NextResponse.json(
@@ -391,18 +394,22 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     const currentUserProfile = await getCurrentUserProfile();
-    
-    let authorDocumentId = body.data.authorDocumentId && body.data.authorDocumentId !== null 
-      ? body.data.authorDocumentId 
-      : undefined;
-    
+
+    let authorDocumentId =
+      body.data.authorDocumentId && body.data.authorDocumentId !== null
+        ? body.data.authorDocumentId
+        : undefined;
+
     if (!authorDocumentId) {
       authorDocumentId = currentUserProfile?.documentId;
     }
 
     if (!authorDocumentId) {
       return NextResponse.json(
-        { error: "No se pudo obtener la información del usuario. Por favor, inicia sesión nuevamente." },
+        {
+          error:
+            "No se pudo obtener la información del usuario. Por favor, inicia sesión nuevamente.",
+        },
         { status: 401 }
       );
     }
@@ -430,20 +437,20 @@ export async function POST(request: Request, context: RouteContext) {
     console.log("📤 Enviando a Strapi:", JSON.stringify({ data: documentData }, null, 2));
 
     // Verificar que el tipo de contenido existe antes de crear
-    const contentTypeCheck = await fetch(
-      `${STRAPI_BASE_URL}/api/fleet-documents`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-        },
-        cache: "no-store",
-      }
-    );
+    const contentTypeCheck = await fetch(`${STRAPI_BASE_URL}/api/fleet-documents`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      },
+      cache: "no-store",
+    });
 
     if (contentTypeCheck.status === 404) {
       return NextResponse.json(
-        { error: "El tipo de contenido 'fleet-documents' no existe en Strapi. Por favor, reinicia el servidor de Strapi." },
+        {
+          error:
+            "El tipo de contenido 'fleet-documents' no existe en Strapi. Por favor, reinicia el servidor de Strapi.",
+        },
         { status: 404 }
       );
     }
@@ -451,26 +458,23 @@ export async function POST(request: Request, context: RouteContext) {
     // Crear el documento con timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 segundos timeout
-    
+
     let createResponse;
     try {
-      createResponse = await fetch(
-        `${STRAPI_BASE_URL}/api/fleet-documents`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            data: documentData,
-          }),
-          cache: "no-store",
-          signal: controller.signal,
-        }
-      );
+      createResponse = await fetch(`${STRAPI_BASE_URL}/api/fleet-documents`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          data: documentData,
+        }),
+        cache: "no-store",
+        signal: controller.signal,
+      });
     } catch (fetchError: any) {
-      if (fetchError.name === 'AbortError') {
+      if (fetchError.name === "AbortError") {
         throw new Error("La operación tardó demasiado. El servidor no respondió a tiempo.");
       }
       throw fetchError;
@@ -486,25 +490,32 @@ export async function POST(request: Request, context: RouteContext) {
       } catch {
         errorData = { error: { message: errorText || `Error ${createResponse.status}` } };
       }
-      
+
       // Si es 404, el tipo de contenido no existe
       if (createResponse.status === 404) {
-        throw new Error("El tipo de contenido 'fleet-documents' no existe en Strapi. Por favor, reinicia el servidor de Strapi.");
+        throw new Error(
+          "El tipo de contenido 'fleet-documents' no existe en Strapi. Por favor, reinicia el servidor de Strapi."
+        );
       }
-      
+
       // Si es 405, el método no está permitido
       if (createResponse.status === 405) {
-        throw new Error("El método POST no está permitido en esta ruta. Por favor, reinicia el servidor de desarrollo.");
+        throw new Error(
+          "El método POST no está permitido en esta ruta. Por favor, reinicia el servidor de desarrollo."
+        );
       }
-      
+
       console.error("❌ Error de Strapi:", {
         status: createResponse.status,
         errorData,
         errorText,
       });
-      
-      let errorMessage = errorData.error?.message || errorData.message || `Error ${createResponse.status}: ${createResponse.statusText}`;
-      
+
+      const errorMessage =
+        errorData.error?.message ||
+        errorData.message ||
+        `Error ${createResponse.status}: ${createResponse.statusText}`;
+
       throw new Error(errorMessage);
     }
 
@@ -513,7 +524,15 @@ export async function POST(request: Request, context: RouteContext) {
 
     // Obtener el documento completo con archivos normalizados
     const getDocumentQuery = qs.stringify({
-      fields: ["id", "documentId", "documentType", "otherDescription", "authorDocumentId", "createdAt", "updatedAt"],
+      fields: [
+        "id",
+        "documentId",
+        "documentType",
+        "otherDescription",
+        "authorDocumentId",
+        "createdAt",
+        "updatedAt",
+      ],
       populate: {
         files: {
           fields: ["id", "url", "name", "mime", "size", "alternativeText"],
@@ -534,11 +553,20 @@ export async function POST(request: Request, context: RouteContext) {
     if (getDocumentResponse.ok) {
       const documentDataResponse = await getDocumentResponse.json();
       const fullDocumentData = documentDataResponse.data;
-      
+
       // Normalizar archivos
-      const normalizeFiles = (filesData: any): Array<{ id?: number; url?: string; name?: string; mime?: string; size?: number; alternativeText?: string }> => {
+      const normalizeFiles = (
+        filesData: any
+      ): Array<{
+        id?: number;
+        url?: string;
+        name?: string;
+        mime?: string;
+        size?: number;
+        alternativeText?: string;
+      }> => {
         if (!filesData) return [];
-        
+
         if (Array.isArray(filesData)) {
           return filesData.map((file: any) => {
             let fileUrl: string | undefined;
@@ -547,7 +575,7 @@ export async function POST(request: Request, context: RouteContext) {
             let fileMime: string | undefined;
             let fileSize: number | undefined;
             let fileAlt: string | undefined;
-            
+
             if (file?.data?.attributes) {
               fileId = file.data.id;
               fileUrl = file.data.attributes.url;
@@ -570,7 +598,7 @@ export async function POST(request: Request, context: RouteContext) {
               fileSize = file.size;
               fileAlt = file.alternativeText;
             }
-            
+
             return {
               id: fileId,
               url: fileUrl ? strapiImages.getURL(fileUrl) : undefined,
@@ -581,20 +609,23 @@ export async function POST(request: Request, context: RouteContext) {
             };
           });
         }
-        
+
         if (filesData?.data && Array.isArray(filesData.data)) {
           return normalizeFiles(filesData.data);
         }
-        
+
         return [];
       };
-      
+
       if (fullDocumentData.files) {
         fullDocumentData.files = normalizeFiles(fullDocumentData.files);
       }
-      
+
       // Agregar el autor
-      if (currentUserProfile && currentUserProfile.documentId === fullDocumentData.authorDocumentId) {
+      if (
+        currentUserProfile &&
+        currentUserProfile.documentId === fullDocumentData.authorDocumentId
+      ) {
         fullDocumentData.author = {
           id: 0,
           documentId: currentUserProfile.documentId,
@@ -636,7 +667,7 @@ export async function POST(request: Request, context: RouteContext) {
           console.error("Error obteniendo autor para documento creado:", error);
         }
       }
-      
+
       return NextResponse.json({ data: fullDocumentData });
     }
 
@@ -645,9 +676,6 @@ export async function POST(request: Request, context: RouteContext) {
   } catch (error) {
     console.error("Error creando documento del vehículo:", error);
     const errorMessage = error instanceof Error ? error.message : "Error desconocido";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

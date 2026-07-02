@@ -1,6 +1,7 @@
 import qs from "qs";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "./config";
 import { formatCurrency } from "./format";
+import { getCurrentUserJwt } from "./auth";
 import type {
   AppointmentCard,
   AppointmentRaw,
@@ -61,9 +62,7 @@ const listQueryString = qs.stringify(
 // Helper Functions
 // ============================================
 
-const extractTimeFromDate = (
-  scheduledAt: string
-): { time: string; period: "AM" | "PM" } => {
+const extractTimeFromDate = (scheduledAt: string): { time: string; period: "AM" | "PM" } => {
   try {
     const date = new Date(scheduledAt);
     // Usar UTC para consistencia con los datos de Strapi
@@ -78,9 +77,7 @@ const extractTimeFromDate = (
   }
 };
 
-const extractDateParts = (
-  scheduledAt: string
-): { day: number; month: number; year: number } => {
+const extractDateParts = (scheduledAt: string): { day: number; month: number; year: number } => {
   try {
     const date = new Date(scheduledAt);
     // Usar UTC para consistencia con los datos de Strapi
@@ -309,7 +306,7 @@ export async function fetchAppointmentsFromStrapi(): Promise<AppointmentCard[]> 
       Authorization: `Bearer ${STRAPI_API_TOKEN}`,
     },
     cache: "force-cache",
-    next: { revalidate: 300, tags: ['calendar'] },
+    next: { revalidate: 300, tags: ["calendar"] },
   });
 
   if (!response.ok) {
@@ -342,10 +339,7 @@ const buildAppointmentDetailQuery = (id: string | number) => {
   const normalizedId = String(id);
   const filters = isNumericId(id)
     ? {
-        $or: [
-          { id: { $eq: Number(id) } },
-          { documentId: { $eq: normalizedId } },
-        ],
+        $or: [{ id: { $eq: Number(id) } }, { documentId: { $eq: normalizedId } }],
       }
     : {
         documentId: { $eq: normalizedId },
@@ -383,7 +377,7 @@ export async function fetchAppointmentByIdFromStrapi(
       Authorization: `Bearer ${STRAPI_API_TOKEN}`,
     },
     cache: "force-cache",
-    next: { revalidate: 300, tags: ['calendar'] },
+    next: { revalidate: 300, tags: ["calendar"] },
   });
 
   if (response.status === 404) {
@@ -391,9 +385,7 @@ export async function fetchAppointmentByIdFromStrapi(
   }
 
   if (!response.ok) {
-    throw new Error(
-      `Strapi Appointment details request failed with status ${response.status}`
-    );
+    throw new Error(`Strapi Appointment details request failed with status ${response.status}`);
   }
 
   const payload = (await response.json()) as StrapiResponse<AppointmentRaw[]>;
@@ -415,10 +407,11 @@ export async function createAppointmentInStrapi(
 ): Promise<AppointmentCard> {
   const populateQueryString = qs.stringify(populateConfig, { encodeValuesOnly: true });
   const url = `${STRAPI_BASE_URL}/api/appointments?${populateQueryString}`;
+  const jwt = await getCurrentUserJwt();
   const response = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      Authorization: `Bearer ${jwt || STRAPI_API_TOKEN}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ data }),
@@ -454,10 +447,11 @@ export async function updateAppointmentInStrapi(
 
   const populateQueryString = qs.stringify(populateConfig, { encodeValuesOnly: true });
   const url = `${STRAPI_BASE_URL}/api/appointments/${documentId}?${populateQueryString}`;
+  const jwt = await getCurrentUserJwt();
   const response = await fetch(url, {
     method: "PUT",
     headers: {
-      Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      Authorization: `Bearer ${jwt || STRAPI_API_TOKEN}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ data }),
@@ -492,10 +486,11 @@ export async function deleteAppointmentInStrapi(id: string | number): Promise<vo
     throw new Error("No pudimos encontrar la cita para eliminarla.");
   }
 
+  const jwt = await getCurrentUserJwt();
   const response = await fetch(`${STRAPI_BASE_URL}/api/appointments/${documentId}`, {
     method: "DELETE",
     headers: {
-      Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      Authorization: `Bearer ${jwt || STRAPI_API_TOKEN}`,
     },
     cache: "no-store",
   });

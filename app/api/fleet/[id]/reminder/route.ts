@@ -5,7 +5,7 @@ import { logger } from "@/lib/logger";
 import qs from "qs";
 import { fetchFleetVehicleByIdFromStrapi } from "@/lib/fleet";
 import type { FleetReminderPayload } from "@/validations/types";
-import { requireAdmin } from "@/lib/admin-guard";
+import { requireModulePermission } from "@/lib/module-guard";
 
 // Función helper para obtener el user-profile del usuario actual
 async function getCurrentUserProfile() {
@@ -123,7 +123,7 @@ interface RouteContext {
 // GET - Obtener todos los recordatorios de un vehículo
 export async function GET(_: Request, context: RouteContext) {
   try {
-    await requireAdmin();
+    await requireModulePermission("fleet", "canRead");
   } catch {
     return NextResponse.json(
       { error: "Acceso restringido: Se requieren permisos de administrador" },
@@ -761,7 +761,7 @@ export async function GET(_: Request, context: RouteContext) {
 // POST - Crear un nuevo recordatorio
 export async function POST(request: Request, context: RouteContext) {
   try {
-    await requireAdmin();
+    await requireModulePermission("fleet", "canCreate");
   } catch {
     return NextResponse.json(
       { error: "Acceso restringido: Se requieren permisos de administrador" },

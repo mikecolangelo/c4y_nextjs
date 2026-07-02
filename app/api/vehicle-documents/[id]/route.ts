@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
+import { requireModulePermission } from "@/lib/module-guard";
 
 interface RouteContext {
   params: Promise<{
@@ -10,6 +11,14 @@ interface RouteContext {
 // PUT - Actualizar un documento
 export async function PUT(request: Request, context: RouteContext) {
   try {
+    try {
+      await requireModulePermission("fleet", "canUpdate");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { id } = await context.params;
     if (!id) {
       return NextResponse.json({ error: "ID requerido" }, { status: 400 });
@@ -50,6 +59,14 @@ export async function PUT(request: Request, context: RouteContext) {
 // DELETE - Eliminar un documento
 export async function DELETE(_: Request, context: RouteContext) {
   try {
+    try {
+      await requireModulePermission("fleet", "canDelete");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { id } = await context.params;
     if (!id) {
       return NextResponse.json({ error: "ID requerido" }, { status: 400 });

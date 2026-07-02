@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server";
 import { fetchServicesFromStrapi, createServiceInStrapi } from "@/features/services";
+import { requireModulePermission } from "@/lib/module-guard";
 import type { ServiceCreatePayload } from "@/validations/types";
 
 export async function GET() {
   try {
+    try {
+      await requireModulePermission("adm-services", "canRead");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const services = await fetchServicesFromStrapi();
     return NextResponse.json({ data: services });
   } catch (error) {
@@ -17,6 +26,14 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    try {
+      await requireModulePermission("adm-services", "canCreate");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const body = (await request.json()) as { data?: ServiceCreatePayload };
 
     if (!body?.data) {

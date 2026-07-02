@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { STRAPI_BASE_URL } from "@/lib/config";
 import { getCurrentUserJwt, getCurrentUserProfileViaJwt } from "@/lib/auth";
-import { isAdminRole } from "@/lib/admin-guard";
+import { requireModulePermission } from "@/lib/module-guard";
 import { logger } from "@/lib/logger";
 
 interface RouteContext {
@@ -16,9 +16,15 @@ export async function DELETE(_: Request, context: RouteContext) {
   }
 
   const author = await getCurrentUserProfileViaJwt();
-  if (!author || !isAdminRole(author.role)) {
+  if (!author) {
+    return NextResponse.json({ error: "No autenticado." }, { status: 401 });
+  }
+
+  try {
+    await requireModulePermission("users", "canDelete");
+  } catch {
     return NextResponse.json(
-      { error: "Acceso restringido: se requieren permisos de administrador." },
+      { error: "No tenés permiso para eliminar este comentario." },
       { status: 403 }
     );
   }

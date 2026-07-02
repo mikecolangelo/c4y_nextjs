@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentUserJwt } from "@/lib/auth";
+import { requireModulePermission } from "@/lib/module-guard";
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL || "http://localhost:1337/api";
 const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN || "";
@@ -32,24 +34,27 @@ export async function DELETE(
   { params }: { params: Promise<{ noteId: string }> }
 ) {
   try {
+    try {
+      await requireModulePermission("stock", "canDelete");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { noteId } = await params;
     console.log("DELETE /api/inventory/notes/", noteId);
 
     if (!noteId) {
-      return NextResponse.json(
-        { error: "ID de nota requerido" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "ID de nota requerido" }, { status: 400 });
     }
 
     // Eliminar la nota en Strapi usando documentId
+    const jwt = await getCurrentUserJwt();
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
+      Authorization: `Bearer ${jwt || STRAPI_API_TOKEN}`,
     };
-
-    if (STRAPI_API_TOKEN) {
-      headers.Authorization = `Bearer ${STRAPI_API_TOKEN}`;
-    }
 
     const url = `${STRAPI_API_URL}/inventory-notes/${noteId}`;
     console.log("Enviando DELETE a Strapi:", url);
@@ -74,10 +79,7 @@ export async function DELETE(
       throw new Error(errorMessage);
     }
 
-    return NextResponse.json(
-      { message: "Nota eliminada correctamente" },
-      { status: 200 }
-    );
+    return NextResponse.json({ message: "Nota eliminada correctamente" }, { status: 200 });
   } catch (error) {
     console.error("Error deleting inventory note:", error);
     return NextResponse.json(

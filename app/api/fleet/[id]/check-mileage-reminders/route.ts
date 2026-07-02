@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/admin-guard";
+import { requireModulePermission } from "@/lib/module-guard";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await requireAdmin();
+    await requireModulePermission("fleet", "canCreate");
   } catch {
     return NextResponse.json(
       { error: "Acceso restringido: Se requieren permisos de administrador" },
@@ -17,16 +14,13 @@ export async function POST(
   const { id } = await params;
 
   try {
-    const response = await fetch(
-      `${STRAPI_BASE_URL}/api/fleets/${id}/check-mileage-reminders`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-        },
-      }
-    );
+    const response = await fetch(`${STRAPI_BASE_URL}/api/fleets/${id}/check-mileage-reminders`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      },
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -40,9 +34,6 @@ export async function POST(
     return NextResponse.json(data);
   } catch (error) {
     console.error("Error en check-mileage-reminders:", error);
-    return NextResponse.json(
-      { error: "Error interno del servidor" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 });
   }
 }

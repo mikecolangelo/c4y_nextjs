@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
+import { requireModulePermission } from "@/lib/module-guard";
 
 // GET - Obtener todas las categorías de documentos
 export async function GET() {
   try {
+    try {
+      await requireModulePermission("fleet", "canRead");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const response = await fetch(
       `${STRAPI_BASE_URL}/api/vehicle-document-categories?sort[0]=order:asc`,
       {
@@ -32,6 +41,14 @@ export async function GET() {
 // POST - Crear una nueva categoría
 export async function POST(request: Request) {
   try {
+    try {
+      await requireModulePermission("fleet", "canCreate");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const body = await request.json();
     const { data } = body;
 

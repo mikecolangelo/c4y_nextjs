@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
+import { getCurrentUserJwt } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import {
   dedupeReminders,
@@ -87,6 +88,10 @@ async function getCurrentUserProfile() {
 // GET - Obtener los recordatorios del usuario logueado
 export async function GET() {
   try {
+    const jwt = await getCurrentUserJwt();
+    if (!jwt) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    }
     const currentUser = await getCurrentUserProfile();
 
     if (!currentUser) {

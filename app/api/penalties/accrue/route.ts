@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { accruePenaltiesForFinancing } from "@/lib/unified-allocator";
+import { requireModulePermission } from "@/lib/module-guard";
 
 /**
  * POST /api/penalties/accrue
@@ -14,6 +15,12 @@ import { accruePenaltiesForFinancing } from "@/lib/unified-allocator";
  */
 export async function POST(request: Request) {
   try {
+    try {
+      await requireModulePermission("billing", "canRead");
+    } catch {
+      return NextResponse.json({ error: "No tenés permiso para esta acción." }, { status: 403 });
+    }
+
     const body = await request.json();
     const { data } = body as {
       data?: {
@@ -23,10 +30,7 @@ export async function POST(request: Request) {
     };
 
     if (!data?.financingDocumentId) {
-      return NextResponse.json(
-        { error: "financingDocumentId es requerido." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "financingDocumentId es requerido." }, { status: 400 });
     }
 
     const count = await accruePenaltiesForFinancing(

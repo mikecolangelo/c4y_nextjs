@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
-import { fetchFleetVehiclesFromStrapi, createFleetVehicleInStrapi, updateFleetVehicleInStrapi, type FleetVehicleCreatePayload } from "@/lib/fleet";
-import { requireAdmin } from "@/lib/admin-guard";
+import {
+  fetchFleetVehiclesFromStrapi,
+  createFleetVehicleInStrapi,
+  updateFleetVehicleInStrapi,
+  type FleetVehicleCreatePayload,
+} from "@/lib/fleet";
+import { requireModulePermission } from "@/lib/module-guard";
 import { revalidateTag } from "next/cache";
 import { checkRateLimit } from "@/lib/rate-limiter";
 import { headers } from "next/headers";
@@ -13,7 +18,7 @@ export async function GET() {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
     try {
-      await requireAdmin();
+      await requireModulePermission("fleet", "canRead");
     } catch {
       return NextResponse.json(
         { error: "Acceso restringido: Se requieren permisos de administrador" },
@@ -39,7 +44,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
     try {
-      await requireAdmin();
+      await requireModulePermission("fleet", "canCreate");
     } catch {
       return NextResponse.json(
         { error: "Acceso restringido: Se requieren permisos de administrador" },
@@ -47,7 +52,7 @@ export async function POST(request: Request) {
       );
     }
     const body = (await request.json()) as { data?: FleetVehicleCreatePayload };
-    
+
     if (!body?.data) {
       return NextResponse.json(
         { error: "Los datos del vehículo son requeridos." },
@@ -59,15 +64,26 @@ export async function POST(request: Request) {
 
     // Sanitizar: eliminar claves inválidas que puedan venir de extensiones/autofill
     const sanitizedData: any = { ...data };
-    if ('mileage' in sanitizedData) {
-      if ((sanitizedData.currentMileage === undefined || sanitizedData.currentMileage === null) && sanitizedData.mileage !== undefined) {
+    if ("mileage" in sanitizedData) {
+      if (
+        (sanitizedData.currentMileage === undefined || sanitizedData.currentMileage === null) &&
+        sanitizedData.mileage !== undefined
+      ) {
         sanitizedData.currentMileage = sanitizedData.mileage;
       }
       delete sanitizedData.mileage;
     }
 
     // Validar campos requeridos
-    if (!sanitizedData.name || !sanitizedData.vin || !sanitizedData.price || !sanitizedData.condition || !sanitizedData.brand || !sanitizedData.model || !sanitizedData.year) {
+    if (
+      !sanitizedData.name ||
+      !sanitizedData.vin ||
+      !sanitizedData.price ||
+      !sanitizedData.condition ||
+      !sanitizedData.brand ||
+      !sanitizedData.model ||
+      !sanitizedData.year
+    ) {
       return NextResponse.json(
         { error: "Todos los campos requeridos deben estar presentes." },
         { status: 400 }
@@ -76,10 +92,7 @@ export async function POST(request: Request) {
 
     // Validar año
     if (sanitizedData.year < 1900 || sanitizedData.year > 2100) {
-      return NextResponse.json(
-        { error: "El año debe estar entre 1900 y 2100." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "El año debe estar entre 1900 y 2100." }, { status: 400 });
     }
 
     // Validar condición
@@ -91,22 +104,18 @@ export async function POST(request: Request) {
     }
 
     // Validar currentMileage si está presente
-    if (sanitizedData.currentMileage !== undefined && sanitizedData.currentMileage !== null && sanitizedData.currentMileage < 0) {
-      return NextResponse.json(
-        { error: "El kilometraje no puede ser negativo." },
-        { status: 400 }
-      );
+    if (
+      sanitizedData.currentMileage !== undefined &&
+      sanitizedData.currentMileage !== null &&
+      sanitizedData.currentMileage < 0
+    ) {
+      return NextResponse.json({ error: "El kilometraje no puede ser negativo." }, { status: 400 });
     }
 
     // Separar relaciones manyToMany del payload de creación porque Strapi
     // puede rechazarlas directamente en create en algunas configuraciones
-    const {
-      responsables,
-      assignedDrivers,
-      interestedDrivers,
-      currentDrivers,
-      ...createData
-    } = sanitizedData;
+    const { responsables, assignedDrivers, interestedDrivers, currentDrivers, ...createData } =
+      sanitizedData;
 
     let vehicle = await createFleetVehicleInStrapi(createData as FleetVehicleCreatePayload);
 
@@ -114,17 +123,17 @@ export async function POST(request: Request) {
     const targetId = vehicle.documentId || vehicle.id;
     if (
       targetId &&
-      (
-        (responsables && responsables.length > 0) ||
+      ((responsables && responsables.length > 0) ||
         (assignedDrivers && assignedDrivers.length > 0) ||
         (interestedDrivers && interestedDrivers.length > 0) ||
-        (currentDrivers && currentDrivers.length > 0)
-      )
+        (currentDrivers && currentDrivers.length > 0))
     ) {
       const relations: any = {};
       if (responsables && responsables.length > 0) relations.responsables = responsables;
-      if (assignedDrivers && assignedDrivers.length > 0) relations.assignedDrivers = assignedDrivers;
-      if (interestedDrivers && interestedDrivers.length > 0) relations.interestedDrivers = interestedDrivers;
+      if (assignedDrivers && assignedDrivers.length > 0)
+        relations.assignedDrivers = assignedDrivers;
+      if (interestedDrivers && interestedDrivers.length > 0)
+        relations.interestedDrivers = interestedDrivers;
       if (currentDrivers && currentDrivers.length > 0) relations.currentDrivers = currentDrivers;
       try {
         vehicle = await updateFleetVehicleInStrapi(targetId, relations);
@@ -138,13 +147,6 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Error creating fleet vehicle:", error);
     const errorMessage = error instanceof Error ? error.message : "No se pudo crear el vehículo.";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
-
-
-
-

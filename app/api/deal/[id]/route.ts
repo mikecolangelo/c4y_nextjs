@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
-import {
-  deleteDealInStrapi,
-  fetchDealByIdFromStrapi,
-  updateDealInStrapi,
-} from "@/lib/deal";
+import { deleteDealInStrapi, fetchDealByIdFromStrapi, updateDealInStrapi } from "@/lib/deal";
+import { requireModulePermission } from "@/lib/module-guard";
 import type { DealUpdatePayload } from "@/validations/types";
 
 interface RouteContext {
@@ -14,6 +11,14 @@ interface RouteContext {
 
 export async function GET(_request: Request, context: RouteContext) {
   try {
+    try {
+      await requireModulePermission("deal", "canRead");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { id } = await context.params;
     const deal = await fetchDealByIdFromStrapi(id);
 
@@ -33,6 +38,14 @@ export async function GET(_request: Request, context: RouteContext) {
 
 export async function PATCH(request: Request, context: RouteContext) {
   try {
+    try {
+      await requireModulePermission("deal", "canUpdate");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const body = (await request.json()) as { data?: DealUpdatePayload };
     if (!body?.data) {
       return NextResponse.json(
@@ -69,10 +82,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     // Validar price si está presente
     if (data.price !== undefined && data.price < 0) {
-      return NextResponse.json(
-        { error: "El precio no puede ser negativo." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "El precio no puede ser negativo." }, { status: 400 });
     }
 
     const { id } = await context.params;
@@ -89,6 +99,14 @@ export async function PATCH(request: Request, context: RouteContext) {
 
 export async function DELETE(_: Request, context: RouteContext) {
   try {
+    try {
+      await requireModulePermission("deal", "canDelete");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { id } = await context.params;
     await deleteDealInStrapi(id);
     return NextResponse.json({ success: true });

@@ -1,5 +1,6 @@
 import qs from "qs";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "./config";
+import { getCurrentUserJwt } from "./auth";
 import type {
   InventoryItemCard,
   InventoryItemRaw,
@@ -13,7 +14,21 @@ import type {
 
 const listQueryString = qs.stringify(
   {
-    fields: ["code", "description", "stock", "assignedTo", "minStock", "maxStock", "unit", "location", "supplier", "lastRestocked", "icon", "unitCost", "salePrice"],
+    fields: [
+      "code",
+      "description",
+      "stock",
+      "assignedTo",
+      "minStock",
+      "maxStock",
+      "unit",
+      "location",
+      "supplier",
+      "lastRestocked",
+      "icon",
+      "unitCost",
+      "salePrice",
+    ],
     sort: ["code:asc"],
     pagination: {
       pageSize: 100,
@@ -86,7 +101,10 @@ const normalizeInventoryItem = (entry: InventoryItemRaw): InventoryItemCard | nu
 };
 
 export async function fetchInventoryItems(): Promise<InventoryItemCard[]> {
-  const response = await fetch("/api/inventory-items", { cache: "no-store", credentials: "include" });
+  const response = await fetch("/api/inventory-items", {
+    cache: "no-store",
+    credentials: "include",
+  });
   if (!response.ok) {
     throw new Error("Inventory items request failed");
   }
@@ -104,7 +122,7 @@ export async function fetchInventoryItemsFromStrapi(): Promise<InventoryItemCard
       Authorization: `Bearer ${STRAPI_API_TOKEN}`,
     },
     cache: "force-cache",
-    next: { revalidate: 300, tags: ['inventory'] },
+    next: { revalidate: 300, tags: ["inventory"] },
   });
 
   if (!response.ok) {
@@ -135,10 +153,7 @@ const buildInventoryDetailQuery = (id: string | number) => {
   const normalizedId = String(id);
   const filters = isNumericId(id)
     ? {
-        $or: [
-          { id: { $eq: Number(id) } },
-          { documentId: { $eq: normalizedId } },
-        ],
+        $or: [{ id: { $eq: Number(id) } }, { documentId: { $eq: normalizedId } }],
       }
     : {
         documentId: { $eq: normalizedId },
@@ -147,7 +162,21 @@ const buildInventoryDetailQuery = (id: string | number) => {
   return qs.stringify(
     {
       filters,
-      fields: ["code", "description", "stock", "assignedTo", "minStock", "maxStock", "unit", "location", "supplier", "lastRestocked", "icon", "unitCost", "salePrice"],
+      fields: [
+        "code",
+        "description",
+        "stock",
+        "assignedTo",
+        "minStock",
+        "maxStock",
+        "unit",
+        "location",
+        "supplier",
+        "lastRestocked",
+        "icon",
+        "unitCost",
+        "salePrice",
+      ],
       pagination: { pageSize: 1 },
     },
     { encodeValuesOnly: true }
@@ -163,7 +192,7 @@ export async function fetchInventoryItemByIdFromStrapi(
       Authorization: `Bearer ${STRAPI_API_TOKEN}`,
     },
     cache: "force-cache",
-    next: { revalidate: 300, tags: ['inventory'] },
+    next: { revalidate: 300, tags: ["inventory"] },
   });
 
   if (response.status === 404) {
@@ -192,10 +221,11 @@ export async function createInventoryItemInStrapi(
   data: InventoryItemCreatePayload
 ): Promise<InventoryItemCard> {
   const url = `${STRAPI_BASE_URL}/api/inventory-items`;
+  const jwt = await getCurrentUserJwt();
   const response = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      Authorization: `Bearer ${jwt || STRAPI_API_TOKEN}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ data }),
@@ -228,10 +258,11 @@ export async function updateInventoryItemInStrapi(
   }
 
   const url = `${STRAPI_BASE_URL}/api/inventory-items/${documentId}`;
+  const jwt = await getCurrentUserJwt();
   const response = await fetch(url, {
     method: "PUT",
     headers: {
-      Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      Authorization: `Bearer ${jwt || STRAPI_API_TOKEN}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ data }),
@@ -266,10 +297,11 @@ export async function deleteInventoryItemInStrapi(id: string | number): Promise<
     throw new Error("No pudimos encontrar el item de inventario para eliminarlo.");
   }
 
+  const jwt = await getCurrentUserJwt();
   const response = await fetch(`${STRAPI_BASE_URL}/api/inventory-items/${documentId}`, {
     method: "DELETE",
     headers: {
-      Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      Authorization: `Bearer ${jwt || STRAPI_API_TOKEN}`,
     },
     cache: "no-store",
   });

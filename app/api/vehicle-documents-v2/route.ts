@@ -1,20 +1,17 @@
 import { NextResponse } from "next/server";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
-import { requireAdmin } from "@/lib/admin-guard";
+import { requireModulePermission } from "@/lib/module-guard";
 
 // GET - Listar documentos de un vehículo (filtrado por vehicleDocumentId)
 export async function GET(request: Request) {
   try {
-    await requireAdmin();
+    await requireModulePermission("fleet", "canRead");
 
     const { searchParams } = new URL(request.url);
     const vehicleDocumentId = searchParams.get("vehicleDocumentId");
 
     if (!vehicleDocumentId) {
-      return NextResponse.json(
-        { error: "vehicleDocumentId es requerido" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "vehicleDocumentId es requerido" }, { status: 400 });
     }
 
     const strapiUrl = `${STRAPI_BASE_URL}/api/vehicle-documents?vehicleDocumentId=${encodeURIComponent(
@@ -37,7 +34,7 @@ export async function GET(request: Request) {
     const result = await response.json();
     return NextResponse.json(result);
   } catch (error) {
-    if (error instanceof Error && error.name === "AdminRequiredError") {
+    if (error instanceof Error && error.name === "ModulePermissionError") {
       return NextResponse.json(
         { error: "Acceso restringido: Se requieren permisos de administrador" },
         { status: 403 }
@@ -52,7 +49,7 @@ export async function GET(request: Request) {
 // POST - Crear un nuevo documento vehicular
 export async function POST(request: Request) {
   try {
-    await requireAdmin();
+    await requireModulePermission("fleet", "canCreate");
 
     const body = await request.json();
     const { data } = body;
@@ -87,7 +84,7 @@ export async function POST(request: Request) {
     const result = await response.json();
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
-    if (error instanceof Error && error.name === "AdminRequiredError") {
+    if (error instanceof Error && error.name === "ModulePermissionError") {
       return NextResponse.json(
         { error: "Acceso restringido: Se requieren permisos de administrador" },
         { status: 403 }

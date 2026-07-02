@@ -5,6 +5,7 @@ import {
   createFinancingInStrapi,
   type FinancingCreatePayload,
 } from "@/lib/financing";
+import { requireModulePermission } from "@/lib/module-guard";
 
 /**
  * GET /api/financing
@@ -12,6 +13,14 @@ import {
  */
 export async function GET() {
   try {
+    try {
+      await requireModulePermission("billing", "canRead");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const financings = await fetchFinancingsFromStrapi();
     return NextResponse.json({ data: financings });
   } catch (error) {
@@ -29,6 +38,14 @@ export async function GET() {
  */
 export async function POST(request: Request) {
   try {
+    try {
+      await requireModulePermission("billing", "canCreate");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const body = await request.json();
     const { data } = body as { data?: FinancingCreatePayload };
 
@@ -41,17 +58,11 @@ export async function POST(request: Request) {
 
     // Validaciones
     if (!data.totalAmount || data.totalAmount <= 0) {
-      return NextResponse.json(
-        { error: "El monto total debe ser mayor a 0." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "El monto total debe ser mayor a 0." }, { status: 400 });
     }
 
     if (!data.paymentFrequency) {
-      return NextResponse.json(
-        { error: "La frecuencia de pago es requerida." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "La frecuencia de pago es requerida." }, { status: 400 });
     }
 
     if (!["semanal", "quincenal", "mensual"].includes(data.paymentFrequency)) {
@@ -62,24 +73,15 @@ export async function POST(request: Request) {
     }
 
     if (!data.startDate) {
-      return NextResponse.json(
-        { error: "La fecha de inicio es requerida." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "La fecha de inicio es requerida." }, { status: 400 });
     }
 
     if (!data.vehicle) {
-      return NextResponse.json(
-        { error: "El vehículo es requerido." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "El vehículo es requerido." }, { status: 400 });
     }
 
     if (!data.client) {
-      return NextResponse.json(
-        { error: "El cliente es requerido." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "El cliente es requerido." }, { status: 400 });
     }
 
     const financing = await createFinancingInStrapi(data);
@@ -87,7 +89,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ data: financing }, { status: 201 });
   } catch (error) {
     console.error("Error creating financing:", error);
-    
+
     let errorMessage = "No se pudo crear el financiamiento.";
     let statusCode = 500;
     let details: string | undefined;
@@ -95,7 +97,7 @@ export async function POST(request: Request) {
     if (error instanceof Error) {
       const message = error.message;
       details = message;
-      
+
       // Detectar errores específicos de Strapi
       if (message.includes("unique") || message.includes("already exists")) {
         errorMessage = "Ya existe un financiamiento con estos datos.";

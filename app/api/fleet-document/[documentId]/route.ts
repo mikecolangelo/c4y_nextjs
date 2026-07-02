@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
-import { requireAdmin } from "@/lib/admin-guard";
+import { requireModulePermission } from "@/lib/module-guard";
 
 interface RouteContext {
   params: Promise<{
@@ -12,7 +12,7 @@ interface RouteContext {
 export async function PUT(request: Request, context: RouteContext) {
   try {
     try {
-      await requireAdmin();
+      await requireModulePermission("fleet", "canUpdate");
     } catch {
       return NextResponse.json(
         { error: "Acceso restringido: Se requieren permisos de administrador" },
@@ -23,26 +23,20 @@ export async function PUT(request: Request, context: RouteContext) {
     const { documentId } = params;
 
     if (!documentId) {
-      return NextResponse.json(
-        { error: "documentId es requerido" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "documentId es requerido" }, { status: 400 });
     }
 
     const body = await request.json();
     const { data } = body;
 
     if (!data) {
-      return NextResponse.json(
-        { error: "Datos de actualización requeridos" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Datos de actualización requeridos" }, { status: 400 });
     }
 
     // Preparar datos para actualizar
     // El documentType se incluye en otherDescription para evitar problemas con relaciones
     const updateData: any = { ...data };
-    
+
     // Si hay documentType, construir la descripción incluyéndolo
     if (data.documentType) {
       let finalDescription = `[Tipo: ${data.documentType}]`;
@@ -57,24 +51,21 @@ export async function PUT(request: Request, context: RouteContext) {
     // Timeout para evitar gateway timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 25000);
-    
+
     let updateResponse;
     try {
-      updateResponse = await fetch(
-        `${STRAPI_BASE_URL}/api/fleet-documents/${documentId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          },
-          body: JSON.stringify({ data: updateData }),
-          cache: "no-store",
-          signal: controller.signal,
-        }
-      );
+      updateResponse = await fetch(`${STRAPI_BASE_URL}/api/fleet-documents/${documentId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        },
+        body: JSON.stringify({ data: updateData }),
+        cache: "no-store",
+        signal: controller.signal,
+      });
     } catch (fetchError: any) {
-      if (fetchError.name === 'AbortError') {
+      if (fetchError.name === "AbortError") {
         throw new Error("La operación tardó demasiado. El servidor no respondió a tiempo.");
       }
       throw fetchError;
@@ -96,12 +87,13 @@ export async function PUT(request: Request, context: RouteContext) {
         error: errorData,
         documentId,
       });
-      
+
       if (updateResponse.status === 404) {
         throw new Error("El documento no fue encontrado.");
       }
-      
-      const errorMessage = errorData.error?.message || `Error ${updateResponse.status}: ${updateResponse.statusText}`;
+
+      const errorMessage =
+        errorData.error?.message || `Error ${updateResponse.status}: ${updateResponse.statusText}`;
       throw new Error(errorMessage);
     }
 
@@ -110,10 +102,7 @@ export async function PUT(request: Request, context: RouteContext) {
   } catch (error) {
     console.error("Error updating fleet document:", error);
     const errorMessage = error instanceof Error ? error.message : "Error desconocido";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
@@ -121,7 +110,7 @@ export async function PUT(request: Request, context: RouteContext) {
 export async function DELETE(_: Request, context: RouteContext) {
   try {
     try {
-      await requireAdmin();
+      await requireModulePermission("fleet", "canDelete");
     } catch {
       return NextResponse.json(
         { error: "Acceso restringido: Se requieren permisos de administrador" },
@@ -132,22 +121,16 @@ export async function DELETE(_: Request, context: RouteContext) {
     const { documentId } = params;
 
     if (!documentId) {
-      return NextResponse.json(
-        { error: "documentId es requerido" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "documentId es requerido" }, { status: 400 });
     }
 
-    const deleteResponse = await fetch(
-      `${STRAPI_BASE_URL}/api/fleet-documents/${documentId}`,
-      {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-        },
-        cache: "no-store",
-      }
-    );
+    const deleteResponse = await fetch(`${STRAPI_BASE_URL}/api/fleet-documents/${documentId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      },
+      cache: "no-store",
+    });
 
     if (!deleteResponse.ok) {
       const errorText = await deleteResponse.text();
@@ -163,22 +146,23 @@ export async function DELETE(_: Request, context: RouteContext) {
         error: errorData,
         documentId,
       });
-      
+
       // Si es 404, el tipo de contenido o el documento no existe
       if (deleteResponse.status === 404) {
-        throw new Error("El documento no fue encontrado o el tipo de contenido 'fleet-documents' no existe en Strapi.");
+        throw new Error(
+          "El documento no fue encontrado o el tipo de contenido 'fleet-documents' no existe en Strapi."
+        );
       }
-      
-      throw new Error(errorData.error?.message || `Error ${deleteResponse.status}: ${deleteResponse.statusText}`);
+
+      throw new Error(
+        errorData.error?.message || `Error ${deleteResponse.status}: ${deleteResponse.statusText}`
+      );
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting fleet document:", error);
     const errorMessage = error instanceof Error ? error.message : "Error desconocido";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

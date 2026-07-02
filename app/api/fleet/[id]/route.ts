@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/admin-guard";
+import { requireModulePermission } from "@/lib/module-guard";
 import { revalidateTag } from "next/cache";
 import {
   deleteFleetVehicleInStrapi,
@@ -18,7 +18,7 @@ interface RouteContext {
 export async function GET(request: Request, context: RouteContext) {
   try {
     try {
-      await requireAdmin();
+      await requireModulePermission("fleet", "canRead");
     } catch {
       return NextResponse.json(
         { error: "Acceso restringido: Se requieren permisos de administrador" },
@@ -28,7 +28,7 @@ export async function GET(request: Request, context: RouteContext) {
     const { id } = await context.params;
     const url = new URL(request.url);
     const includeRaw = url.searchParams.get("includeRaw") === "true";
-    
+
     if (includeRaw) {
       // Devolver datos raw para obtener el imageId
       const rawVehicle = await fetchFleetVehicleRawFromStrapi(id);
@@ -37,7 +37,7 @@ export async function GET(request: Request, context: RouteContext) {
       }
       return NextResponse.json({ data: rawVehicle });
     }
-    
+
     const vehicle = await fetchFleetVehicleByIdFromStrapi(id);
     if (!vehicle) {
       return NextResponse.json({ error: "Vehículo no encontrado" }, { status: 404 });
@@ -56,7 +56,7 @@ export async function GET(request: Request, context: RouteContext) {
 export async function PATCH(request: Request, context: RouteContext) {
   try {
     try {
-      await requireAdmin();
+      await requireModulePermission("fleet", "canUpdate");
     } catch {
       return NextResponse.json(
         { error: "Acceso restringido: Se requieren permisos de administrador" },
@@ -88,7 +88,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 export async function DELETE(_: Request, context: RouteContext) {
   try {
     try {
-      await requireAdmin();
+      await requireModulePermission("fleet", "canDelete");
     } catch {
       return NextResponse.json(
         { error: "Acceso restringido: Se requieren permisos de administrador" },
@@ -107,4 +107,3 @@ export async function DELETE(_: Request, context: RouteContext) {
     );
   }
 }
-

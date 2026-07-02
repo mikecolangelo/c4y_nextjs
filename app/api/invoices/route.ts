@@ -1,34 +1,43 @@
 import { NextResponse } from "next/server";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
 import qs from "qs";
+import { requireModulePermission } from "@/lib/module-guard";
 
 // GET - Obtener facturas con filtros
 export async function GET(request: Request) {
   try {
+    try {
+      await requireModulePermission("billing", "canRead");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { searchParams } = new URL(request.url);
-    
+
     // Construir query con filtros
     const filters: Record<string, any> = {};
-    
-    if (searchParams.get('financingId')) {
-      filters.financing = { documentId: searchParams.get('financingId') };
+
+    if (searchParams.get("financingId")) {
+      filters.financing = { documentId: searchParams.get("financingId") };
     }
-    
-    if (searchParams.get('clientId')) {
-      filters.client = searchParams.get('clientId');
+
+    if (searchParams.get("clientId")) {
+      filters.client = searchParams.get("clientId");
     }
-    
-    if (searchParams.get('status')) {
-      filters.status = searchParams.get('status');
+
+    if (searchParams.get("status")) {
+      filters.status = searchParams.get("status");
     }
-    
-    if (searchParams.get('fromDate') || searchParams.get('toDate')) {
+
+    if (searchParams.get("fromDate") || searchParams.get("toDate")) {
       filters.dueDate = {};
-      if (searchParams.get('fromDate')) {
-        filters.dueDate.$gte = searchParams.get('fromDate');
+      if (searchParams.get("fromDate")) {
+        filters.dueDate.$gte = searchParams.get("fromDate");
       }
-      if (searchParams.get('toDate')) {
-        filters.dueDate.$lte = searchParams.get('toDate');
+      if (searchParams.get("toDate")) {
+        filters.dueDate.$lte = searchParams.get("toDate");
       }
     }
 
@@ -36,24 +45,21 @@ export async function GET(request: Request) {
       filters,
       populate: {
         financing: {
-          fields: ['financingNumber', 'quotaAmount'],
+          fields: ["financingNumber", "quotaAmount"],
         },
         client: {
-          fields: ['displayName', 'email'],
+          fields: ["displayName", "email"],
         },
       },
-      sort: ['dueDate:desc'],
+      sort: ["dueDate:desc"],
     });
 
-    const response = await fetch(
-      `${STRAPI_BASE_URL}/api/invoices?${query}`,
-      {
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-        },
-        cache: "no-store",
-      }
-    );
+    const response = await fetch(`${STRAPI_BASE_URL}/api/invoices?${query}`, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      },
+      cache: "no-store",
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -65,18 +71,23 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("Error obteniendo facturas:", error);
     const errorMessage = error instanceof Error ? error.message : "Error desconocido";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
 // POST - Crear nueva factura
 export async function POST(request: Request) {
   try {
+    try {
+      await requireModulePermission("billing", "canCreate");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const body = await request.json();
-    
+
     if (!body?.data) {
       return NextResponse.json(
         { error: "Payload inválido. Envía los campos dentro de data." },
@@ -84,18 +95,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const response = await fetch(
-      `${STRAPI_BASE_URL}/api/invoices`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ data: body.data }),
-        cache: "no-store",
-      }
-    );
+    const response = await fetch(`${STRAPI_BASE_URL}/api/invoices`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ data: body.data }),
+      cache: "no-store",
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -107,9 +115,6 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Error creando factura:", error);
     const errorMessage = error instanceof Error ? error.message : "Error desconocido";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

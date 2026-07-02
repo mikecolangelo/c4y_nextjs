@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createDealDiscountInStrapi, deleteDealDiscountInStrapi } from "@/lib/deal";
+import { requireModulePermission } from "@/lib/module-guard";
 import type { DealDiscountCreatePayload } from "@/validations/types";
 
 interface RouteContext {
@@ -10,6 +11,14 @@ interface RouteContext {
 
 export async function POST(request: Request, context: RouteContext) {
   try {
+    try {
+      await requireModulePermission("deal", "canCreate");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { id: dealId } = await context.params;
     const body = (await request.json()) as { data?: Omit<DealDiscountCreatePayload, "deal"> };
 
@@ -24,18 +33,12 @@ export async function POST(request: Request, context: RouteContext) {
 
     // Validar campo requerido: title
     if (!data.title) {
-      return NextResponse.json(
-        { error: "El título del descuento es requerido." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "El título del descuento es requerido." }, { status: 400 });
     }
 
     // Validar campo requerido: amount
     if (data.amount === undefined || data.amount === null) {
-      return NextResponse.json(
-        { error: "El monto del descuento es requerido." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "El monto del descuento es requerido." }, { status: 400 });
     }
 
     // Validar amount no negativo
@@ -55,15 +58,20 @@ export async function POST(request: Request, context: RouteContext) {
   } catch (error) {
     console.error("Error creating deal discount:", error);
     const errorMessage = error instanceof Error ? error.message : "No se pudo crear el descuento.";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
 export async function DELETE(request: Request, _context: RouteContext) {
   try {
+    try {
+      await requireModulePermission("deal", "canDelete");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const url = new URL(request.url);
     const discountId = url.searchParams.get("discountId");
 

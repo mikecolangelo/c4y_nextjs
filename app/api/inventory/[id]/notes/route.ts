@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUserProfile } from "@/lib/auth";
+import { getCurrentUserJwt, getCurrentUserProfile } from "@/lib/auth";
+import { requireModulePermission } from "@/lib/module-guard";
 
 const STRAPI_API_URL = process.env.STRAPI_API_URL || "http://localhost:1337/api";
 const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN || "";
 
-async function strapiFetch(url: string, options: RequestInit = {}) {
+async function strapiFetch(url: string, options: RequestInit = {}, jwt?: string | null) {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
   };
 
-  if (STRAPI_API_TOKEN) {
-    headers.Authorization = `Bearer ${STRAPI_API_TOKEN}`;
+  if (!headers.Authorization) {
+    headers.Authorization = `Bearer ${jwt || STRAPI_API_TOKEN}`;
   }
 
   const response = await fetch(url, {
@@ -28,11 +29,16 @@ async function strapiFetch(url: string, options: RequestInit = {}) {
 }
 
 // GET - Obtener notas de una pieza
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    try {
+      await requireModulePermission("stock", "canRead");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { id } = await params;
     const { searchParams } = new URL(request.url);
     const populate = searchParams.get("populate") || "*";
@@ -43,15 +49,12 @@ export async function GET(
     );
 
     if (!itemResponse.data) {
-      return NextResponse.json(
-        { error: "Item no encontrado" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Item no encontrado" }, { status: 404 });
     }
 
     // Obtener las notas relacionadas y transformar el formato
     const notesRaw = itemResponse.data.notes || [];
-    
+
     // Transformar las notas al formato esperado por el frontend
     const notes = notesRaw.map((note: any) => ({
       id: note.id,
@@ -65,28 +68,27 @@ export async function GET(
     return NextResponse.json({ data: notes });
   } catch (error) {
     console.error("Error fetching inventory notes:", error);
-    return NextResponse.json(
-      { error: "Error al obtener las notas" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Error al obtener las notas" }, { status: 500 });
   }
 }
 
 // POST - Crear nueva nota
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    try {
+      await requireModulePermission("stock", "canCreate");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { id } = await params;
     const body = await request.json();
     const { content } = body;
 
     if (!content?.trim()) {
-      return NextResponse.json(
-        { error: "El contenido de la nota es requerido" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "El contenido de la nota es requerido" }, { status: 400 });
     }
 
     // Obtener el usuario actual con su nombre
@@ -99,10 +101,7 @@ export async function POST(
     );
 
     if (!itemResponse.data) {
-      return NextResponse.json(
-        { error: "Item no encontrado" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Item no encontrado" }, { status: 404 });
     }
 
     // Strapi v5 requiere ID numérico para relaciones en POST/PUT.
@@ -126,12 +125,14 @@ export async function POST(
       },
     };
 
+    const jwt = await getCurrentUserJwt();
     const createResponse = await strapiFetch(
       `${STRAPI_API_URL}/inventory-notes`,
       {
         method: "POST",
         body: JSON.stringify(noteData),
-      }
+      },
+      jwt
     );
 
     // Transformar la respuesta para incluir documentId
@@ -148,9 +149,6 @@ export async function POST(
     return NextResponse.json({ data: note }, { status: 201 });
   } catch (error) {
     console.error("Error creating inventory note:", error);
-    return NextResponse.json(
-      { error: "Error al crear la nota" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Error al crear la nota" }, { status: 500 });
   }
 }

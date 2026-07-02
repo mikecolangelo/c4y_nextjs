@@ -20,14 +20,41 @@ function jsonResponse(data: unknown, status = 200): Response {
   });
 }
 
-/** Stubs the user-profile resolution chain (users/me + user-profiles lookup). */
-function stubAuthenticatedUser() {
+/**
+ * Stubs the user-profile resolution chain (users/me + user-profiles lookup).
+ * Auth-user id (34) and user-profile id (58) are intentionally DIFFERENT — they
+ * live in separate id-spaces and the route must use the profile id for relations.
+ */
+function stubAuthenticatedUser(role = "admin") {
   return [
-    jsonResponse({ id: 11, email: "user@test.com" }), // /api/users/me
+    jsonResponse({ id: 34, email: "user@test.com" }), // /api/users/me (auth id)
     jsonResponse({
-      data: [{ id: 11, documentId: "doc-11", role: "admin", email: "user@test.com" }],
-    }), // /api/user-profiles
+      data: [{ id: 58, documentId: "doc-58", role, email: "user@test.com" }],
+    }), // /api/user-profiles (profile id)
   ];
+}
+
+/**
+ * Stubs the `requireModulePermission` guard's own JWT-based auth resolution
+ * (getCurrentUserProfileViaJwt: users/me + user-profiles). This runs BEFORE
+ * the route's own `getCurrentUserProfile()` cookie-based check, so it
+ * consumes the front of the fetch-mock queue independently. Non-admin roles
+ * also trigger a role-permissions/mine lookup that must grant the requested
+ * module/action or the guard returns 403.
+ */
+function stubModuleGuard(role = "admin", moduleKey = "notifications", action = "canRead") {
+  const responses = [
+    jsonResponse({ id: 34, email: "user@test.com" }), // /api/users/me (module-guard)
+    jsonResponse({
+      data: [{ id: 58, documentId: "doc-58", role, email: "user@test.com" }],
+    }), // /api/user-profiles (module-guard)
+  ];
+  if (role !== "admin" && role !== "super-admin") {
+    responses.push(
+      jsonResponse({ data: { permissions: { [moduleKey]: { [action]: true } } } }) // /api/role-permissions/mine
+    );
+  }
+  return responses;
 }
 
 describe("notifications route", () => {
@@ -41,15 +68,16 @@ describe("notifications route", () => {
   });
 
   describe("GET", () => {
-    it("returns 401 when unauthenticated", async () => {
+    it("returns 403 when the module-permission guard rejects an unauthenticated caller", async () => {
       cookieGet.mockReturnValue(undefined);
       const res = await GET();
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
 
     it("returns deduplicated notifications for an authenticated user", async () => {
       cookieGet.mockReturnValue({ value: "jwt" });
       const responses = [
+        ...stubModuleGuard("admin", "notifications", "canRead"),
         ...stubAuthenticatedUser(),
         // broadcast notifications query
         jsonResponse({
@@ -77,30 +105,131 @@ describe("notifications route", () => {
       expect(json.data).toHaveLength(1);
       expect(json.data[0].title).toBe("Lead");
     });
+
+    it("shows an 'admins' broadcast to an admin and queries the role audience", async () => {
+      cookieGet.mockReturnValue({ value: "jwt" });
+      const responses = [
+        ...stubModuleGuard("admin", "notifications", "canRead"),
+        ...stubAuthenticatedUser("admin"),
+        // broadcast query: a notification targeted at admins only
+        jsonResponse({
+          data: [
+            {
+              id: 2,
+              documentId: "n2",
+              type: "announcement",
+              title: "Solo admins",
+              isRead: false,
+              targetAudience: "admins",
+            },
+          ],
+        }),
+        jsonResponse({ data: [] }), // recipient query
+      ];
+      const fetchMock = vi.fn(async () => responses.shift() as Response);
+      vi.stubGlobal("fetch", fetchMock);
+
+      const res = await GET();
+      const json = await res.json();
+      expect(json.data).toHaveLength(1);
+      expect(json.data[0].title).toBe("Solo admins");
+
+      // The broadcast query must include the role audience, not just "all".
+      const broadcastUrl = String(fetchMock.mock.calls[4]?.[0]);
+      expect(broadcastUrl).toContain("admins");
+    });
+
+    it("hides a role-mismatched broadcast from a driver", async () => {
+      cookieGet.mockReturnValue({ value: "jwt" });
+      const responses = [
+        ...stubModuleGuard("driver", "notifications", "canRead"),
+        ...stubAuthenticatedUser("driver"),
+        // broadcast query returns one drivers + one admins notification;
+        // the admins one must be filtered out for a driver.
+        jsonResponse({
+          data: [
+            {
+              id: 3,
+              documentId: "n3",
+              type: "announcement",
+              title: "Para drivers",
+              isRead: false,
+              targetAudience: "drivers",
+            },
+            {
+              id: 4,
+              documentId: "n4",
+              type: "announcement",
+              title: "Para admins",
+              isRead: false,
+              targetAudience: "admins",
+            },
+          ],
+        }),
+        jsonResponse({ data: [] }), // recipient query
+      ];
+      const fetchMock = vi.fn(async () => responses.shift() as Response);
+      vi.stubGlobal("fetch", fetchMock);
+
+      const res = await GET();
+      const json = await res.json();
+      expect(json.data).toHaveLength(1);
+      expect(json.data[0].title).toBe("Para drivers");
+    });
+
+    it("matches an individual notification by profile id (not auth id)", async () => {
+      cookieGet.mockReturnValue({ value: "jwt" });
+      const responses = [
+        ...stubModuleGuard("admin", "notifications", "canRead"),
+        ...stubAuthenticatedUser("admin"),
+        jsonResponse({ data: [] }), // broadcast query
+        // recipient query: notification addressed to profile id 58
+        jsonResponse({
+          data: [
+            {
+              id: 5,
+              documentId: "n5",
+              type: "lead",
+              title: "Para vos",
+              isRead: false,
+              recipient: { id: 58, documentId: "doc-58" },
+            },
+          ],
+        }),
+      ];
+      const fetchMock = vi.fn(async () => responses.shift() as Response);
+      vi.stubGlobal("fetch", fetchMock);
+
+      const res = await GET();
+      const json = await res.json();
+      expect(json.data).toHaveLength(1);
+      expect(json.data[0].title).toBe("Para vos");
+
+      // The recipient query must filter by the PROFILE id (58), never the auth id (34).
+      const recipientUrl = decodeURIComponent(String(fetchMock.mock.calls[5]?.[0]));
+      expect(recipientUrl).toContain("58");
+      expect(recipientUrl).not.toContain("][$eq]=34");
+    });
   });
 
   describe("POST", () => {
-    it("returns 401 when unauthenticated", async () => {
+    it("returns 403 when the module-permission guard rejects an unauthenticated caller", async () => {
       cookieGet.mockReturnValue(undefined);
       const req = new Request("http://localhost/api/notifications", {
         method: "POST",
         body: JSON.stringify({ title: "x", type: "lead", recipientType: "all" }),
       });
       const res = await POST(req);
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
 
     it("rejects when required fields are missing", async () => {
       cookieGet.mockReturnValue({ value: "jwt" });
-      vi.stubGlobal(
-        "fetch",
-        vi.fn(async () => {
-          const next = stubAuthenticatedUser();
-          return next.shift() as Response;
-        })
-      );
-      // Provide the two auth responses then expect a 400 for missing fields.
-      const authResponses = stubAuthenticatedUser();
+      // Provide the module-guard + auth responses then expect a 400 for missing fields.
+      const authResponses = [
+        ...stubModuleGuard("admin", "notifications", "canCreate"),
+        ...stubAuthenticatedUser(),
+      ];
       const fetchMock = vi.fn(async () => authResponses.shift() as Response);
       vi.stubGlobal("fetch", fetchMock);
 
@@ -115,6 +244,7 @@ describe("notifications route", () => {
     it("creates a broadcast notification via targetAudience", async () => {
       cookieGet.mockReturnValue({ value: "jwt" });
       const responses = [
+        ...stubModuleGuard("admin", "notifications", "canCreate"),
         ...stubAuthenticatedUser(),
         jsonResponse({ data: { id: 99, documentId: "new-99" } }), // create
       ];

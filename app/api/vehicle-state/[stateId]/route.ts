@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
 import { strapiImages } from "@/lib/strapi-images";
-import { requireAdmin } from "@/lib/admin-guard";
+import { requireModulePermission } from "@/lib/module-guard";
 
 interface RouteContext {
   params: Promise<{ stateId: string }>;
 }
 
-const normalizeImages = (imagesData: any): Array<{ id?: number; url?: string; alternativeText?: string }> => {
+const normalizeImages = (
+  imagesData: any
+): Array<{ id?: number; url?: string; alternativeText?: string }> => {
   if (!imagesData) return [];
   if (Array.isArray(imagesData)) {
     return imagesData.map((img: any) => {
@@ -27,7 +29,11 @@ const normalizeImages = (imagesData: any): Array<{ id?: number; url?: string; al
         imageUrl = img.url;
         imageAlt = img.alternativeText;
       }
-      return { id: imageId, url: imageUrl ? strapiImages.getURL(imageUrl) : undefined, alternativeText: imageAlt };
+      return {
+        id: imageId,
+        url: imageUrl ? strapiImages.getURL(imageUrl) : undefined,
+        alternativeText: imageAlt,
+      };
     });
   }
   if (imagesData?.data && Array.isArray(imagesData.data)) {
@@ -40,7 +46,7 @@ const normalizeImages = (imagesData: any): Array<{ id?: number; url?: string; al
 export async function PATCH(request: Request, context: RouteContext) {
   try {
     try {
-      await requireAdmin();
+      await requireModulePermission("fleet", "canUpdate");
     } catch {
       return NextResponse.json(
         { error: "Acceso restringido: Se requieren permisos de administrador" },
@@ -52,22 +58,28 @@ export async function PATCH(request: Request, context: RouteContext) {
     const { comment, images } = body.data || {};
 
     if (images && images.length > 10) {
-      return NextResponse.json({ error: "No se permiten más de 10 imágenes por estado." }, { status: 400 });
+      return NextResponse.json(
+        { error: "No se permiten más de 10 imágenes por estado." },
+        { status: 400 }
+      );
     }
 
     const payload: any = {};
     if (comment !== undefined) payload.comment = comment.trim();
     if (images !== undefined) payload.images = images;
 
-    const response = await fetch(`${STRAPI_BASE_URL}/api/vehicle-states/${encodeURIComponent(stateId)}`, {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ data: payload }),
-      cache: "no-store",
-    });
+    const response = await fetch(
+      `${STRAPI_BASE_URL}/api/vehicle-states/${encodeURIComponent(stateId)}`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ data: payload }),
+        cache: "no-store",
+      }
+    );
 
     if (!response.ok) {
       const text = await response.text();
@@ -92,7 +104,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 export async function DELETE(_: Request, context: RouteContext) {
   try {
     try {
-      await requireAdmin();
+      await requireModulePermission("fleet", "canDelete");
     } catch {
       return NextResponse.json(
         { error: "Acceso restringido: Se requieren permisos de administrador" },
@@ -101,10 +113,13 @@ export async function DELETE(_: Request, context: RouteContext) {
     }
     const { stateId } = await context.params;
 
-    const response = await fetch(`${STRAPI_BASE_URL}/api/vehicle-states/${encodeURIComponent(stateId)}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${STRAPI_API_TOKEN}` },
-    });
+    const response = await fetch(
+      `${STRAPI_BASE_URL}/api/vehicle-states/${encodeURIComponent(stateId)}`,
+      {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${STRAPI_API_TOKEN}` },
+      }
+    );
 
     if (!response.ok) {
       const text = await response.text();

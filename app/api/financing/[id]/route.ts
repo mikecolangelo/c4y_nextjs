@@ -6,6 +6,7 @@ import {
   deleteFinancingFromStrapi,
   type FinancingStatus,
 } from "@/lib/financing";
+import { requireModulePermission } from "@/lib/module-guard";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -17,23 +18,25 @@ interface RouteParams {
  */
 export async function GET(request: Request, { params }: RouteParams) {
   try {
+    try {
+      await requireModulePermission("billing", "canRead");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { id } = await params;
     const financing = await fetchFinancingByIdFromStrapi(id);
 
     if (!financing) {
-      return NextResponse.json(
-        { error: "Financiamiento no encontrado." },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Financiamiento no encontrado." }, { status: 404 });
     }
 
     return NextResponse.json({ data: financing });
   } catch (error) {
     console.error("Error fetching financing:", error);
-    return NextResponse.json(
-      { error: "No se pudo obtener el financiamiento." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "No se pudo obtener el financiamiento." }, { status: 500 });
   }
 }
 
@@ -43,19 +46,29 @@ export async function GET(request: Request, { params }: RouteParams) {
  */
 export async function PUT(request: Request, { params }: RouteParams) {
   try {
+    try {
+      await requireModulePermission("billing", "canUpdate");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { id } = await params;
     const body = await request.json();
-    const { data } = body as { data?: Partial<{
-      status: FinancingStatus;
-      paidQuotas: number;
-      currentBalance: number;
-      totalPaid: number;
-      totalLateFees: number;
-      partialPaymentCredit: number;
-      nextDueDate: string;
-      notes: string;
-      maxLateQuotasAllowed: number;
-    }> };
+    const { data } = body as {
+      data?: Partial<{
+        status: FinancingStatus;
+        paidQuotas: number;
+        currentBalance: number;
+        totalPaid: number;
+        totalLateFees: number;
+        partialPaymentCredit: number;
+        nextDueDate: string;
+        notes: string;
+        maxLateQuotasAllowed: number;
+      }>;
+    };
 
     if (!data) {
       return NextResponse.json(
@@ -66,10 +79,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
     // Validar status si se proporciona
     if (data.status && !["activo", "inactivo", "en_mora", "completado"].includes(data.status)) {
-      return NextResponse.json(
-        { error: "Estado inválido." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Estado inválido." }, { status: 400 });
     }
 
     const financing = await updateFinancingInStrapi(id, data);
@@ -77,13 +87,10 @@ export async function PUT(request: Request, { params }: RouteParams) {
     return NextResponse.json({ data: financing });
   } catch (error) {
     console.error("Error updating financing:", error);
-    
-    let errorMessage = "No se pudo actualizar el financiamiento.";
+
+    const errorMessage = "No se pudo actualizar el financiamiento.";
     if (error instanceof Error && error.message.includes("404")) {
-      return NextResponse.json(
-        { error: "Financiamiento no encontrado." },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Financiamiento no encontrado." }, { status: 404 });
     }
 
     return NextResponse.json({ error: errorMessage }, { status: 500 });
@@ -96,23 +103,25 @@ export async function PUT(request: Request, { params }: RouteParams) {
  */
 export async function DELETE(request: Request, { params }: RouteParams) {
   try {
+    try {
+      await requireModulePermission("billing", "canDelete");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { id } = await params;
     await deleteFinancingFromStrapi(id);
     revalidateTag("financing");
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting financing:", error);
-    
+
     if (error instanceof Error && error.message.includes("404")) {
-      return NextResponse.json(
-        { error: "Financiamiento no encontrado." },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Financiamiento no encontrado." }, { status: 404 });
     }
 
-    return NextResponse.json(
-      { error: "No se pudo eliminar el financiamiento." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "No se pudo eliminar el financiamiento." }, { status: 500 });
   }
 }

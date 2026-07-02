@@ -1,6 +1,7 @@
 import qs from "qs";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "./config";
 import { formatCurrency } from "./format";
+import { getCurrentUserJwt } from "./auth";
 import type {
   DealCard,
   DealRaw,
@@ -48,7 +49,18 @@ const populateConfig = {
 
 const listQueryString = qs.stringify(
   {
-    fields: ["title", "status", "generatedAt", "signedAt", "price", "paymentAgreement", "initialDeposit", "quotaAmount", "totalQuotas", "summary"],
+    fields: [
+      "title",
+      "status",
+      "generatedAt",
+      "signedAt",
+      "price",
+      "paymentAgreement",
+      "initialDeposit",
+      "quotaAmount",
+      "totalQuotas",
+      "summary",
+    ],
     ...populateConfig,
     sort: ["generatedAt:desc"],
     pagination: {
@@ -287,7 +299,7 @@ const getContractTypeData = (contractType: DealRawAttributes["contractType"]) =>
 
 const normalizeDeal = (entry: DealRaw): DealCard | null => {
   const attributes = extractAttributes(entry);
-  
+
   const price = attributes.price ? Number(attributes.price) || 0 : undefined;
   const idSource = attributes.id ?? attributes.documentId ?? "";
   const documentId = attributes.documentId ?? String(idSource);
@@ -366,9 +378,7 @@ export async function fetchDealsFromStrapi(): Promise<DealCard[]> {
   const payload = (await response.json()) as StrapiResponse<DealRaw[]>;
   const items = Array.isArray(payload?.data) ? payload.data : [];
 
-  return items
-    .map((item) => normalizeDeal(item))
-    .filter((deal): deal is DealCard => Boolean(deal));
+  return items.map((item) => normalizeDeal(item)).filter((deal): deal is DealCard => Boolean(deal));
 }
 
 const isNumericId = (value: string | number) => {
@@ -380,10 +390,7 @@ const buildDealDetailQuery = (id: string | number) => {
   const normalizedId = String(id);
   const filters = isNumericId(id)
     ? {
-        $or: [
-          { id: { $eq: Number(id) } },
-          { documentId: { $eq: normalizedId } },
-        ],
+        $or: [{ id: { $eq: Number(id) } }, { documentId: { $eq: normalizedId } }],
       }
     : {
         documentId: { $eq: normalizedId },
@@ -392,7 +399,18 @@ const buildDealDetailQuery = (id: string | number) => {
   return qs.stringify(
     {
       filters,
-      fields: ["title", "status", "generatedAt", "signedAt", "price", "paymentAgreement", "initialDeposit", "quotaAmount", "totalQuotas", "summary"],
+      fields: [
+        "title",
+        "status",
+        "generatedAt",
+        "signedAt",
+        "price",
+        "paymentAgreement",
+        "initialDeposit",
+        "quotaAmount",
+        "totalQuotas",
+        "summary",
+      ],
       ...populateConfig,
       pagination: { pageSize: 1 },
     },
@@ -400,9 +418,7 @@ const buildDealDetailQuery = (id: string | number) => {
   );
 };
 
-export async function fetchDealByIdFromStrapi(
-  id: string | number
-): Promise<DealCard | null> {
+export async function fetchDealByIdFromStrapi(id: string | number): Promise<DealCard | null> {
   const detailQuery = buildDealDetailQuery(id);
   const response = await fetch(`${STRAPI_BASE_URL}/api/deals?${detailQuery}`, {
     headers: {
@@ -433,19 +449,18 @@ const resolveDealDocumentId = async (id: string | number) => {
   return deal?.documentId ?? null;
 };
 
-export async function createDealInStrapi(
-  data: DealCreatePayload
-): Promise<DealCard> {
+export async function createDealInStrapi(data: DealCreatePayload): Promise<DealCard> {
   // Filtrar campos que ya no existen en el schema de Strapi
   // El campo 'type' fue reemplazado por 'contractType' (relación)
   const { type, ...cleanData } = data;
-  
+
   const populateQueryString = qs.stringify(populateConfig, { encodeValuesOnly: true });
   const url = `${STRAPI_BASE_URL}/api/deals?${populateQueryString}`;
+  const jwt = await getCurrentUserJwt();
   const response = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      Authorization: `Bearer ${jwt || STRAPI_API_TOKEN}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ data: cleanData }),
@@ -482,10 +497,11 @@ export async function updateDealInStrapi(
 
   const populateQueryString = qs.stringify(populateConfig, { encodeValuesOnly: true });
   const url = `${STRAPI_BASE_URL}/api/deals/${documentId}?${populateQueryString}`;
+  const jwt = await getCurrentUserJwt();
   const response = await fetch(url, {
     method: "PUT",
     headers: {
-      Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      Authorization: `Bearer ${jwt || STRAPI_API_TOKEN}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ data: cleanData }),
@@ -520,10 +536,11 @@ export async function deleteDealInStrapi(id: string | number): Promise<void> {
     throw new Error("No pudimos encontrar el contrato para eliminarlo.");
   }
 
+  const jwt = await getCurrentUserJwt();
   const response = await fetch(`${STRAPI_BASE_URL}/api/deals/${documentId}`, {
     method: "DELETE",
     headers: {
-      Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      Authorization: `Bearer ${jwt || STRAPI_API_TOKEN}`,
     },
     cache: "no-store",
   });
@@ -537,14 +554,13 @@ export async function deleteDealInStrapi(id: string | number): Promise<void> {
 // Deal Clauses CRUD
 // ============================================
 
-export async function createDealClauseInStrapi(
-  data: DealClauseCreatePayload
-): Promise<DealClause> {
+export async function createDealClauseInStrapi(data: DealClauseCreatePayload): Promise<DealClause> {
   const url = `${STRAPI_BASE_URL}/api/deal-clauses`;
+  const jwt = await getCurrentUserJwt();
   const response = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      Authorization: `Bearer ${jwt || STRAPI_API_TOKEN}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ data }),
@@ -553,7 +569,9 @@ export async function createDealClauseInStrapi(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Strapi Deal Clause create failed with status ${response.status}: ${errorText}`);
+    throw new Error(
+      `Strapi Deal Clause create failed with status ${response.status}: ${errorText}`
+    );
   }
 
   const payload = (await response.json()) as StrapiResponse<DealClauseRaw>;
@@ -574,10 +592,11 @@ export async function createDealClauseInStrapi(
 }
 
 export async function deleteDealClauseInStrapi(documentId: string): Promise<void> {
+  const jwt = await getCurrentUserJwt();
   const response = await fetch(`${STRAPI_BASE_URL}/api/deal-clauses/${documentId}`, {
     method: "DELETE",
     headers: {
-      Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      Authorization: `Bearer ${jwt || STRAPI_API_TOKEN}`,
     },
     cache: "no-store",
   });
@@ -595,10 +614,11 @@ export async function createDealDiscountInStrapi(
   data: DealDiscountCreatePayload
 ): Promise<DealDiscount> {
   const url = `${STRAPI_BASE_URL}/api/deal-discounts`;
+  const jwt = await getCurrentUserJwt();
   const response = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      Authorization: `Bearer ${jwt || STRAPI_API_TOKEN}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ data }),
@@ -607,7 +627,9 @@ export async function createDealDiscountInStrapi(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Strapi Deal Discount create failed with status ${response.status}: ${errorText}`);
+    throw new Error(
+      `Strapi Deal Discount create failed with status ${response.status}: ${errorText}`
+    );
   }
 
   const payload = (await response.json()) as StrapiResponse<DealDiscountRaw>;
@@ -631,10 +653,11 @@ export async function createDealDiscountInStrapi(
 }
 
 export async function deleteDealDiscountInStrapi(documentId: string): Promise<void> {
+  const jwt = await getCurrentUserJwt();
   const response = await fetch(`${STRAPI_BASE_URL}/api/deal-discounts/${documentId}`, {
     method: "DELETE",
     headers: {
-      Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      Authorization: `Bearer ${jwt || STRAPI_API_TOKEN}`,
     },
     cache: "no-store",
   });

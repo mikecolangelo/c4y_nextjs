@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { STRAPI_BASE_URL } from "@/lib/config";
 import { getCurrentUserJwt } from "@/lib/auth";
-import { requireAdmin } from "@/lib/admin-guard";
+import { requireModulePermission } from "@/lib/module-guard";
 
 // GET - Listar kits de mantenimiento
 export async function GET(request: Request) {
   try {
     try {
-      await requireAdmin();
+      await requireModulePermission("stock", "canRead");
     } catch {
       return NextResponse.json(
         { error: "Acceso restringido: Se requieren permisos de administrador" },
