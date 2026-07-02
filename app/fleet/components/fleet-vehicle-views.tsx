@@ -2,6 +2,7 @@
 
 import { Button } from "@/components_shadcn/ui/button";
 import { Checkbox } from "@/components_shadcn/ui/checkbox";
+import { Can } from "@/components/auth/can";
 import { CheckSquare, Square, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { spacing, typography } from "@/lib/design-system";
@@ -10,6 +11,7 @@ import type { FleetViewMode } from "./fleet-header-actions";
 import { ListVehicleCard } from "./list-vehicle-card";
 import { GridVehicleCard } from "./grid-vehicle-card";
 import { TableVehicleRow } from "./table-vehicle-row";
+import { SelectAllAcrossPagesBanner, type AcrossPagesBannerState } from "@/components/ui/selection";
 
 interface FleetVehicleViewsProps {
   viewMode: FleetViewMode;
@@ -22,6 +24,9 @@ interface FleetVehicleViewsProps {
   selectedVehicles: Set<string>;
   onToggleVehicleSelection: (vehicleId: string) => void;
   onSelectAll: () => void;
+  acrossPagesBanner?: AcrossPagesBannerState;
+  onSelectAllAcrossPages?: () => void;
+  onRevertAcrossPages?: () => void;
   onNavigateToDetails: (vehicleId: string) => void;
   onNavigateToEdit: (vehicleId: string) => void;
   onDuplicateVehicle: (vehicle: FleetVehicleCard) => void;
@@ -41,6 +46,9 @@ export function FleetVehicleViews({
   selectedVehicles,
   onToggleVehicleSelection,
   onSelectAll,
+  acrossPagesBanner,
+  onSelectAllAcrossPages,
+  onRevertAcrossPages,
   onNavigateToDetails,
   onNavigateToEdit,
   onDuplicateVehicle,
@@ -59,19 +67,21 @@ export function FleetVehicleViews({
   const renderListView = () => (
     <div className={`flex flex-col ${spacing.gap.medium}`}>
       {isSelectMode && (
-        <div className="flex items-center gap-2 pb-2 border-b">
-          <Button variant="outline" size="sm" onClick={onSelectAll} className="h-8">
-            {selectedVehicles.size === paginatedVehicles.length ? (
-              <CheckSquare className="h-4 w-4 mr-2" />
-            ) : (
-              <Square className="h-4 w-4 mr-2" />
+        <Can module="fleet" action="canDelete">
+          <div className="flex items-center gap-2 pb-2 border-b">
+            <Button variant="outline" size="sm" onClick={onSelectAll} className="h-8">
+              {selectedVehicles.size === paginatedVehicles.length ? (
+                <CheckSquare className="h-4 w-4 mr-2" />
+              ) : (
+                <Square className="h-4 w-4 mr-2" />
+              )}
+              Seleccionar todos
+            </Button>
+            {selectedVehicles.size > 0 && (
+              <span className={typography.body.small}>{selectedVehicles.size} seleccionado(s)</span>
             )}
-            Seleccionar todos
-          </Button>
-          {selectedVehicles.size > 0 && (
-            <span className={typography.body.small}>{selectedVehicles.size} seleccionado(s)</span>
-          )}
-        </div>
+          </div>
+        </Can>
       )}
 
       {paginatedVehicles.map((vehicle) => {
@@ -118,13 +128,18 @@ export function FleetVehicleViews({
         <thead>
           <tr className="border-b">
             {isSelectMode && (
-              <th className={`${typography.label} text-left p-4 w-12`}>
-                <Checkbox
-                  checked={selectedVehicles.size === paginatedVehicles.length && paginatedVehicles.length > 0}
-                  onCheckedChange={onSelectAll}
-                  className="h-4 w-4"
-                />
-              </th>
+              <Can module="fleet" action="canDelete">
+                <th className={`${typography.label} text-left p-4 w-12`}>
+                  <Checkbox
+                    checked={
+                      selectedVehicles.size === paginatedVehicles.length &&
+                      paginatedVehicles.length > 0
+                    }
+                    onCheckedChange={onSelectAll}
+                    className="h-4 w-4"
+                  />
+                </th>
+              </Can>
             )}
             <th className={`${typography.label} text-left p-4`}>Imagen</th>
             <th className={`${typography.label} text-left p-4`}>Nombre</th>
@@ -194,7 +209,9 @@ export function FleetVehicleViews({
       <div className="flex items-center justify-between pt-4 border-t">
         <div className="flex items-center gap-2">
           <p className={cn(typography.body.small, "text-muted-foreground")}>
-            Mostrando {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredVehiclesLength)} de {filteredVehiclesLength} vehículos
+            Mostrando {(currentPage - 1) * itemsPerPage + 1} -{" "}
+            {Math.min(currentPage * itemsPerPage, filteredVehiclesLength)} de{" "}
+            {filteredVehiclesLength} vehículos
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -208,9 +225,7 @@ export function FleetVehicleViews({
             <ChevronLeft className="h-4 w-4" />
             <span className="sr-only">Anterior</span>
           </Button>
-          <div className="flex items-center gap-1">
-            {renderPageNumbers()}
-          </div>
+          <div className="flex items-center gap-1">{renderPageNumbers()}</div>
           <Button
             variant="outline"
             size="sm"
@@ -228,6 +243,16 @@ export function FleetVehicleViews({
 
   return (
     <>
+      {isSelectMode && acrossPagesBanner && (
+        <SelectAllAcrossPagesBanner
+          show={acrossPagesBanner.show}
+          isAllFilteredSelected={acrossPagesBanner.isAllFilteredSelected}
+          pageCount={acrossPagesBanner.pageCount}
+          totalFiltered={acrossPagesBanner.totalFiltered}
+          onSelectAll={() => onSelectAllAcrossPages?.()}
+          onRevert={() => onRevertAcrossPages?.()}
+        />
+      )}
       {viewMode === "list" && renderListView()}
       {viewMode === "grid" && renderGridView()}
       {viewMode === "table" && renderTableView()}

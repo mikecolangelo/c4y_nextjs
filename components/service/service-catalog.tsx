@@ -11,7 +11,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components_shadcn/ui/select";
-import { Plus, Wrench, ChevronRight, Loader2, CalendarPlus, Search, Trash2, Package } from "lucide-react";
+import {
+  Plus,
+  Wrench,
+  ChevronRight,
+  Loader2,
+  CalendarPlus,
+  Search,
+  Trash2,
+  Package,
+} from "lucide-react";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { spacing, typography } from "@/lib/design-system";
@@ -19,16 +28,25 @@ import { toast } from "@/lib/toast";
 import { Skeleton } from "@/components_shadcn/ui/skeleton";
 import { Badge } from "@/components_shadcn/ui/badge";
 import { formatCurrency } from "@/lib/format";
-import type { ServiceCard, ServiceCoverage, InventoryItemRaw, ServiceTemplateItem } from "@/validations/types";
+import { clientLogger } from "@/lib/client-logger";
+import { useServices } from "@/features/services/hooks/use-services";
+import { createService, fetchInventoryOptions } from "@/features/services/api/services.client";
+import { Can } from "@/components/auth/can";
+import type {
+  ServiceCard,
+  ServiceCoverage,
+  ServiceCreatePayload,
+  InventoryItemRaw,
+  ServiceTemplateItem,
+} from "@/validations/types";
 
 export function ServiceCatalog() {
   const router = useRouter();
-  const [services, setServices] = useState<ServiceCard[]>([]);
+  const { services, isLoading, reload } = useServices();
   const [filteredServices, setFilteredServices] = useState<ServiceCard[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   // Form state
   const [serviceName, setServiceName] = useState("");
   const [servicePrice, setServicePrice] = useState("");
@@ -43,83 +61,58 @@ export function ServiceCatalog() {
   const [isLoadingInventory, setIsLoadingInventory] = useState(false);
   const [templateSelectValue, setTemplateSelectValue] = useState("none");
 
-  const loadServices = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch("/api/services", { cache: "no-store" });
-      if (!response.ok) {
-        throw new Error("Services request failed");
-      }
-      const { data } = (await response.json()) as { data?: ServiceCard[] };
-      const servicesData = Array.isArray(data) ? data : [];
-      setServices(servicesData);
-      setFilteredServices(servicesData);
-    } catch (error) {
-      console.error("Error loading services:", error);
-      toast.error("No pudimos cargar los servicios. Intenta nuevamente.");
-      setServices([]);
-      setFilteredServices([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadServices();
-  }, [loadServices]);
-
-  // Cargar inventario cuando se abre el formulario
+  // Load inventory options when the add-service form opens.
   useEffect(() => {
     if (!showAddForm) return;
     let cancelled = false;
     async function loadInventory() {
       setIsLoadingInventory(true);
       try {
-        const res = await fetch("/api/inventory-items?pageSize=500", { cache: "no-store" });
-        if (!res.ok) throw new Error("Error al cargar inventario");
-        const payload = await res.json();
-        const data = Array.isArray(payload?.data) ? payload.data : [];
+        const data = await fetchInventoryOptions();
         if (!cancelled) setInventoryOptions(data);
-      } catch (e) {
-        console.error(e);
+      } catch (error) {
+        clientLogger.error("Error loading inventory options:", error);
         if (!cancelled) toast.error("No se pudo cargar el inventario para la plantilla");
       } finally {
         if (!cancelled) setIsLoadingInventory(false);
       }
     }
     loadInventory();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [showAddForm]);
 
   const availableInventory = useMemo(() => {
     const usedIds = new Set(templateItems.map((i) => i.inventoryItemId));
-    return inventoryOptions.filter(
-      (opt) => !usedIds.has(String(opt.documentId ?? opt.id))
-    );
+    return inventoryOptions.filter((opt) => !usedIds.has(String(opt.documentId ?? opt.id)));
   }, [inventoryOptions, templateItems]);
 
-  const handleAddTemplateItem = useCallback((inventoryItemId: string) => {
-    const inv = inventoryOptions.find(
-      (i) => String(i.id) === inventoryItemId || String(i.documentId) === inventoryItemId
-    );
-    if (!inv) return;
+  const handleAddTemplateItem = useCallback(
+    (inventoryItemId: string) => {
+      const inv = inventoryOptions.find(
+        (i) => String(i.id) === inventoryItemId || String(i.documentId) === inventoryItemId
+      );
+      if (!inv) return;
 
-    setTemplateItems((prev) => {
-      const exists = prev.find((p) => p.inventoryItemId === String(inv.documentId ?? inv.id));
-      if (exists) return prev;
-      return [
-        ...prev,
-        {
-          inventoryItemId: String(inv.documentId ?? inv.id),
-          code: inv.code || "",
-          description: inv.description || "",
-          salePrice: Number(inv.salePrice ?? inv.unitCost ?? 0),
-          quantity: 1,
-        },
-      ];
-    });
-    setTemplateSelectValue("none");
-  }, [inventoryOptions]);
+      setTemplateItems((prev) => {
+        const exists = prev.find((p) => p.inventoryItemId === String(inv.documentId ?? inv.id));
+        if (exists) return prev;
+        return [
+          ...prev,
+          {
+            inventoryItemId: String(inv.documentId ?? inv.id),
+            code: inv.code || "",
+            description: inv.description || "",
+            salePrice: Number(inv.salePrice ?? inv.unitCost ?? 0),
+            quantity: 1,
+          },
+        ];
+      });
+      setTemplateSelectValue("none");
+    },
+    [inventoryOptions]
+  );
 
   const handleRemoveTemplateItem = useCallback((inventoryItemId: string) => {
     setTemplateItems((prev) => prev.filter((i) => i.inventoryItemId !== inventoryItemId));
@@ -128,13 +121,17 @@ export function ServiceCatalog() {
   const handleQuantityChange = useCallback((inventoryItemId: string, value: string) => {
     const qty = parseFloat(value);
     if (isNaN(qty) || qty < 0) return;
-    setTemplateItems((prev) => prev.map((i) => (i.inventoryItemId === inventoryItemId ? { ...i, quantity: qty } : i)));
+    setTemplateItems((prev) =>
+      prev.map((i) => (i.inventoryItemId === inventoryItemId ? { ...i, quantity: qty } : i))
+    );
   }, []);
 
   const handlePriceChange = useCallback((inventoryItemId: string, value: string) => {
     const price = parseFloat(value);
     if (isNaN(price) || price < 0) return;
-    setTemplateItems((prev) => prev.map((i) => (i.inventoryItemId === inventoryItemId ? { ...i, salePrice: price } : i)));
+    setTemplateItems((prev) =>
+      prev.map((i) => (i.inventoryItemId === inventoryItemId ? { ...i, salePrice: price } : i))
+    );
   }, []);
 
   const templateSubtotal = useMemo(() => {
@@ -172,14 +169,7 @@ export function ServiceCatalog() {
 
     setIsCreating(true);
     try {
-      const payload: {
-        name: string;
-        price: number;
-        coverage: ServiceCoverage;
-        durationMinutes?: number;
-        description?: string;
-        defaultTemplate?: ServiceTemplateItem[];
-      } = {
+      const payload: ServiceCreatePayload = {
         name: serviceName.trim(),
         price,
         coverage: serviceCoverage,
@@ -191,19 +181,10 @@ export function ServiceCatalog() {
         payload.defaultTemplate = templateItems;
       }
 
-      const response = await fetch("/api/services", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data: payload }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "No se pudo crear el servicio");
-      }
+      await createService(payload);
 
       toast.success("Servicio creado exitosamente");
-      
+
       // Reset form
       setServiceName("");
       setServicePrice("");
@@ -213,10 +194,10 @@ export function ServiceCatalog() {
       setTemplateItems([]);
       setTemplateSelectValue("none");
       setShowAddForm(false);
-      
-      await loadServices();
+
+      await reload();
     } catch (error) {
-      console.error("Error creating service:", error);
+      clientLogger.error("Error creating service:", error);
       toast.error(error instanceof Error ? error.message : "No se pudo crear el servicio");
     } finally {
       setIsCreating(false);
@@ -252,13 +233,15 @@ export function ServiceCatalog() {
             className="pl-9"
           />
         </div>
-        <Button
-          onClick={() => setShowAddForm(!showAddForm)}
-          variant={showAddForm ? "secondary" : "default"}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          {showAddForm ? "Cancelar" : "Nuevo Servicio"}
-        </Button>
+        <Can module="adm-services" action="canCreate">
+          <Button
+            onClick={() => setShowAddForm(!showAddForm)}
+            variant={showAddForm ? "secondary" : "default"}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            {showAddForm ? "Cancelar" : "Nuevo Servicio"}
+          </Button>
+        </Can>
       </div>
 
       {/* Formulario de agregar servicio */}
@@ -375,10 +358,9 @@ export function ServiceCatalog() {
                     {availableInventory.map((item) => (
                       <SelectItem key={String(item.id)} value={String(item.documentId ?? item.id)}>
                         {item.code ? `${item.code} — ` : ""}
-                        {item.description || "Sin descripción"}
-                        {" "}(
+                        {item.description || "Sin descripción"} (
                         {formatCurrency(Number(item.salePrice ?? item.unitCost ?? 0))}
-                        {item.quantity != null ? ` · Stock: ${item.quantity}` : ""})
+                        {item.stock != null ? ` · Stock: ${item.stock}` : ""})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -386,7 +368,8 @@ export function ServiceCatalog() {
 
                 {templateItems.length === 0 ? (
                   <p className="text-xs text-muted-foreground py-2">
-                    No hay repuestos en la plantilla. Selecciona repuestos del inventario para agregarlos.
+                    No hay repuestos en la plantilla. Selecciona repuestos del inventario para
+                    agregarlos.
                   </p>
                 ) : (
                   <div className="space-y-2 mt-2">
@@ -403,31 +386,41 @@ export function ServiceCatalog() {
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <div className="flex flex-col items-center">
-                            <Label className="text-[10px] text-muted-foreground leading-none mb-0.5">Cantidad</Label>
+                            <Label className="text-[10px] text-muted-foreground leading-none mb-0.5">
+                              Cantidad
+                            </Label>
                             <Input
                               type="number"
                               min="0"
                               step="1"
                               className="w-16 h-7 text-xs px-1 text-center"
                               value={item.quantity}
-                              onChange={(e) => handleQuantityChange(item.inventoryItemId, e.target.value)}
+                              onChange={(e) =>
+                                handleQuantityChange(item.inventoryItemId, e.target.value)
+                              }
                               disabled={isCreating}
                             />
                           </div>
                           <div className="flex flex-col items-center">
-                            <Label className="text-[10px] text-muted-foreground leading-none mb-0.5">Precio unit.</Label>
+                            <Label className="text-[10px] text-muted-foreground leading-none mb-0.5">
+                              Precio unit.
+                            </Label>
                             <Input
                               type="number"
                               min="0"
                               step="0.01"
                               className="w-20 h-7 text-xs px-1 text-right"
                               value={item.salePrice}
-                              onChange={(e) => handlePriceChange(item.inventoryItemId, e.target.value)}
+                              onChange={(e) =>
+                                handlePriceChange(item.inventoryItemId, e.target.value)
+                              }
                               disabled={isCreating}
                             />
                           </div>
                           <div className="flex flex-col items-center">
-                            <Label className="text-[10px] text-muted-foreground leading-none mb-0.5">Total</Label>
+                            <Label className="text-[10px] text-muted-foreground leading-none mb-0.5">
+                              Total
+                            </Label>
                             <span className="w-20 h-7 flex items-center justify-end text-xs font-medium tabular-nums">
                               {formatCurrency(item.salePrice * item.quantity)}
                             </span>
@@ -521,14 +514,12 @@ export function ServiceCatalog() {
                   : "No hay servicios registrados en el catálogo"}
               </p>
               {!searchQuery && (
-                <Button
-                  variant="outline"
-                  className="mt-4"
-                  onClick={() => setShowAddForm(true)}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Añadir primer servicio
-                </Button>
+                <Can module="adm-services" action="canCreate">
+                  <Button variant="outline" className="mt-4" onClick={() => setShowAddForm(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Añadir primer servicio
+                  </Button>
+                </Can>
               )}
             </div>
           ) : (
@@ -539,9 +530,7 @@ export function ServiceCatalog() {
                   <div
                     key={service.id}
                     className="flex items-center gap-4 p-3 rounded-lg border border-border/50 bg-card hover:bg-accent/50 transition-colors cursor-pointer group"
-                    onClick={() =>
-                      router.push(`/adm-services/details/${service.documentId}`)
-                    }
+                    onClick={() => router.push(`/adm-services/details/${service.documentId}`)}
                   >
                     {/* Icono */}
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -562,9 +551,7 @@ export function ServiceCatalog() {
                         <Badge
                           variant="outline"
                           className={`text-[10px] px-1.5 py-0 h-4 ${
-                            service.isFree
-                              ? "border-green-300 text-green-700 bg-green-50"
-                              : ""
+                            service.isFree ? "border-green-300 text-green-700 bg-green-50" : ""
                           }`}
                         >
                           {service.coverageLabel}

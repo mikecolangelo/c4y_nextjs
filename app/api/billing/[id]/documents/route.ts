@@ -5,6 +5,7 @@ import {
   fetchBillingRecordByIdFromStrapi,
 } from "@/lib/billing";
 import type { BillingDocumentCreatePayload } from "@/validations/types";
+import { requireModulePermission } from "@/lib/module-guard";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -12,6 +13,14 @@ interface RouteContext {
 
 export async function GET(request: Request, context: RouteContext) {
   try {
+    try {
+      await requireModulePermission("billing", "canRead");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { id } = await context.params;
     const documents = await fetchBillingDocumentsByRecordId(id);
     return NextResponse.json({ data: documents });
@@ -26,6 +35,14 @@ export async function GET(request: Request, context: RouteContext) {
 
 export async function POST(request: Request, context: RouteContext) {
   try {
+    try {
+      await requireModulePermission("billing", "canCreate");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { id } = await context.params;
     const body = (await request.json()) as { data?: Omit<BillingDocumentCreatePayload, "record"> };
 
@@ -40,17 +57,11 @@ export async function POST(request: Request, context: RouteContext) {
 
     // Validar campos requeridos
     if (!data.name) {
-      return NextResponse.json(
-        { error: "El nombre del documento es requerido." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "El nombre del documento es requerido." }, { status: 400 });
     }
 
     if (!data.file) {
-      return NextResponse.json(
-        { error: "El archivo es requerido." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "El archivo es requerido." }, { status: 400 });
     }
 
     // Verificar que el registro de facturación existe
@@ -72,10 +83,8 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ data: document }, { status: 201 });
   } catch (error) {
     console.error("Error creating billing document:", error);
-    const errorMessage = error instanceof Error ? error.message : "No se pudo crear el documento de facturación.";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    const errorMessage =
+      error instanceof Error ? error.message : "No se pudo crear el documento de facturación.";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

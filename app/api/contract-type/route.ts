@@ -1,10 +1,19 @@
 import { NextResponse } from "next/server";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
+import { requireModulePermission } from "@/lib/module-guard";
 import qs from "qs";
 
 // GET - Obtener todos los tipos de contrato
 export async function GET() {
   try {
+    try {
+      await requireModulePermission("deal", "canRead");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const query = qs.stringify({
       fields: ["name", "description", "requiredDocuments", "order", "isActive"],
       sort: ["order:asc", "name:asc"],
@@ -12,16 +21,13 @@ export async function GET() {
       filters: { isActive: { $eq: true } },
     });
 
-    const response = await fetch(
-      `${STRAPI_BASE_URL}/api/contract-types?${query}`,
-      {
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        cache: "no-store",
-      }
-    );
+    const response = await fetch(`${STRAPI_BASE_URL}/api/contract-types?${query}`, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -42,35 +48,37 @@ export async function GET() {
 // POST - Crear nuevo tipo de contrato
 export async function POST(request: Request) {
   try {
+    try {
+      await requireModulePermission("deal", "canCreate");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const body = await request.json();
     const { name, description, requiredDocuments, order, isActive } = body;
 
     if (!name) {
-      return NextResponse.json(
-        { error: "El nombre es requerido" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "El nombre es requerido" }, { status: 400 });
     }
 
-    const response = await fetch(
-      `${STRAPI_BASE_URL}/api/contract-types`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
+    const response = await fetch(`${STRAPI_BASE_URL}/api/contract-types`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        data: {
+          name,
+          description,
+          requiredDocuments: requiredDocuments || [],
+          order: order || 0,
+          isActive: isActive !== false,
         },
-        body: JSON.stringify({
-          data: { 
-            name, 
-            description, 
-            requiredDocuments: requiredDocuments || [], 
-            order: order || 0, 
-            isActive: isActive !== false 
-          },
-        }),
-      }
-    );
+      }),
+    });
 
     if (!response.ok) {
       const errorText = await response.text();

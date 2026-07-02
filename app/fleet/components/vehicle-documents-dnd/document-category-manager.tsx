@@ -46,15 +46,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components_shadcn/ui/table";
-import {
-  MoreHorizontal,
-  Plus,
-  Pencil,
-  Trash2,
-  Settings,
-  GripVertical,
-} from "lucide-react";
+import { MoreHorizontal, Plus, Pencil, Trash2, Settings, GripVertical } from "lucide-react";
 import { spacing, typography } from "@/lib/design-system";
+import { Can } from "@/components/auth/can";
+import { usePermissions } from "@/lib/permissions-context";
 import type { VehicleDocumentCategory } from "@/validations/types";
 
 interface DocumentCategoryManagerProps {
@@ -87,6 +82,7 @@ function SortableCategoryRow({
   index,
   isUpdating,
   isDeleting,
+  canReorder,
   onEdit,
   onToggleActive,
   onDelete,
@@ -95,18 +91,15 @@ function SortableCategoryRow({
   index: number;
   isUpdating: boolean;
   isDeleting: boolean;
+  canReorder: boolean;
   onEdit: (cat: VehicleDocumentCategory) => void;
   onToggleActive: (cat: VehicleDocumentCategory) => void;
   onDelete: (cat: VehicleDocumentCategory) => void;
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: category.id.toString() });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: category.id.toString(),
+    disabled: !canReorder,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -127,16 +120,18 @@ function SortableCategoryRow({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            className="cursor-grab active:cursor-grabbing touch-none p-1 rounded hover:bg-muted"
-            {...attributes}
-            {...listeners}
+            className={
+              "touch-none p-1 rounded hover:bg-muted " +
+              (canReorder ? "cursor-grab active:cursor-grabbing" : "cursor-not-allowed opacity-50")
+            }
+            {...(canReorder ? attributes : {})}
+            {...(canReorder ? listeners : {})}
             aria-label="Arrastrar para reordenar"
+            disabled={!canReorder}
           >
             <GripVertical className="h-4 w-4 text-muted-foreground" />
           </button>
-          <span className="text-sm font-medium tabular-nums w-6 text-center">
-            {index + 1}
-          </span>
+          <span className="text-sm font-medium tabular-nums w-6 text-center">{index + 1}</span>
         </div>
       </TableCell>
       <TableCell>
@@ -168,24 +163,27 @@ function SortableCategoryRow({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onEdit(category)}>
-              <Pencil className="h-4 w-4 mr-2" />
-              Editar
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => onToggleActive(category)}
-              disabled={isUpdating}
-            >
-              {category.isActive ? "Desactivar" : "Activar"}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => onDelete(category)}
-              className="text-destructive focus:text-destructive"
-              disabled={isDeleting}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Eliminar
-            </DropdownMenuItem>
+            <Can module="fleet" action="canUpdate">
+              <DropdownMenuItem onClick={() => onEdit(category)}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Editar
+              </DropdownMenuItem>
+            </Can>
+            <Can module="fleet" action="canUpdate">
+              <DropdownMenuItem onClick={() => onToggleActive(category)} disabled={isUpdating}>
+                {category.isActive ? "Desactivar" : "Activar"}
+              </DropdownMenuItem>
+            </Can>
+            <Can module="fleet" action="canDelete">
+              <DropdownMenuItem
+                onClick={() => onDelete(category)}
+                className="text-destructive focus:text-destructive"
+                disabled={isDeleting}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Eliminar
+              </DropdownMenuItem>
+            </Can>
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
@@ -208,8 +206,7 @@ export function DocumentCategoryManager({
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] =
-    useState<VehicleDocumentCategory | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<VehicleDocumentCategory | null>(null);
 
   const [formName, setFormName] = useState("");
   const [formDescription, setFormDescription] = useState("");
@@ -217,6 +214,9 @@ export function DocumentCategoryManager({
 
   const [localCategories, setLocalCategories] = useState<VehicleDocumentCategory[]>([]);
   const [isReordering, setIsReordering] = useState(false);
+
+  const { can } = usePermissions();
+  const canReorder = can("fleet", "canUpdate");
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -231,9 +231,7 @@ export function DocumentCategoryManager({
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
     if (open) {
-      setLocalCategories(
-        [...categories].sort((a, b) => a.order - b.order)
-      );
+      setLocalCategories([...categories].sort((a, b) => a.order - b.order));
     }
   };
 
@@ -305,15 +303,13 @@ export function DocumentCategoryManager({
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
+    if (!canReorder) return;
+
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const oldIndex = localCategories.findIndex(
-      (c) => c.id.toString() === active.id
-    );
-    const newIndex = localCategories.findIndex(
-      (c) => c.id.toString() === over.id
-    );
+    const oldIndex = localCategories.findIndex((c) => c.id.toString() === active.id);
+    const newIndex = localCategories.findIndex((c) => c.id.toString() === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
 
     const reordered = arrayMove(localCategories, oldIndex, newIndex);
@@ -338,27 +334,25 @@ export function DocumentCategoryManager({
 
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className={typography.h4}>
-            Gestionar Categorías de Documentos
-          </DialogTitle>
+          <DialogTitle className={typography.h4}>Gestionar Categorías de Documentos</DialogTitle>
           <DialogDescription>
-            Administra las categorías de documentos disponibles para los vehículos.
-            Arrastra las filas para reordenarlas.
+            Administra las categorías de documentos disponibles para los vehículos. Arrastra las
+            filas para reordenarlas.
           </DialogDescription>
         </DialogHeader>
 
         <div className={`flex flex-col ${spacing.gap.base} mt-4`}>
           <div className="flex justify-end">
-            <Button onClick={handleOpenCreate} size="sm" className="gap-1">
-              <Plus className="h-4 w-4" />
-              Nueva Categoría
-            </Button>
+            <Can module="fleet" action="canCreate">
+              <Button onClick={handleOpenCreate} size="sm" className="gap-1">
+                <Plus className="h-4 w-4" />
+                Nueva Categoría
+              </Button>
+            </Can>
           </div>
 
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Cargando categorías...
-            </div>
+            <div className="text-center py-8 text-muted-foreground">Cargando categorías...</div>
           ) : localCategories.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No hay categorías configuradas.
@@ -392,6 +386,7 @@ export function DocumentCategoryManager({
                         index={index}
                         isUpdating={isUpdating}
                         isDeleting={isDeleting}
+                        canReorder={canReorder}
                         onEdit={handleOpenEdit}
                         onToggleActive={handleToggleActive}
                         onDelete={handleOpenDelete}
@@ -404,9 +399,7 @@ export function DocumentCategoryManager({
           )}
 
           {isReordering && (
-            <p className="text-xs text-muted-foreground text-center">
-              Guardando nuevo orden...
-            </p>
+            <p className="text-xs text-muted-foreground text-center">Guardando nuevo orden...</p>
           )}
         </div>
 
@@ -455,9 +448,7 @@ export function DocumentCategoryManager({
               <Checkbox
                 id="isActive"
                 checked={formIsActive}
-                onCheckedChange={(checked) =>
-                  setFormIsActive(checked === true)
-                }
+                onCheckedChange={(checked) => setFormIsActive(checked === true)}
               />
               <Label htmlFor="isActive" className="cursor-pointer">
                 Activa (disponible para selección)
@@ -466,16 +457,10 @@ export function DocumentCategoryManager({
           </div>
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsCreateDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button
-              onClick={handleCreate}
-              disabled={!formName.trim() || isCreating}
-            >
+            <Button onClick={handleCreate} disabled={!formName.trim() || isCreating}>
               {isCreating ? "Creando..." : "Crear"}
             </Button>
           </DialogFooter>
@@ -487,9 +472,7 @@ export function DocumentCategoryManager({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar Categoría de Documento</DialogTitle>
-            <DialogDescription>
-              Modifica los datos de la categoría de documento.
-            </DialogDescription>
+            <DialogDescription>Modifica los datos de la categoría de documento.</DialogDescription>
           </DialogHeader>
 
           <div className={`flex flex-col ${spacing.gap.base} py-4`}>
@@ -520,9 +503,7 @@ export function DocumentCategoryManager({
               <Checkbox
                 id="edit-isActive"
                 checked={formIsActive}
-                onCheckedChange={(checked) =>
-                  setFormIsActive(checked === true)
-                }
+                onCheckedChange={(checked) => setFormIsActive(checked === true)}
               />
               <Label htmlFor="edit-isActive" className="cursor-pointer">
                 Activa (disponible para selección)
@@ -531,16 +512,10 @@ export function DocumentCategoryManager({
           </div>
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsEditDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button
-              onClick={handleUpdate}
-              disabled={!formName.trim() || isUpdating}
-            >
+            <Button onClick={handleUpdate} disabled={!formName.trim() || isUpdating}>
               {isUpdating ? "Guardando..." : "Guardar cambios"}
             </Button>
           </DialogFooter>
@@ -558,25 +533,17 @@ export function DocumentCategoryManager({
               <br />
               <br />
               <span className="text-destructive">
-                Esta acción no se puede deshacer. Los documentos existentes de
-                esta categoría no se eliminarán, pero no podrás crear nuevos
-                documentos con esta categoría.
+                Esta acción no se puede deshacer. Los documentos existentes de esta categoría no se
+                eliminarán, pero no podrás crear nuevos documentos con esta categoría.
               </span>
             </DialogDescription>
           </DialogHeader>
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsDeleteDialogOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
+            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
               {isDeleting ? "Eliminando..." : "Eliminar"}
             </Button>
           </DialogFooter>

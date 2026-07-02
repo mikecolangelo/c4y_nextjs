@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createDealClauseInStrapi, deleteDealClauseInStrapi } from "@/lib/deal";
+import { requireModulePermission } from "@/lib/module-guard";
 import type { DealClauseCreatePayload } from "@/validations/types";
 
 interface RouteContext {
@@ -10,6 +11,14 @@ interface RouteContext {
 
 export async function POST(request: Request, context: RouteContext) {
   try {
+    try {
+      await requireModulePermission("deal", "canCreate");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { id: dealId } = await context.params;
     const body = (await request.json()) as { data?: Omit<DealClauseCreatePayload, "deal"> };
 
@@ -39,15 +48,20 @@ export async function POST(request: Request, context: RouteContext) {
   } catch (error) {
     console.error("Error creating deal clause:", error);
     const errorMessage = error instanceof Error ? error.message : "No se pudo crear la cláusula.";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
 export async function DELETE(request: Request, _context: RouteContext) {
   try {
+    try {
+      await requireModulePermission("deal", "canDelete");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const url = new URL(request.url);
     const clauseId = url.searchParams.get("clauseId");
 

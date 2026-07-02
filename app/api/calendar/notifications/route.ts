@@ -1,10 +1,19 @@
 import { NextResponse } from "next/server";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
 import qs from "qs";
+import { requireModulePermission } from "@/lib/module-guard";
 
 // GET - Obtener notificaciones de citas (activity feed)
 export async function GET() {
   try {
+    try {
+      await requireModulePermission("calendar", "canRead");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     // Calcular fecha de hace 48 horas para mostrar actividad reciente
     const fortyEightHoursAgo = new Date();
     fortyEightHoursAgo.setHours(fortyEightHoursAgo.getHours() - 48);
@@ -54,16 +63,13 @@ export async function GET() {
       },
     });
 
-    const response = await fetch(
-      `${STRAPI_BASE_URL}/api/notifications?${notificationQuery}`,
-      {
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        cache: "no-store",
-      }
-    );
+    const response = await fetch(`${STRAPI_BASE_URL}/api/notifications?${notificationQuery}`, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+    });
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -81,9 +87,10 @@ export async function GET() {
     const normalizedNotifications = notifications.map((notification: any) => {
       let parsedTags = {};
       try {
-        parsedTags = typeof notification.tags === "string" 
-          ? JSON.parse(notification.tags) 
-          : notification.tags || {};
+        parsedTags =
+          typeof notification.tags === "string"
+            ? JSON.parse(notification.tags)
+            : notification.tags || {};
       } catch {
         // Si falla el parseo, usar objeto vacío
       }

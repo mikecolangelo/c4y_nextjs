@@ -3,7 +3,25 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Edit, Lock, Camera, X, Phone, Mail, MapPin, Calendar, Briefcase, User, Shield, Car, FileText, AlertCircle, Linkedin, Clock, Eye, EyeOff } from "lucide-react";
+import { compressImage } from "@/lib/image-compression";
+import {
+  ArrowLeft,
+  Lock,
+  Camera,
+  Phone,
+  MapPin,
+  Calendar,
+  Briefcase,
+  User,
+  Shield,
+  Car,
+  FileText,
+  AlertCircle,
+  Linkedin,
+  Clock,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -24,18 +42,11 @@ import { typography, spacing, components } from "@/lib/design-system";
 import { strapiImages } from "@/lib/strapi-images";
 import { Skeleton } from "@/components_shadcn/ui/skeleton";
 import { toast } from "@/lib/toast";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components_shadcn/ui/select";
+import { getInitials } from "@/lib/format";
+
 import { UserVehicleManagement } from "@/components/ui/user-vehicle-management";
-import { Calendar as CalendarComponent } from "@/components_shadcn/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components_shadcn/ui/popover";
+import { usePermissions } from "@/lib/permissions-context";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
 
 interface UserProfile {
   id: number;
@@ -67,29 +78,22 @@ interface UserProfile {
 }
 
 const roleConfig = {
-  admin: { 
-    label: "Administrador", 
+  admin: {
+    label: "Administrador",
     className: "bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100",
-    icon: Shield 
+    icon: Shield,
   },
   driver: {
     label: "Conductor",
     className: "bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100",
-    icon: Car 
+    icon: Car,
   },
-};
-
-const getInitials = (name: string) => {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
 };
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { can } = usePermissions();
+  const canEditProfile = can("profile", "canUpdate");
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -99,7 +103,7 @@ export default function ProfilePage() {
   const [shouldRemoveImage, setShouldRemoveImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewObjectUrlRef = useRef<string | null>(null);
-  
+
   const [formData, setFormData] = useState({
     displayName: "",
     email: "",
@@ -146,15 +150,17 @@ export default function ProfilePage() {
         throw new Error("Error al cargar perfil");
       }
       const { data } = await response.json();
-      
+
       if (data?.documentId) {
-        const profileResponse = await fetch(`/api/user-profiles/${data.documentId}`, { cache: "no-store" });
+        const profileResponse = await fetch(`/api/user-profiles/${data.documentId}`, {
+          cache: "no-store",
+        });
         if (!profileResponse.ok) {
           throw new Error("Error al cargar perfil completo");
         }
         const { data: profileData } = await profileResponse.json();
         setUser(profileData);
-        
+
         setFormData({
           displayName: profileData.displayName || "",
           email: profileData.email || "",
@@ -162,8 +168,12 @@ export default function ProfilePage() {
           department: profileData.department || "",
           bio: profileData.bio || "",
           address: profileData.address || "",
-          dateOfBirth: profileData.dateOfBirth ? format(new Date(profileData.dateOfBirth), "yyyy-MM-dd") : "",
-          hireDate: profileData.hireDate ? format(new Date(profileData.hireDate), "yyyy-MM-dd") : "",
+          dateOfBirth: profileData.dateOfBirth
+            ? format(new Date(profileData.dateOfBirth), "yyyy-MM-dd")
+            : "",
+          hireDate: profileData.hireDate
+            ? format(new Date(profileData.hireDate), "yyyy-MM-dd")
+            : "",
           identificationNumber: profileData.identificationNumber || "",
           emergencyContactName: profileData.emergencyContactName || "",
           emergencyContactPhone: profileData.emergencyContactPhone || "",
@@ -191,9 +201,11 @@ export default function ProfilePage() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const validImageTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
     if (!validImageTypes.includes(file.type)) {
-      toast.error(`Tipo de archivo no válido. Solo se permiten imágenes: ${validImageTypes.join(', ')}`);
+      toast.error(
+        `Tipo de archivo no válido. Solo se permiten imágenes: ${validImageTypes.join(", ")}`
+      );
       return;
     }
 
@@ -215,7 +227,7 @@ export default function ProfilePage() {
     setIsUploadingImage(true);
     try {
       const uploadFormData = new FormData();
-      uploadFormData.append("files", file);
+      uploadFormData.append("files", await compressImage(file));
 
       const uploadResponse = await fetch("/api/strapi/upload", {
         method: "POST",
@@ -264,7 +276,7 @@ export default function ProfilePage() {
         setIsUploadingImage(true);
         try {
           const uploadFormData = new FormData();
-          uploadFormData.append("files", selectedImageFile);
+          uploadFormData.append("files", await compressImage(selectedImageFile));
           const uploadResponse = await fetch("/api/strapi/upload", {
             method: "POST",
             body: uploadFormData,
@@ -289,9 +301,9 @@ export default function ProfilePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ data: updateData }),
       });
-      
+
       if (!response.ok) throw new Error("Error al guardar");
-      
+
       await loadUserProfile();
       toast.success("Perfil actualizado correctamente");
     } catch (err) {
@@ -395,7 +407,13 @@ export default function ProfilePage() {
     );
   }
 
-  const roleInfo = roleConfig[user.role];
+  // Los roles personalizados (y "lead") no están en `roleConfig`; caemos a un
+  // display por defecto usando la clave del rol para no romper la página.
+  const roleInfo = roleConfig[user.role as keyof typeof roleConfig] ?? {
+    label: user.role,
+    className: "bg-muted text-muted-foreground",
+    icon: Shield,
+  };
   const RoleIcon = roleInfo.icon;
 
   return (
@@ -419,26 +437,36 @@ export default function ProfilePage() {
             <div className="relative group">
               <Avatar className="h-32 w-32 rounded-full overflow-hidden ring-2 ring-background">
                 {imagePreview ? (
-                  <AvatarImage src={imagePreview} alt={user.avatar?.alternativeText || `Avatar de ${user.displayName}`} className="rounded-full object-cover w-full h-full" />
+                  <AvatarImage
+                    src={imagePreview}
+                    alt={user.avatar?.alternativeText || `Avatar de ${user.displayName}`}
+                    className="rounded-full object-cover w-full h-full"
+                  />
                 ) : user.avatar?.url ? (
-                  <AvatarImage src={strapiImages.getURL(user.avatar.url)} alt={user.avatar.alternativeText || `Avatar de ${user.displayName}`} className="rounded-full object-cover w-full h-full" />
+                  <AvatarImage
+                    src={strapiImages.getURL(user.avatar.url)}
+                    alt={user.avatar.alternativeText || `Avatar de ${user.displayName}`}
+                    className="rounded-full object-cover w-full h-full"
+                  />
                 ) : null}
                 <AvatarFallback className="rounded-full text-2xl w-full h-full flex items-center justify-center bg-muted">
                   {getInitials(user.displayName)}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100">
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  className="h-12 w-12 rounded-full bg-background/80 text-foreground hover:bg-background"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploadingImage}
-                >
-                  <Camera className="h-6 w-6" />
-                </Button>
-              </div>
+              {canEditProfile && (
+                <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-12 w-12 rounded-full bg-background/80 text-foreground hover:bg-background"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingImage}
+                  >
+                    <Camera className="h-6 w-6" />
+                  </Button>
+                </div>
+              )}
               {isUploadingImage && (
                 <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
                   <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -457,7 +485,9 @@ export default function ProfilePage() {
                 {user.displayName}
               </p>
               <div className="flex items-center gap-2 mt-1">
-                <Badge className={`rounded-full px-3 py-1 text-xs font-medium flex items-center gap-1 ${roleInfo.className}`}>
+                <Badge
+                  className={`rounded-full px-3 py-1 text-xs font-medium flex items-center gap-1 ${roleInfo.className}`}
+                >
                   <RoleIcon className="h-3 w-3" />
                   {roleInfo.label}
                 </Badge>
@@ -490,6 +520,7 @@ export default function ProfilePage() {
                     type="text"
                     value={formData.displayName}
                     onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+                    disabled={!canEditProfile}
                     placeholder="e.g. Alejandro Martinez"
                     className={`h-14 px-[15px] text-base ${components.input.base}`}
                   />
@@ -515,7 +546,10 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="flex flex-col">
-                  <Label htmlFor="phone" className={`pb-2 ${typography.body.large} flex items-center gap-2`}>
+                  <Label
+                    htmlFor="phone"
+                    className={`pb-2 ${typography.body.large} flex items-center gap-2`}
+                  >
                     <Phone className="h-4 w-4" />
                     Número de Teléfono
                   </Label>
@@ -524,13 +558,17 @@ export default function ProfilePage() {
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    disabled={!canEditProfile}
                     placeholder="e.g. +34 600 123 456"
                     className={`h-14 px-[15px] text-base ${components.input.base}`}
                   />
                 </div>
 
                 <div className="flex flex-col">
-                  <Label htmlFor="identificationNumber" className={`pb-2 ${typography.body.large} flex items-center gap-2`}>
+                  <Label
+                    htmlFor="identificationNumber"
+                    className={`pb-2 ${typography.body.large} flex items-center gap-2`}
+                  >
                     <FileText className="h-4 w-4" />
                     Cédula
                   </Label>
@@ -538,14 +576,20 @@ export default function ProfilePage() {
                     id="identificationNumber"
                     type="text"
                     value={formData.identificationNumber}
-                    onChange={(e) => setFormData({ ...formData, identificationNumber: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, identificationNumber: e.target.value })
+                    }
+                    disabled={!canEditProfile}
                     placeholder="e.g. 8-888-8888"
                     className={`h-14 px-[15px] text-base ${components.input.base}`}
                   />
                 </div>
 
                 <div className="flex flex-col">
-                  <Label htmlFor="dateOfBirth" className={`pb-2 ${typography.body.large} flex items-center gap-2`}>
+                  <Label
+                    htmlFor="dateOfBirth"
+                    className={`pb-2 ${typography.body.large} flex items-center gap-2`}
+                  >
                     <Calendar className="h-4 w-4" />
                     Fecha de Nacimiento
                   </Label>
@@ -554,12 +598,16 @@ export default function ProfilePage() {
                     type="date"
                     value={formData.dateOfBirth}
                     onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                    disabled={!canEditProfile}
                     className={`h-14 px-[15px] text-base ${components.input.base}`}
                   />
                 </div>
 
                 <div className="flex flex-col">
-                  <Label htmlFor="address" className={`pb-2 ${typography.body.large} flex items-center gap-2`}>
+                  <Label
+                    htmlFor="address"
+                    className={`pb-2 ${typography.body.large} flex items-center gap-2`}
+                  >
                     <MapPin className="h-4 w-4" />
                     Dirección
                   </Label>
@@ -567,6 +615,7 @@ export default function ProfilePage() {
                     id="address"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    disabled={!canEditProfile}
                     placeholder="Dirección completa"
                     className={`min-h-[80px] px-[15px] py-3 text-base ${components.input.base}`}
                     rows={3}
@@ -585,7 +634,10 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent className={`flex flex-col ${spacing.gap.base} px-6 pb-6`}>
                 <div className="flex flex-col">
-                  <Label htmlFor="department" className={`pb-2 ${typography.body.large} flex items-center gap-2`}>
+                  <Label
+                    htmlFor="department"
+                    className={`pb-2 ${typography.body.large} flex items-center gap-2`}
+                  >
                     <Briefcase className="h-4 w-4" />
                     Departamento
                   </Label>
@@ -594,13 +646,17 @@ export default function ProfilePage() {
                     type="text"
                     value={formData.department}
                     onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                    disabled={!canEditProfile}
                     placeholder="e.g. Ventas, Administración"
                     className={`h-14 px-[15px] text-base ${components.input.base}`}
                   />
                 </div>
 
                 <div className="flex flex-col">
-                  <Label htmlFor="hireDate" className={`pb-2 ${typography.body.large} flex items-center gap-2`}>
+                  <Label
+                    htmlFor="hireDate"
+                    className={`pb-2 ${typography.body.large} flex items-center gap-2`}
+                  >
                     <Calendar className="h-4 w-4" />
                     Fecha de Contratación
                   </Label>
@@ -609,12 +665,16 @@ export default function ProfilePage() {
                     type="date"
                     value={formData.hireDate}
                     onChange={(e) => setFormData({ ...formData, hireDate: e.target.value })}
+                    disabled={!canEditProfile}
                     className={`h-14 px-[15px] text-base ${components.input.base}`}
                   />
                 </div>
 
                 <div className="flex flex-col">
-                  <Label htmlFor="workSchedule" className={`pb-2 ${typography.body.large} flex items-center gap-2`}>
+                  <Label
+                    htmlFor="workSchedule"
+                    className={`pb-2 ${typography.body.large} flex items-center gap-2`}
+                  >
                     <Clock className="h-4 w-4" />
                     Horario de Trabajo
                   </Label>
@@ -623,6 +683,7 @@ export default function ProfilePage() {
                     type="text"
                     value={formData.workSchedule}
                     onChange={(e) => setFormData({ ...formData, workSchedule: e.target.value })}
+                    disabled={!canEditProfile}
                     placeholder="e.g. Lunes a Viernes 9:00 - 18:00"
                     className={`h-14 px-[15px] text-base ${components.input.base}`}
                   />
@@ -630,7 +691,10 @@ export default function ProfilePage() {
 
                 {user.role === "driver" && (
                   <div className="flex flex-col">
-                    <Label htmlFor="driverLicense" className={`pb-2 ${typography.body.large} flex items-center gap-2`}>
+                    <Label
+                      htmlFor="driverLicense"
+                      className={`pb-2 ${typography.body.large} flex items-center gap-2`}
+                    >
                       <Car className="h-4 w-4" />
                       Licencia de Conducir
                     </Label>
@@ -639,6 +703,7 @@ export default function ProfilePage() {
                       type="text"
                       value={formData.driverLicense}
                       onChange={(e) => setFormData({ ...formData, driverLicense: e.target.value })}
+                      disabled={!canEditProfile}
                       placeholder="e.g. B, C, D"
                       className={`h-14 px-[15px] text-base ${components.input.base}`}
                     />
@@ -653,6 +718,7 @@ export default function ProfilePage() {
                     id="bio"
                     value={formData.bio}
                     onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                    disabled={!canEditProfile}
                     placeholder="Escribe una breve biografía sobre ti..."
                     className={`min-h-[100px] px-[15px] py-3 text-base ${components.input.base}`}
                     rows={4}
@@ -678,14 +744,20 @@ export default function ProfilePage() {
                     id="emergencyContactName"
                     type="text"
                     value={formData.emergencyContactName}
-                    onChange={(e) => setFormData({ ...formData, emergencyContactName: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, emergencyContactName: e.target.value })
+                    }
+                    disabled={!canEditProfile}
                     placeholder="e.g. María García"
                     className={`h-14 px-[15px] text-base ${components.input.base}`}
                   />
                 </div>
 
                 <div className="flex flex-col">
-                  <Label htmlFor="emergencyContactPhone" className={`pb-2 ${typography.body.large} flex items-center gap-2`}>
+                  <Label
+                    htmlFor="emergencyContactPhone"
+                    className={`pb-2 ${typography.body.large} flex items-center gap-2`}
+                  >
                     <Phone className="h-4 w-4" />
                     Teléfono de Emergencia
                   </Label>
@@ -693,14 +765,20 @@ export default function ProfilePage() {
                     id="emergencyContactPhone"
                     type="tel"
                     value={formData.emergencyContactPhone}
-                    onChange={(e) => setFormData({ ...formData, emergencyContactPhone: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, emergencyContactPhone: e.target.value })
+                    }
+                    disabled={!canEditProfile}
                     placeholder="e.g. +34 600 123 456"
                     className={`h-14 px-[15px] text-base ${components.input.base}`}
                   />
                 </div>
 
                 <div className="flex flex-col">
-                  <Label htmlFor="linkedin" className={`pb-2 ${typography.body.large} flex items-center gap-2`}>
+                  <Label
+                    htmlFor="linkedin"
+                    className={`pb-2 ${typography.body.large} flex items-center gap-2`}
+                  >
                     <Linkedin className="h-4 w-4" />
                     LinkedIn
                   </Label>
@@ -709,6 +787,7 @@ export default function ProfilePage() {
                     type="url"
                     value={formData.linkedin}
                     onChange={(e) => setFormData({ ...formData, linkedin: e.target.value })}
+                    disabled={!canEditProfile}
                     placeholder="e.g. https://linkedin.com/in/tu-perfil"
                     className={`h-14 px-[15px] text-base ${components.input.base}`}
                   />
@@ -718,9 +797,7 @@ export default function ProfilePage() {
 
             {/* Change Password Section */}
             <div className="flex flex-col">
-              <Label className={`pb-2 ${typography.body.large}`}>
-                Seguridad
-              </Label>
+              <Label className={`pb-2 ${typography.body.large}`}>Seguridad</Label>
               <Button
                 variant="ghost"
                 className="h-14 w-full bg-slate-200 dark:bg-slate-800 text-[#0d141b] dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-700 font-medium rounded-lg"
@@ -731,28 +808,25 @@ export default function ProfilePage() {
             </div>
 
             {/* Gestión de Vehículos */}
-            {user && (
-              <UserVehicleManagement 
-                userId={user.documentId || user.id} 
-                userRole={user.role}
-              />
-            )}
+            {user && <UserVehicleManagement userId={user.documentId || user.id} />}
           </section>
         </div>
       </AdminLayout>
 
       {/* Floating Action Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <Button
-            className={`h-14 w-full ${components.input.full} text-base font-bold`}
-            onClick={handleSaveChanges}
-            disabled={isSaving || isUploadingImage}
-          >
-            {isSaving || isUploadingImage ? "Guardando..." : "Guardar Cambios"}
-          </Button>
+      {canEditProfile && (
+        <div className="fixed bottom-0 left-0 right-0 bg-background border-t z-10">
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <Button
+              className={`h-14 w-full ${components.input.full} text-base font-bold`}
+              onClick={handleSaveChanges}
+              disabled={isSaving || isUploadingImage}
+            >
+              {isSaving || isUploadingImage ? "Guardando..." : "Guardar Cambios"}
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Diálogo de Cambio de Contraseña */}
       <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
@@ -783,7 +857,11 @@ export default function ProfilePage() {
                   onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showCurrentPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             </div>
@@ -823,7 +901,11 @@ export default function ProfilePage() {
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
                 </button>
               </div>
             </div>

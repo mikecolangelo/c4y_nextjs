@@ -25,22 +25,36 @@ import {
 import { Alert, AlertDescription } from "@/components_shadcn/ui/alert";
 import { Badge } from "@/components_shadcn/ui/badge";
 import { typography } from "@/lib/design-system";
-
+import { Can } from "@/components/auth/can";
 
 interface BillingConfiguration {
   penaltyPercentage: number;
-  billingDayOfWeek: 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
-  paymentDeadlineDayOfWeek: 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+  billingDayOfWeek:
+    | "monday"
+    | "tuesday"
+    | "wednesday"
+    | "thursday"
+    | "friday"
+    | "saturday"
+    | "sunday";
+  paymentDeadlineDayOfWeek:
+    | "monday"
+    | "tuesday"
+    | "wednesday"
+    | "thursday"
+    | "friday"
+    | "saturday"
+    | "sunday";
 }
 
 const DAYS_OF_WEEK = [
-  { value: 'monday', label: 'Lunes' },
-  { value: 'tuesday', label: 'Martes' },
-  { value: 'wednesday', label: 'Miércoles' },
-  { value: 'thursday', label: 'Jueves' },
-  { value: 'friday', label: 'Viernes' },
-  { value: 'saturday', label: 'Sábado' },
-  { value: 'sunday', label: 'Domingo' },
+  { value: "monday", label: "Lunes" },
+  { value: "tuesday", label: "Martes" },
+  { value: "wednesday", label: "Miércoles" },
+  { value: "thursday", label: "Jueves" },
+  { value: "friday", label: "Viernes" },
+  { value: "saturday", label: "Sábado" },
+  { value: "sunday", label: "Domingo" },
 ];
 
 export function BillingConfigurationDialog() {
@@ -49,11 +63,11 @@ export function BillingConfigurationDialog() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  
+
   const [config, setConfig] = useState<BillingConfiguration>({
     penaltyPercentage: 10,
-    billingDayOfWeek: 'tuesday',
-    paymentDeadlineDayOfWeek: 'thursday',
+    billingDayOfWeek: "tuesday",
+    paymentDeadlineDayOfWeek: "thursday",
   });
 
   // Cargar configuración actual
@@ -66,29 +80,35 @@ export function BillingConfigurationDialog() {
   const fetchConfiguration = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      const response = await fetch('/api/configuration?category=billing');
-      
+      const response = await fetch("/api/configuration?category=billing");
+
       if (!response.ok) {
-        throw new Error('Error cargando configuración');
+        throw new Error("Error cargando configuración");
       }
-      
+
       const data = await response.json();
       const configs = data.data || [];
-      
+
       // Parsear configuración
-      const penaltyConfig = configs.find((c: { key?: string; value?: string }) => c.key === 'billing-penalty-percentage');
-      const billingDayConfig = configs.find((c: { key?: string; value?: string }) => c.key === 'billing-day');
-      const deadlineDayConfig = configs.find((c: { key?: string; value?: string }) => c.key === 'billing-deadline-day');
-      
+      const penaltyConfig = configs.find(
+        (c: { key?: string; value?: string }) => c.key === "billing-penalty-percentage"
+      );
+      const billingDayConfig = configs.find(
+        (c: { key?: string; value?: string }) => c.key === "billing-day"
+      );
+      const deadlineDayConfig = configs.find(
+        (c: { key?: string; value?: string }) => c.key === "billing-deadline-day"
+      );
+
       setConfig({
         penaltyPercentage: penaltyConfig?.value ? parseFloat(penaltyConfig.value) : 10,
-        billingDayOfWeek: billingDayConfig?.value || 'tuesday',
-        paymentDeadlineDayOfWeek: deadlineDayConfig?.value || 'thursday',
+        billingDayOfWeek: billingDayConfig?.value || "tuesday",
+        paymentDeadlineDayOfWeek: deadlineDayConfig?.value || "thursday",
       });
     } catch (err) {
-      console.error('Error cargando configuración:', err);
+      console.error("Error cargando configuración:", err);
       // Usar valores por defecto
     } finally {
       setLoading(false);
@@ -99,45 +119,53 @@ export function BillingConfigurationDialog() {
     setSaving(true);
     setError(null);
     setSuccess(false);
-    
+
     try {
       // Guardar cada configuración
       const configsToSave = [
-        { key: 'billing-penalty-percentage', value: config.penaltyPercentage.toString(), category: 'billing' },
-        { key: 'billing-day', value: config.billingDayOfWeek, category: 'billing' },
-        { key: 'billing-deadline-day', value: config.paymentDeadlineDayOfWeek, category: 'billing' },
+        {
+          key: "billing-penalty-percentage",
+          value: config.penaltyPercentage.toString(),
+          category: "billing",
+        },
+        { key: "billing-day", value: config.billingDayOfWeek, category: "billing" },
+        {
+          key: "billing-deadline-day",
+          value: config.paymentDeadlineDayOfWeek,
+          category: "billing",
+        },
       ];
-      
+
       for (const cfg of configsToSave) {
         // Buscar si ya existe la configuración
         const existingResponse = await fetch(`/api/configuration?key=${cfg.key}`);
         const existingData = await existingResponse.json();
         const existing = existingData.data?.[0];
-        
+
         if (existing) {
           // Actualizar
           const response = await fetch(`/api/configuration/${existing.documentId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ data: cfg }),
           });
           if (!response.ok) throw new Error(`Error actualizando: ${cfg.key}`);
         } else {
           // Crear nueva
-          const response = await fetch('/api/configuration', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+          const response = await fetch("/api/configuration", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ data: cfg }),
           });
           if (!response.ok) throw new Error(`Error creando: ${cfg.key}`);
         }
       }
-      
+
       setSuccess(true);
       setTimeout(() => setOpen(false), 1500);
     } catch (err) {
-      console.error('Error guardando configuración:', err);
-      setError(err instanceof Error ? err.message : 'Error desconocido');
+      console.error("Error guardando configuración:", err);
+      setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
       setSaving(false);
     }
@@ -145,12 +173,14 @@ export function BillingConfigurationDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
-          <Settings className="h-4 w-4" />
-          Configuración
-        </Button>
-      </DialogTrigger>
+      <Can module="billing" action="canUpdate">
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm" className="gap-2">
+            <Settings className="h-4 w-4" />
+            Configuración
+          </Button>
+        </DialogTrigger>
+      </Can>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className={typography.h3}>Configuración de Facturación</DialogTitle>
@@ -170,7 +200,7 @@ export function BillingConfigurationDialog() {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            
+
             {success && (
               <Alert className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
                 <AlertDescription className="text-green-700 dark:text-green-400">
@@ -190,7 +220,9 @@ export function BillingConfigurationDialog() {
               </div>
               <Slider
                 value={[config.penaltyPercentage]}
-                onValueChange={([value]) => setConfig(prev => ({ ...prev, penaltyPercentage: value }))}
+                onValueChange={([value]) =>
+                  setConfig((prev) => ({ ...prev, penaltyPercentage: value }))
+                }
                 min={0}
                 max={50}
                 step={0.5}
@@ -209,14 +241,19 @@ export function BillingConfigurationDialog() {
               </Label>
               <Select
                 value={config.billingDayOfWeek}
-                onValueChange={(value: string) => setConfig(prev => ({ ...prev, billingDayOfWeek: value as BillingConfiguration['billingDayOfWeek'] }))}
+                onValueChange={(value: string) =>
+                  setConfig((prev) => ({
+                    ...prev,
+                    billingDayOfWeek: value as BillingConfiguration["billingDayOfWeek"],
+                  }))
+                }
                 disabled={saving}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {DAYS_OF_WEEK.map(day => (
+                  {DAYS_OF_WEEK.map((day) => (
                     <SelectItem key={day.value} value={day.value}>
                       {day.label}
                     </SelectItem>
@@ -236,14 +273,20 @@ export function BillingConfigurationDialog() {
               </Label>
               <Select
                 value={config.paymentDeadlineDayOfWeek}
-                onValueChange={(value: string) => setConfig(prev => ({ ...prev, paymentDeadlineDayOfWeek: value as BillingConfiguration['paymentDeadlineDayOfWeek'] }))}
+                onValueChange={(value: string) =>
+                  setConfig((prev) => ({
+                    ...prev,
+                    paymentDeadlineDayOfWeek:
+                      value as BillingConfiguration["paymentDeadlineDayOfWeek"],
+                  }))
+                }
                 disabled={saving}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {DAYS_OF_WEEK.map(day => (
+                  {DAYS_OF_WEEK.map((day) => (
                     <SelectItem key={day.value} value={day.value}>
                       {day.label}
                     </SelectItem>
@@ -259,8 +302,14 @@ export function BillingConfigurationDialog() {
             <div className="p-3 bg-muted rounded-lg text-sm">
               <p className="font-medium mb-2">Resumen del ciclo:</p>
               <ul className="space-y-1 text-muted-foreground">
-                <li>• Facturación: {DAYS_OF_WEEK.find(d => d.value === config.billingDayOfWeek)?.label}</li>
-                <li>• Límite de pago: {DAYS_OF_WEEK.find(d => d.value === config.paymentDeadlineDayOfWeek)?.label}</li>
+                <li>
+                  • Facturación:{" "}
+                  {DAYS_OF_WEEK.find((d) => d.value === config.billingDayOfWeek)?.label}
+                </li>
+                <li>
+                  • Límite de pago:{" "}
+                  {DAYS_OF_WEEK.find((d) => d.value === config.paymentDeadlineDayOfWeek)?.label}
+                </li>
                 <li>• Penalidad por mora: {config.penaltyPercentage}%</li>
               </ul>
             </div>
@@ -268,18 +317,10 @@ export function BillingConfigurationDialog() {
         )}
 
         <DialogFooter className="gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setOpen(false)}
-            disabled={saving}
-          >
+          <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>
             Cancelar
           </Button>
-          <Button
-            onClick={handleSave}
-            disabled={saving || loading}
-            className="gap-2"
-          >
+          <Button onClick={handleSave} disabled={saving || loading} className="gap-2">
             {saving ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />

@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
+import { requireModulePermission } from "@/lib/module-guard";
 
 // POST - Crear una nueva entrada en el historial de conductores
 export async function POST(request: Request) {
   try {
+    try {
+      await requireModulePermission("fleet", "canCreate");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const body = await request.json();
 
     if (!body?.data) {
@@ -22,26 +31,23 @@ export async function POST(request: Request) {
       );
     }
 
-    const response = await fetch(
-      `${STRAPI_BASE_URL}/api/driver-histories`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
+    const response = await fetch(`${STRAPI_BASE_URL}/api/driver-histories`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        data: {
+          driver,
+          vehicle,
+          startDate,
+          status,
+          ...rest,
         },
-        body: JSON.stringify({
-          data: {
-            driver,
-            vehicle,
-            startDate,
-            status,
-            ...rest,
-          },
-        }),
-        cache: "no-store",
-      }
-    );
+      }),
+      cache: "no-store",
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -53,22 +59,27 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Error creando historial de conductor:", error);
     const errorMessage = error instanceof Error ? error.message : "Error desconocido";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
 // GET - Obtener historial de conductores
 export async function GET(request: Request) {
   try {
+    try {
+      await requireModulePermission("fleet", "canRead");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { searchParams } = new URL(request.url);
     const driver = searchParams.get("driver");
     const vehicle = searchParams.get("vehicle");
     const status = searchParams.get("status");
 
-    let filters: any = {};
+    const filters: any = {};
     if (driver) filters.driver = { id: { $eq: driver } };
     if (vehicle) filters.vehicle = { id: { $eq: vehicle } };
     if (status) filters.status = { $eq: status };
@@ -80,15 +91,12 @@ export async function GET(request: Request) {
     query.append("populate", "driver,vehicle");
     query.append("sort", "startDate:desc");
 
-    const response = await fetch(
-      `${STRAPI_BASE_URL}/api/driver-histories?${query.toString()}`,
-      {
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-        },
-        cache: "no-store",
-      }
-    );
+    const response = await fetch(`${STRAPI_BASE_URL}/api/driver-histories?${query.toString()}`, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      },
+      cache: "no-store",
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -100,9 +108,6 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("Error obteniendo historial de conductores:", error);
     const errorMessage = error instanceof Error ? error.message : "Error desconocido";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

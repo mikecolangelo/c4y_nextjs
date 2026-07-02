@@ -1,75 +1,18 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
+import { requireModulePermission } from "@/lib/module-guard";
 import qs from "qs";
-
-// Helper para verificar autenticación y rol admin
-async function verifyAdminAuth() {
-  try {
-    const cookieStore = await cookies();
-    const jwt = cookieStore.get("jwt")?.value;
-    
-    if (!jwt) {
-      return { error: "No autenticado", status: 401 };
-    }
-
-    const userResponse = await fetch(`${STRAPI_BASE_URL}/api/users/me`, {
-      headers: {
-        Authorization: `Bearer ${jwt}`,
-        "Content-Type": "application/json",
-      },
-      cache: "no-store",
-    });
-
-    if (!userResponse.ok) {
-      return { error: "Token inválido", status: 401 };
-    }
-
-    const userData = await userResponse.json();
-    
-    // Buscar el user-profile para verificar el rol
-    const profileQuery = qs.stringify({
-      filters: {
-        email: { $eq: userData.email },
-      },
-      fields: ["role"],
-    });
-
-    const profileResponse = await fetch(
-      `${STRAPI_BASE_URL}/api/user-profiles?${profileQuery}`,
-      {
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        cache: "no-store",
-      }
-    );
-
-    if (!profileResponse.ok) {
-      return { error: "Error verificando permisos", status: 500 };
-    }
-
-    const profileData = await profileResponse.json();
-    const profile = profileData.data?.[0];
-    
-    if (!profile || profile.role !== "admin") {
-      return { error: "No tienes permisos para acceder a esta configuración", status: 403 };
-    }
-
-    return { success: true };
-  } catch (error) {
-    console.error("Error verificando autenticación:", error);
-    return { error: "Error de autenticación", status: 500 };
-  }
-}
 
 // GET - Obtener todas las configuraciones
 export async function GET(request: Request) {
   try {
-    const authResult = await verifyAdminAuth();
-    if ("error" in authResult) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    try {
+      await requireModulePermission("settings", "canRead");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
     }
 
     const { searchParams } = new URL(request.url);
@@ -82,16 +25,13 @@ export async function GET(request: Request) {
       pagination: { pageSize: 100 },
     });
 
-    const response = await fetch(
-      `${STRAPI_BASE_URL}/api/configurations?${query}`,
-      {
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        cache: "no-store",
-      }
-    );
+    const response = await fetch(`${STRAPI_BASE_URL}/api/configurations?${query}`, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -106,7 +46,7 @@ export async function GET(request: Request) {
       console.error("Error parseando respuesta de Strapi:", text.substring(0, 200));
       throw new Error("Respuesta inválida del servidor");
     }
-    
+
     // Ocultar valores secretos
     const sanitizedData = (data.data || []).map((config: any) => ({
       ...config,
@@ -126,34 +66,32 @@ export async function GET(request: Request) {
 // POST - Crear nueva configuración
 export async function POST(request: Request) {
   try {
-    const authResult = await verifyAdminAuth();
-    if ("error" in authResult) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    try {
+      await requireModulePermission("settings", "canCreate");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
     }
 
     const body = await request.json();
     const { key, value, description, category, isSecret } = body;
 
     if (!key || !category) {
-      return NextResponse.json(
-        { error: "key y category son requeridos" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "key y category son requeridos" }, { status: 400 });
     }
 
-    const response = await fetch(
-      `${STRAPI_BASE_URL}/api/configurations`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          data: { key, value, description, category, isSecret: isSecret || false },
-        }),
-      }
-    );
+    const response = await fetch(`${STRAPI_BASE_URL}/api/configurations`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        data: { key, value, description, category, isSecret: isSecret || false },
+      }),
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -174,19 +112,20 @@ export async function POST(request: Request) {
 // PUT - Actualizar configuración por key
 export async function PUT(request: Request) {
   try {
-    const authResult = await verifyAdminAuth();
-    if ("error" in authResult) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    try {
+      await requireModulePermission("settings", "canUpdate");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
     }
 
     const body = await request.json();
     const { key, value, description, isSecret } = body;
 
     if (!key) {
-      return NextResponse.json(
-        { error: "key es requerido" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "key es requerido" }, { status: 400 });
     }
 
     // Buscar la configuración por key
@@ -195,16 +134,13 @@ export async function PUT(request: Request) {
       fields: ["id", "documentId"],
     });
 
-    const searchResponse = await fetch(
-      `${STRAPI_BASE_URL}/api/configurations?${searchQuery}`,
-      {
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        cache: "no-store",
-      }
-    );
+    const searchResponse = await fetch(`${STRAPI_BASE_URL}/api/configurations?${searchQuery}`, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+    });
 
     if (!searchResponse.ok) {
       throw new Error("Error buscando configuración");
@@ -214,10 +150,7 @@ export async function PUT(request: Request) {
     const config = searchData.data?.[0];
 
     if (!config) {
-      return NextResponse.json(
-        { error: "Configuración no encontrada" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Configuración no encontrada" }, { status: 404 });
     }
 
     // Actualizar la configuración
@@ -226,17 +159,14 @@ export async function PUT(request: Request) {
     if (description !== undefined) updateData.description = description;
     if (isSecret !== undefined) updateData.isSecret = isSecret;
 
-    const response = await fetch(
-      `${STRAPI_BASE_URL}/api/configurations/${config.documentId}`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ data: updateData }),
-      }
-    );
+    const response = await fetch(`${STRAPI_BASE_URL}/api/configurations/${config.documentId}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ data: updateData }),
+    });
 
     if (!response.ok) {
       const errorText = await response.text();

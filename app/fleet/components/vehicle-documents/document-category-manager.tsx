@@ -31,6 +31,7 @@ import {
 } from "@/components_shadcn/ui/table";
 import { MoreHorizontal, Plus, Pencil, Trash2, Settings, ArrowUp, ArrowDown } from "lucide-react";
 import { spacing, typography } from "@/lib/design-system";
+import { Can } from "@/components/auth/can";
 import type { VehicleDocumentCategory } from "@/validations/types";
 
 interface DocumentCategoryManagerProps {
@@ -39,8 +40,16 @@ interface DocumentCategoryManagerProps {
   isCreating: boolean;
   isUpdating: boolean;
   isDeleting: boolean;
-  onCreate: (data: { name: string; description?: string; isActive: boolean; order: number }) => Promise<void>;
-  onUpdate: (id: string | number, data: { name?: string; description?: string; isActive?: boolean; order?: number }) => Promise<void>;
+  onCreate: (data: {
+    name: string;
+    description?: string;
+    isActive: boolean;
+    order: number;
+  }) => Promise<void>;
+  onUpdate: (
+    id: string | number,
+    data: { name?: string; description?: string; isActive?: boolean; order?: number }
+  ) => Promise<void>;
   onDelete: (id: string | number) => Promise<void>;
 }
 
@@ -130,10 +139,8 @@ export function DocumentCategoryManager({
     resetForm();
   };
 
-  const handleMoveOrder = async (category: VehicleDocumentCategory, direction: 'up' | 'down') => {
-    const newOrder = direction === 'up'
-      ? Math.max(0, category.order - 1)
-      : category.order + 1;
+  const handleMoveOrder = async (category: VehicleDocumentCategory, direction: "up" | "down") => {
+    const newOrder = direction === "up" ? Math.max(0, category.order - 1) : category.order + 1;
 
     await onUpdate(category.documentId || category.id, { order: newOrder });
   };
@@ -153,22 +160,23 @@ export function DocumentCategoryManager({
         <DialogHeader>
           <DialogTitle className={typography.h4}>Gestionar Categorías de Documentos</DialogTitle>
           <DialogDescription>
-            Administra las categorías de documentos disponibles para los vehículos. Puedes crear, editar, activar/desactivar y eliminar categorías.
+            Administra las categorías de documentos disponibles para los vehículos. Puedes crear,
+            editar, activar/desactivar y eliminar categorías.
           </DialogDescription>
         </DialogHeader>
 
         <div className={`flex flex-col ${spacing.gap.base} mt-4`}>
           <div className="flex justify-end">
-            <Button onClick={handleOpenCreate} size="sm" className="gap-1">
-              <Plus className="h-4 w-4" />
-              Nueva Categoría
-            </Button>
+            <Can module="fleet" action="canCreate">
+              <Button onClick={handleOpenCreate} size="sm" className="gap-1">
+                <Plus className="h-4 w-4" />
+                Nueva Categoría
+              </Button>
+            </Can>
           </div>
 
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Cargando categorías...
-            </div>
+            <div className="text-center py-8 text-muted-foreground">Cargando categorías...</div>
           ) : sortedCategories.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No hay categorías configuradas.
@@ -191,26 +199,28 @@ export function DocumentCategoryManager({
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <span className="text-sm">{category.order}</span>
-                        <div className="flex flex-col">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5"
-                            onClick={() => handleMoveOrder(category, 'up')}
-                            disabled={isUpdating || index === 0}
-                          >
-                            <ArrowUp className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-5 w-5"
-                            onClick={() => handleMoveOrder(category, 'down')}
-                            disabled={isUpdating || index === sortedCategories.length - 1}
-                          >
-                            <ArrowDown className="h-3 w-3" />
-                          </Button>
-                        </div>
+                        <Can module="fleet" action="canUpdate">
+                          <div className="flex flex-col">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-5 w-5"
+                              onClick={() => handleMoveOrder(category, "up")}
+                              disabled={isUpdating || index === 0}
+                            >
+                              <ArrowUp className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-5 w-5"
+                              onClick={() => handleMoveOrder(category, "down")}
+                              disabled={isUpdating || index === sortedCategories.length - 1}
+                            >
+                              <ArrowDown className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </Can>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -224,11 +234,13 @@ export function DocumentCategoryManager({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        category.isActive
-                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                          : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
-                      }`}>
+                      <span
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          category.isActive
+                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                            : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                        }`}
+                      >
                         {category.isActive ? "Activo" : "Inactivo"}
                       </span>
                     </TableCell>
@@ -240,24 +252,34 @@ export function DocumentCategoryManager({
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleOpenEdit(category)}>
-                            <Pencil className="h-4 w-4 mr-2" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => onUpdate(category.documentId || category.id, { isActive: !category.isActive })}
-                            disabled={isUpdating}
-                          >
-                            {category.isActive ? "Desactivar" : "Activar"}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleOpenDelete(category)}
-                            className="text-destructive focus:text-destructive"
-                            disabled={isDeleting}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Eliminar
-                          </DropdownMenuItem>
+                          <Can module="fleet" action="canUpdate">
+                            <DropdownMenuItem onClick={() => handleOpenEdit(category)}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Editar
+                            </DropdownMenuItem>
+                          </Can>
+                          <Can module="fleet" action="canUpdate">
+                            <DropdownMenuItem
+                              onClick={() =>
+                                onUpdate(category.documentId || category.id, {
+                                  isActive: !category.isActive,
+                                })
+                              }
+                              disabled={isUpdating}
+                            >
+                              {category.isActive ? "Desactivar" : "Activar"}
+                            </DropdownMenuItem>
+                          </Can>
+                          <Can module="fleet" action="canDelete">
+                            <DropdownMenuItem
+                              onClick={() => handleOpenDelete(category)}
+                              className="text-destructive focus:text-destructive"
+                              disabled={isDeleting}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Eliminar
+                            </DropdownMenuItem>
+                          </Can>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -336,10 +358,7 @@ export function DocumentCategoryManager({
             <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button
-              onClick={handleCreate}
-              disabled={!formName.trim() || isCreating}
-            >
+            <Button onClick={handleCreate} disabled={!formName.trim() || isCreating}>
               {isCreating ? "Creando..." : "Crear"}
             </Button>
           </DialogFooter>
@@ -351,9 +370,7 @@ export function DocumentCategoryManager({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar Categoría de Documento</DialogTitle>
-            <DialogDescription>
-              Modifica los datos de la categoría de documento.
-            </DialogDescription>
+            <DialogDescription>Modifica los datos de la categoría de documento.</DialogDescription>
           </DialogHeader>
 
           <div className={`flex flex-col ${spacing.gap.base} py-4`}>
@@ -407,10 +424,7 @@ export function DocumentCategoryManager({
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button
-              onClick={handleUpdate}
-              disabled={!formName.trim() || isUpdating}
-            >
+            <Button onClick={handleUpdate} disabled={!formName.trim() || isUpdating}>
               {isUpdating ? "Guardando..." : "Guardar cambios"}
             </Button>
           </DialogFooter>
@@ -425,10 +439,11 @@ export function DocumentCategoryManager({
             <DialogDescription>
               ¿Estás seguro de que deseas eliminar la categoría{" "}
               <strong>{selectedCategory?.name}</strong>?
-              <br /><br />
+              <br />
+              <br />
               <span className="text-destructive">
-                Esta acción no se puede deshacer. Los documentos existentes de esta categoría no se eliminarán,
-                pero no podrás crear nuevos documentos con esta categoría.
+                Esta acción no se puede deshacer. Los documentos existentes de esta categoría no se
+                eliminarán, pero no podrás crear nuevos documentos con esta categoría.
               </span>
             </DialogDescription>
           </DialogHeader>
@@ -437,11 +452,7 @@ export function DocumentCategoryManager({
             <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
+            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
               {isDeleting ? "Eliminando..." : "Eliminar"}
             </Button>
           </DialogFooter>

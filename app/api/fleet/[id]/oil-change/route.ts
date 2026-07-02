@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
-import { requireAdmin } from "@/lib/admin-guard";
+import { requireModulePermission } from "@/lib/module-guard";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -10,7 +10,7 @@ interface RouteContext {
 export async function POST(request: Request, context: RouteContext) {
   try {
     try {
-      await requireAdmin();
+      await requireModulePermission("fleet", "canCreate");
     } catch {
       return NextResponse.json(
         { error: "Acceso restringido: Se requieren permisos de administrador" },
@@ -20,23 +20,32 @@ export async function POST(request: Request, context: RouteContext) {
     const { id } = await context.params;
     const body = await request.json();
 
-    const response = await fetch(`${STRAPI_BASE_URL}/api/fleets/${encodeURIComponent(id)}/record-oil-change`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-      cache: "no-store",
-    });
+    const response = await fetch(
+      `${STRAPI_BASE_URL}/api/fleets/${encodeURIComponent(id)}/record-oil-change`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+        cache: "no-store",
+      }
+    );
 
     if (!response.ok) {
       const text = await response.text();
       try {
         const errJson = JSON.parse(text);
-        return NextResponse.json({ error: errJson.error?.message || errJson.message || text }, { status: response.status });
+        return NextResponse.json(
+          { error: errJson.error?.message || errJson.message || text },
+          { status: response.status }
+        );
       } catch {
-        return NextResponse.json({ error: text || `Error ${response.status}` }, { status: response.status });
+        return NextResponse.json(
+          { error: text || `Error ${response.status}` },
+          { status: response.status }
+        );
       }
     }
 

@@ -10,13 +10,30 @@ import {
   DropdownMenuTrigger,
 } from "@/components_shadcn/ui/dropdown-menu";
 import { Badge } from "@/components_shadcn/ui/badge";
+import { StatusBadge, type StatusTone } from "@/components/ui";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components_shadcn/ui/tabs";
 import { Skeleton } from "@/components_shadcn/ui/skeleton";
-import { MoreVertical, Filter, CircleDot, Zap, Wrench, ChevronRight, Package, ClipboardList, CheckCircle, XCircle, Truck, Clock, AlertCircle, Plus } from "lucide-react";
+import {
+  MoreVertical,
+  Filter,
+  CircleDot,
+  Zap,
+  Wrench,
+  ChevronRight,
+  Package,
+  ClipboardList,
+  CheckCircle,
+  XCircle,
+  Truck,
+  Clock,
+  AlertCircle,
+  Plus,
+} from "lucide-react";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { commonClasses, spacing, typography } from "@/lib/design-system";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { Can } from "@/components/auth/can";
 import { toast } from "@/lib/toast";
 import type { InventoryItemCard, StockStatus, InventoryIcon } from "@/validations/types";
 import type { InventoryRequestCard } from "@/validations/inventory-request-types";
@@ -53,28 +70,17 @@ const createInitialFormData = (): CreateInventoryItemFormData => ({
   salePrice: "",
 });
 
+// Maps a stock level to a semantic StatusBadge tone (in stock → success,
+// medium → warning, low → danger).
+const STOCK_STATUS_TONE: Record<StockStatus, StatusTone> = {
+  high: "success",
+  medium: "warning",
+  low: "danger",
+};
+
 const getStockBadge = (status: StockStatus, stock: number, unit?: string) => {
   const label = unit ? `${stock} ${unit}` : `Stock: ${stock}`;
-  switch (status) {
-    case "high":
-      return (
-        <Badge className="bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300 rounded-full px-3 py-1 text-sm font-medium">
-          {label}
-        </Badge>
-      );
-    case "medium":
-      return (
-        <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300 rounded-full px-3 py-1 text-sm font-medium">
-          {label}
-        </Badge>
-      );
-    case "low":
-      return (
-        <Badge className="bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300 rounded-full px-3 py-1 text-sm font-medium">
-          {label}
-        </Badge>
-      );
-  }
+  return <StatusBadge tone={STOCK_STATUS_TONE[status]}>{label}</StatusBadge>;
 };
 
 const getIcon = (icon: InventoryIcon) => {
@@ -90,44 +96,29 @@ const getIcon = (icon: InventoryIcon) => {
   }
 };
 
+// Maps a request status to its semantic tone, icon and label so every status
+// pill is rendered through the shared StatusBadge.
+const REQUEST_STATUS_CONFIG: Record<
+  string,
+  { tone: StatusTone; icon: typeof Clock; label: string }
+> = {
+  pendiente: { tone: "warning", icon: Clock, label: "Pendiente" },
+  aprobado: { tone: "info", icon: CheckCircle, label: "Aprobado" },
+  rechazado: { tone: "danger", icon: XCircle, label: "Rechazado" },
+  entregado: { tone: "success", icon: Truck, label: "Entregado" },
+  cancelado: { tone: "neutral", icon: AlertCircle, label: "Cancelado" },
+};
+
 const getStatusBadge = (status: string) => {
-  switch (status) {
-    case "pendiente":
-      return (
-        <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300 rounded-full px-3 py-1 text-sm font-medium flex items-center gap-1">
-          <Clock className="h-3 w-3" />
-          Pendiente
-        </Badge>
-      );
-    case "aprobado":
-      return (
-        <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300 rounded-full px-3 py-1 text-sm font-medium flex items-center gap-1">
-          <CheckCircle className="h-3 w-3" />
-          Aprobado
-        </Badge>
-      );
-    case "rechazado":
-      return (
-        <Badge className="bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300 rounded-full px-3 py-1 text-sm font-medium flex items-center gap-1">
-          <XCircle className="h-3 w-3" />
-          Rechazado
-        </Badge>
-      );
-    case "entregado":
-      return (
-        <Badge className="bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300 rounded-full px-3 py-1 text-sm font-medium flex items-center gap-1">
-          <Truck className="h-3 w-3" />
-          Entregado
-        </Badge>
-      );
-    case "cancelado":
-      return (
-        <Badge className="bg-gray-100 text-gray-700 dark:bg-gray-900/50 dark:text-gray-300 rounded-full px-3 py-1 text-sm font-medium flex items-center gap-1">
-          <AlertCircle className="h-3 w-3" />
-          Cancelado
-        </Badge>
-      );
-  }
+  const config = REQUEST_STATUS_CONFIG[status];
+  if (!config) return null;
+  const Icon = config.icon;
+  return (
+    <StatusBadge tone={config.tone}>
+      <Icon />
+      {config.label}
+    </StatusBadge>
+  );
 };
 
 export default function StockPage() {
@@ -147,7 +138,9 @@ export default function StockPage() {
   // Estados para diálogo de crear item
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [isCreatingItem, setIsCreatingItem] = useState(false);
-  const [formData, setFormData] = useState<CreateInventoryItemFormData>(() => createInitialFormData());
+  const [formData, setFormData] = useState<CreateInventoryItemFormData>(() =>
+    createInitialFormData()
+  );
 
   // Estados para diálogo de crear solicitud
   const [isRequestDialogOpen, setIsRequestDialogOpen] = useState(false);
@@ -178,7 +171,10 @@ export default function StockPage() {
   const loadItems = useCallback(async () => {
     setIsLoadingItems(true);
     try {
-      const response = await fetch("/api/inventory-items", { cache: "no-store", credentials: "include" });
+      const response = await fetch("/api/inventory-items", {
+        cache: "no-store",
+        credentials: "include",
+      });
       if (!response.ok) throw new Error("Failed to fetch inventory items");
       const result = (await response.json()) as { data?: InventoryItemCard[] };
       setItems(Array.isArray(result.data) ? result.data : []);
@@ -217,18 +213,20 @@ export default function StockPage() {
     loadRequests();
   }, [loadItems, loadRequests]);
 
-  const filteredItems = items.filter((item) =>
-    item.code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.location?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredItems = items.filter(
+    (item) =>
+      item.code?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.location?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredRequests = requests.filter((request) =>
-    request.justification?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    request.inventoryItemCode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    request.inventoryItemDescription?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    request.requestNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    request.requesterName?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredRequests = requests.filter(
+    (request) =>
+      request.justification?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      request.inventoryItemCode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      request.inventoryItemDescription?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      request.requestNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      request.requesterName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const isFormValid = useMemo(() => {
@@ -301,7 +299,10 @@ export default function StockPage() {
       toast.error("El costo unitario debe ser un número válido mayor o igual a 0");
       return;
     }
-    if (formData.salePrice && (isNaN(Number(formData.salePrice)) || Number(formData.salePrice) < 0)) {
+    if (
+      formData.salePrice &&
+      (isNaN(Number(formData.salePrice)) || Number(formData.salePrice) < 0)
+    ) {
       toast.error("El precio de venta debe ser un número válido mayor o igual a 0");
       return;
     }
@@ -512,10 +513,14 @@ export default function StockPage() {
                           <p className={`${typography.body.large} font-bold`}>{item.description}</p>
                           <p className={typography.body.base}>{item.code}</p>
                           {item.assignedTo && (
-                            <p className={`${typography.body.small} mt-1`}>Asignado a: {item.assignedTo}</p>
+                            <p className={`${typography.body.small} mt-1`}>
+                              Asignado a: {item.assignedTo}
+                            </p>
                           )}
                           {item.salePrice !== undefined && item.salePrice > 0 && (
-                            <p className={`${typography.body.small} mt-1 font-semibold text-primary`}>
+                            <p
+                              className={`${typography.body.small} mt-1 font-semibold text-primary`}
+                            >
                               Precio: B/. {item.salePrice.toFixed(2)}
                             </p>
                           )}
@@ -535,18 +540,28 @@ export default function StockPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                              <DropdownMenuItem onClick={() => router.push(`/stock/details/${item.documentId}`)}>
+                              <DropdownMenuItem
+                                onClick={() => router.push(`/stock/details/${item.documentId}`)}
+                              >
                                 Ver detalles
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => router.push(`/stock/details/${item.documentId}?edit=true`)}>
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => setItemToDelete(item)}
-                                className="text-destructive focus:text-destructive"
-                              >
-                                Eliminar
-                              </DropdownMenuItem>
+                              <Can module="stock" action="canUpdate">
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    router.push(`/stock/details/${item.documentId}?edit=true`)
+                                  }
+                                >
+                                  Editar
+                                </DropdownMenuItem>
+                              </Can>
+                              <Can module="stock" action="canDelete">
+                                <DropdownMenuItem
+                                  onClick={() => setItemToDelete(item)}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  Eliminar
+                                </DropdownMenuItem>
+                              </Can>
                             </DropdownMenuContent>
                           </DropdownMenu>
                           <ChevronRight className="h-5 w-5 text-muted-foreground" />
@@ -600,10 +615,13 @@ export default function StockPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <p className={`${typography.body.large} font-bold`}>
-                              {request.quantity} {request.unit} de {request.inventoryItemDescription || request.inventoryItemCode}
+                              {request.quantity} {request.unit} de{" "}
+                              {request.inventoryItemDescription || request.inventoryItemCode}
                             </p>
                             {request.requestNumber && (
-                              <span className="text-xs text-muted-foreground">#{request.requestNumber}</span>
+                              <span className="text-xs text-muted-foreground">
+                                #{request.requestNumber}
+                              </span>
                             )}
                           </div>
                           <p className={typography.body.small}>
@@ -625,7 +643,12 @@ export default function StockPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleRejectRequest(request.id, "Solicitud rechazada por administrador")}
+                            onClick={() =>
+                              handleRejectRequest(
+                                request.id,
+                                "Solicitud rechazada por administrador"
+                              )
+                            }
                           >
                             <XCircle className="h-4 w-4 mr-1" />
                             Rechazar
@@ -639,7 +662,11 @@ export default function StockPage() {
 
                       {canManageRequests && request.canDeliver && (
                         <div className="flex gap-2 justify-end pt-2 border-t">
-                          <Button size="sm" variant="default" onClick={() => handleDeliverRequest(request.id)}>
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => handleDeliverRequest(request.id)}
+                          >
                             <Truck className="h-4 w-4 mr-1" />
                             Marcar Entregado
                           </Button>
@@ -650,7 +677,8 @@ export default function StockPage() {
                         <div className="pt-2 border-t">
                           {request.approvedByName && (
                             <p className={`${typography.body.small} text-muted-foreground`}>
-                              {request.status === "rechazado" ? "Rechazado" : "Aprobado"} por: {request.approvedByName}
+                              {request.status === "rechazado" ? "Rechazado" : "Aprobado"} por:{" "}
+                              {request.approvedByName}
                               {request.approvedAtLabel && ` • ${request.approvedAtLabel}`}
                             </p>
                           )}
@@ -671,18 +699,20 @@ export default function StockPage() {
       </Tabs>
 
       {/* Botón flotante contextual */}
-      {activeTab === "catalog" ? (
-        <AddInventoryItemButton onClick={() => setIsItemDialogOpen(true)} />
-      ) : (
-        <Button
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-primary text-white shadow-lg transition-transform hover:scale-105 z-50"
-          size="icon"
-          onClick={() => setIsRequestDialogOpen(true)}
-          aria-label="Solicitar pieza"
-        >
-          <Plus className="h-6 w-6" />
-        </Button>
-      )}
+      <Can module="stock" action="canCreate">
+        {activeTab === "catalog" ? (
+          <AddInventoryItemButton onClick={() => setIsItemDialogOpen(true)} />
+        ) : (
+          <Button
+            className="fixed bottom-6 right-6 z-50 size-14 rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105"
+            size="icon"
+            onClick={() => setIsRequestDialogOpen(true)}
+            aria-label="Solicitar pieza"
+          >
+            <Plus className="h-6 w-6" />
+          </Button>
+        )}
+      </Can>
 
       <CreateInventoryItemDialog
         isOpen={isItemDialogOpen}

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUserJwt } from "@/lib/auth";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
 import qs from "qs";
+import { requireModulePermission } from "@/lib/module-guard";
 
 function extractTimeFromDate(dateStr: string): { time: string; period: "AM" | "PM" } {
   try {
@@ -47,6 +48,14 @@ function formatScheduledAtLabel(scheduledAt: string): string {
 
 export async function GET(_request: Request) {
   try {
+    try {
+      await requireModulePermission("calendar", "canRead");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const jwt = await getCurrentUserJwt();
     if (!jwt) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -85,15 +94,12 @@ export async function GET(_request: Request) {
       },
     });
 
-    const response = await fetch(
-      `${STRAPI_BASE_URL}/api/notifications?${reminderQuery}`,
-      {
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-        },
-        cache: "no-store",
-      }
-    );
+    const response = await fetch(`${STRAPI_BASE_URL}/api/notifications?${reminderQuery}`, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      },
+      cache: "no-store",
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -141,7 +147,11 @@ export async function GET(_request: Request) {
 
       // Extraer vehículo
       const fleetVehicleRaw = attrs.fleetVehicle?.data?.attributes
-        ? { ...attrs.fleetVehicle.data.attributes, id: attrs.fleetVehicle.data.id, documentId: attrs.fleetVehicle.data.documentId }
+        ? {
+            ...attrs.fleetVehicle.data.attributes,
+            id: attrs.fleetVehicle.data.id,
+            documentId: attrs.fleetVehicle.data.documentId,
+          }
         : attrs.fleetVehicle;
 
       const vehicleId = fleetVehicleRaw?.documentId || fleetVehicleRaw?.id;
@@ -153,7 +163,8 @@ export async function GET(_request: Request) {
       seen.add(dedupKey);
 
       // Determinar fecha a mostrar
-      const dateStr = attrs.nextTrigger || attrs.scheduledDate || attrs.timestamp || attrs.createdAt;
+      const dateStr =
+        attrs.nextTrigger || attrs.scheduledDate || attrs.timestamp || attrs.createdAt;
       if (!dateStr) continue;
 
       const { time, period } = extractTimeFromDate(dateStr);

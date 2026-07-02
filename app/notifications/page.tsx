@@ -6,8 +6,21 @@ import { Badge } from "@/components_shadcn/ui/badge";
 import { Input } from "@/components_shadcn/ui/input";
 import { Label } from "@/components_shadcn/ui/label";
 import { Textarea } from "@/components_shadcn/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components_shadcn/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components_shadcn/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components_shadcn/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components_shadcn/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,18 +32,43 @@ import {
   AlertDialogTitle,
 } from "@/components_shadcn/ui/alert-dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components_shadcn/ui/tabs";
-import { Archive, CheckCheck, Calendar, Plus, UserPlus, Sparkles, Receipt, Car, Bell, Inbox, CheckCircle2, Circle, Pause, Play, ExternalLink, Trash2, Pin, Clock } from "lucide-react";
-import Link from "next/link";
+import {
+  Archive,
+  CheckCheck,
+  Calendar,
+  Plus,
+  UserPlus,
+  Sparkles,
+  Receipt,
+  Car,
+  Bell,
+  Inbox,
+  CheckCircle2,
+  Circle,
+  Pause,
+  Play,
+  ExternalLink,
+  Trash2,
+  Pin,
+  Clock,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
-import { commonClasses, spacing, typography, colors } from "@/lib/design-system";
+import { commonClasses, spacing, typography } from "@/lib/design-system";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { Can } from "@/components/auth/can";
 import { FleetReminder, ReminderModule } from "@/validations/types";
 import { toast } from "@/lib/toast";
-import { REMINDER_EVENTS, emitReminderToggleCompleted, emitReminderToggleActive, emitReminderDeleted } from "@/lib/reminder-events";
+import {
+  REMINDER_EVENTS,
+  emitReminderToggleCompleted,
+  emitReminderToggleActive,
+  emitReminderDeleted,
+} from "@/lib/reminder-events";
 import { MODULE_LABELS, MODULE_COLORS } from "@/components/ui/unified-reminders";
 import { NotificationCalendar } from "@/components/ui/notification-calendar";
+import { useNotificationsStream } from "@/hooks/use-notifications-stream";
 import type { CalendarEvent } from "@/components/ui/notification-calendar";
 
 interface UserProfile {
@@ -114,7 +152,13 @@ interface Notification {
   timestamp: string;
   isRead: boolean;
   type: "reminder" | "lead" | "sale" | "payment" | "inventory" | "oil_change_reminder";
-  icon: typeof Calendar | typeof UserPlus | typeof Sparkles | typeof Receipt | typeof Car | typeof Bell;
+  icon:
+    | typeof Calendar
+    | typeof UserPlus
+    | typeof Sparkles
+    | typeof Receipt
+    | typeof Car
+    | typeof Bell;
   iconBgColor: string;
   iconColor: string;
   reminderId?: number;
@@ -203,7 +247,7 @@ function formatRelativeTime(dateString: string): string {
   } else if (diffMins < 60) {
     return isPast ? `Hace ${diffMins} min` : `En ${diffMins} min`;
   } else if (diffHours < 24) {
-    return isPast 
+    return isPast
       ? `Hace ${diffHours} ${diffHours === 1 ? "hora" : "horas"}`
       : `En ${diffHours} ${diffHours === 1 ? "hora" : "horas"}`;
   } else if (diffDays === 1) {
@@ -225,12 +269,12 @@ function formatRelativeTime(dateString: string): string {
 function remindersToNotifications(reminders: FleetReminder[]): Notification[] {
   return reminders.map((reminder) => {
     const vehicleName = reminder.vehicle?.name || "Vehículo";
-    const description = reminder.description 
+    const description = reminder.description
       ? `${reminder.description} - ${vehicleName}`
       : vehicleName;
     const isActive = normalizeBoolean(reminder.isActive);
     const isCompleted = normalizeBoolean(reminder.isCompleted);
-    
+
     return {
       id: `reminder-${reminder.documentId || reminder.id}`,
       title: reminder.title,
@@ -278,7 +322,9 @@ function manualNotificationsToNotifications(notifications: ManualNotification[])
 
 export default function NotificationsPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"notifications" | "paused" | "completed">("notifications");
+  const [activeTab, setActiveTab] = useState<"notifications" | "paused" | "completed">(
+    "notifications"
+  );
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -310,12 +356,16 @@ export default function NotificationsPage() {
   const isFetchingRef = useRef<boolean>(false);
   const [showDeleteReminderDialog, setShowDeleteReminderDialog] = useState(false);
   const [notificationToDelete, setNotificationToDelete] = useState<Notification | null>(null);
-  
+
   // Formulario
   const [formTitle, setFormTitle] = useState("");
   const [formDescription, setFormDescription] = useState("");
-  const [formType, setFormType] = useState<"lead" | "sale" | "reminder" | "payment" | "inventory">("lead");
-  const [formRecipientType, setFormRecipientType] = useState<"specific" | "all_admins" | "all_drivers">("specific");
+  const [formType, setFormType] = useState<"lead" | "sale" | "reminder" | "payment" | "inventory">(
+    "lead"
+  );
+  const [formRecipientType, setFormRecipientType] = useState<
+    "specific" | "all_admins" | "all_drivers"
+  >("specific");
   const [formRecipientId, setFormRecipientId] = useState("");
   const [formDurationDays, setFormDurationDays] = useState<number>(7);
   const [formIsPinned, setFormIsPinned] = useState<boolean>(false);
@@ -369,58 +419,66 @@ export default function NotificationsPage() {
     if (item.reminderDocumentId) return `doc:${item.reminderDocumentId}`;
     if (item.notificationId) return `num:${item.notificationId}`;
     if (item.reminderId) return `num:${item.reminderId}`;
-    if (item.id && typeof item.id === 'string' && item.id.includes('-')) {
+    if (item.id && typeof item.id === "string" && item.id.includes("-")) {
       // Ya es un ID compuesto como "reminder-123" o "notification-abc"
-      const parts = item.id.split('-');
+      const parts = item.id.split("-");
       if (parts.length === 2) return `num:${parts[1]}`;
     }
     return `temp:${item.id || Date.now()}`;
   }, []);
-  
+
   // Helper: Fusionar dos notificaciones (prioriza datos más completos)
-  const mergeNotificationData = useCallback((existing: Notification, incoming: any): Notification => {
-    // Si el incoming tiene documentId y el existing no, el incoming es más "oficial"
-    const shouldPreferIncoming = incoming.documentId && !existing.notificationDocumentId && !existing.reminderDocumentId;
-    
-    return {
-      ...existing,
-      ...incoming,
-      // Preservar campos críticos si el existing los tiene y el incoming no
-      id: existing.id, // Mantener ID estable para React key
-      vehicleName: incoming.vehicleName || existing.vehicleName,
-      vehicleDocumentId: incoming.vehicleDocumentId || existing.vehicleDocumentId,
-      // Fusionar booleanos (si cualquiera es true, queda true)
-      isPinned: normalizeBoolean(incoming.isPinned) || normalizeBoolean(existing.isPinned),
-      isRead: normalizeBoolean(incoming.isRead !== undefined ? incoming.isRead : existing.isRead),
-      isCompleted: normalizeBoolean(incoming.isCompleted !== undefined ? incoming.isCompleted : existing.isCompleted),
-      isActive: normalizeBoolean(incoming.isActive !== undefined ? incoming.isActive : existing.isActive),
-    };
-  }, []);
+  const mergeNotificationData = useCallback(
+    (existing: Notification, incoming: any): Notification => {
+      // Si el incoming tiene documentId y el existing no, el incoming es más "oficial"
+      const shouldPreferIncoming =
+        incoming.documentId && !existing.notificationDocumentId && !existing.reminderDocumentId;
+
+      return {
+        ...existing,
+        ...incoming,
+        // Preservar campos críticos si el existing los tiene y el incoming no
+        id: existing.id, // Mantener ID estable para React key
+        vehicleName: incoming.vehicleName || existing.vehicleName,
+        vehicleDocumentId: incoming.vehicleDocumentId || existing.vehicleDocumentId,
+        // Fusionar booleanos (si cualquiera es true, queda true)
+        isPinned: normalizeBoolean(incoming.isPinned) || normalizeBoolean(existing.isPinned),
+        isRead: normalizeBoolean(incoming.isRead !== undefined ? incoming.isRead : existing.isRead),
+        isCompleted: normalizeBoolean(
+          incoming.isCompleted !== undefined ? incoming.isCompleted : existing.isCompleted
+        ),
+        isActive: normalizeBoolean(
+          incoming.isActive !== undefined ? incoming.isActive : existing.isActive
+        ),
+      };
+    },
+    []
+  );
 
   // Función para obtener notificaciones del usuario (YA SINCRONIZADAS desde la BD)
   // NOTA: Los recordatorios se sincronizan automáticamente en el backend como notificaciones
   // No necesitamos fetch separado a /api/reminders - eso causaba duplicados
-  // 
+  //
   // DEBOUNCE: Si se llama múltiples veces en 300ms, solo se ejecuta una vez
   const fetchNotifications = useCallback(async () => {
     // Si ya está corriendo, ignorar esta llamada
     if (isFetchingRef.current) {
       return;
     }
-    
+
     // Limpiar timer anterior si existe
     if (fetchDebounceTimerRef.current) {
       clearTimeout(fetchDebounceTimerRef.current);
     }
-    
+
     // Crear nuevo timer para debounce
     fetchDebounceTimerRef.current = setTimeout(async () => {
       isFetchingRef.current = true;
-      
-    try {
-      setIsLoading(true);
-      setError(null);
-        
+
+      try {
+        setIsLoading(true);
+        setError(null);
+
         // ÚNICA FUENTE DE VERDAD: /api/notifications ya incluye recordatorios sincronizados
         const notificationsResponse = await fetch("/api/notifications", {
           cache: "no-store",
@@ -436,23 +494,23 @@ export default function NotificationsPage() {
 
         // Map único - sin duplicados porque el backend ya consolidó todo
         const newMap = new Map<string, Notification>();
-        
+
         // Procesar notificaciones (que ya incluyen recordatorios sincronizados)
         allNotificationsFromDB.forEach((notification) => {
           const isActive = normalizeBoolean(notification.isActive);
           const isCompleted = normalizeBoolean(notification.isCompleted);
           const isRead = normalizeBoolean(notification.isRead);
           const isPinned = normalizeBoolean(notification.isPinned);
-          
+
           let incomingNotification: Notification;
-          
+
           if (notification.type === "reminder") {
             const vehicleName = notification.fleetVehicle?.name || "Vehículo";
-            const description = notification.description 
+            const description = notification.description
               ? `${notification.description} - ${vehicleName}`
               : vehicleName;
             const reminderTimestamp = notification.nextTrigger || notification.timestamp;
-            
+
             incomingNotification = {
               id: `reminder-${notification.documentId || notification.id}`,
               title: notification.title,
@@ -497,9 +555,9 @@ export default function NotificationsPage() {
               authorDocumentId: notification.authorDocumentId,
             };
           }
-          
+
           const key = getNotificationKey(incomingNotification);
-          
+
           if (newMap.has(key)) {
             // Fusionar con existente
             const existing = newMap.get(key)!;
@@ -508,29 +566,30 @@ export default function NotificationsPage() {
             newMap.set(key, incomingNotification);
           }
         });
-        
+
         setNotificationMap(newMap);
-    } catch (err) {
-      console.error("Error obteniendo notificaciones:", err);
-      setError(err instanceof Error ? err.message : "Error desconocido");
-    } finally {
-      setIsLoading(false);
-      isFetchingRef.current = false;
-    }
+      } catch (err) {
+        console.error("Error obteniendo notificaciones:", err);
+        setError(err instanceof Error ? err.message : "Error desconocido");
+      } finally {
+        setIsLoading(false);
+        isFetchingRef.current = false;
+      }
     }, 300); // Debounce: esperar 300ms antes de ejecutar
   }, []);
 
   // Lista computada a partir del Map (siempre actualizada)
   const notificationList = useMemo(() => {
     // Filtrar eliminados y convertir a array
-    const list = Array.from(notificationMap.values()).filter(n => {
+    const list = Array.from(notificationMap.values()).filter((n) => {
       const docId = n.reminderDocumentId || n.notificationDocumentId;
       if (docId && permanentlyDeletedIdsRef.current.has(docId)) return false;
       if (n.reminderId && permanentlyDeletedIdsRef.current.has(String(n.reminderId))) return false;
-      if (n.notificationId && permanentlyDeletedIdsRef.current.has(String(n.notificationId))) return false;
+      if (n.notificationId && permanentlyDeletedIdsRef.current.has(String(n.notificationId)))
+        return false;
       return true;
     });
-    
+
     // Ordenar: no leídas primero, luego por timestamp
     list.sort((a, b) => {
       if (a.isRead !== b.isRead) {
@@ -540,51 +599,51 @@ export default function NotificationsPage() {
       const dateB = (b as any).originalTimestamp || b.timestamp;
       return new Date(dateB).getTime() - new Date(dateA).getTime();
     });
-    
+
     return list;
   }, [notificationMap]);
 
   // Obtener notificaciones del usuario (ya sincronizadas desde la BD)
   useEffect(() => {
     fetchNotifications();
-    
+
     // Procesador de cola de eventos para evitar pérdida de actualizaciones
     const processEventQueue = async () => {
       if (isProcessingQueueRef.current || pendingEventQueueRef.current.size === 0) return;
-      
+
       isProcessingQueueRef.current = true;
-      
+
       // Esperar un poco para acumular eventos relacionados
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       // Limpiar la cola y hacer un solo fetch
       pendingEventQueueRef.current.clear();
-      
+
       // Solo hacer fetch si el usuario no está interactuando
       const timeSinceLastAction = Date.now() - lastUserActionRef.current;
       if (!isUserInteractingRef.current && timeSinceLastAction > 2000) {
         await fetchNotifications();
       }
-      
+
       isProcessingQueueRef.current = false;
-      
+
       // Si llegaron más eventos mientras procesábamos, procesar de nuevo
       if (pendingEventQueueRef.current.size > 0) {
         setTimeout(processEventQueue, 50);
       }
     };
-    
+
     // Escuchar eventos de cambios en recordatorios para sincronización automática
     const handleReminderChange = (event?: Event) => {
       const customEvent = event as CustomEvent<{ reminderId?: string | number }>;
       const eventType = customEvent?.type;
-      
+
       // GUARDA UNIVERSAL: Ignorar cualquier evento si usuario acaba de interactuar (< 5 segundos)
       const timeSinceLastAction = Date.now() - lastUserActionRef.current;
       if (timeSinceLastAction < 5000) {
         return;
       }
-      
+
       // Para DELETE, verificar si lo eliminamos recientemente desde aquí
       if (eventType === REMINDER_EVENTS.DELETED) {
         if (customEvent?.detail?.reminderId) {
@@ -596,8 +655,10 @@ export default function NotificationsPage() {
             return;
           }
           // Verificar también en locallyUpdatedRef (por si acaso)
-          if (locallyUpdatedRef.current.has(`doc:${reminderId}`) || 
-              locallyUpdatedRef.current.has(`num:${reminderId}`)) {
+          if (
+            locallyUpdatedRef.current.has(`doc:${reminderId}`) ||
+            locallyUpdatedRef.current.has(`num:${reminderId}`)
+          ) {
             return;
           }
         }
@@ -606,31 +667,33 @@ export default function NotificationsPage() {
         processEventQueue();
         return;
       }
-      
+
       // Para otros eventos, verificar si lo actualizamos localmente (ID matching)
       if (customEvent?.detail?.reminderId) {
         const reminderId = String(customEvent.detail.reminderId);
         // Verificar en todas las formas posibles de ID
-        if (locallyUpdatedRef.current.has(reminderId) ||
-            locallyUpdatedRef.current.has(`doc:${reminderId}`) ||
-            locallyUpdatedRef.current.has(`num:${reminderId}`)) {
+        if (
+          locallyUpdatedRef.current.has(reminderId) ||
+          locallyUpdatedRef.current.has(`doc:${reminderId}`) ||
+          locallyUpdatedRef.current.has(`num:${reminderId}`)
+        ) {
           // Ya lo actualizamos localmente, no recargar para evitar el parpadeo
           return;
         }
       }
-      
+
       // Agregar evento a la cola en lugar de hacer fetch inmediato
       const eventKey = `${eventType}:${customEvent?.detail?.reminderId || Date.now()}`;
       pendingEventQueueRef.current.add(eventKey);
       processEventQueue();
     };
-    
+
     window.addEventListener(REMINDER_EVENTS.CREATED, handleReminderChange);
     window.addEventListener(REMINDER_EVENTS.UPDATED, handleReminderChange);
     window.addEventListener(REMINDER_EVENTS.DELETED, handleReminderChange);
     window.addEventListener(REMINDER_EVENTS.TOGGLE_COMPLETED, handleReminderChange);
     window.addEventListener(REMINDER_EVENTS.TOGGLE_ACTIVE, handleReminderChange);
-    
+
     // Recargar cuando la ventana vuelve a tener foco (usando cola para evitar sobrecarga)
     const handleFocus = () => {
       const timeSinceLastAction = Date.now() - lastUserActionRef.current;
@@ -640,19 +703,9 @@ export default function NotificationsPage() {
         processEventQueue();
       }
     };
-    window.addEventListener('focus', handleFocus);
-    
-    // Recargar cada minuto como respaldo, pero solo si el usuario no está interactuando
-    const interval = setInterval(() => {
-      const timeSinceLastAction = Date.now() - lastUserActionRef.current;
-      // Solo recargar si no hay interacción reciente (últimos 5 segundos)
-      if (!isUserInteractingRef.current && timeSinceLastAction > 5000) {
-        fetchNotifications();
-      }
-    }, 60000);
-    
+    window.addEventListener("focus", handleFocus);
+
     return () => {
-      clearInterval(interval);
       // Limpiar debounce timer al desmontar
       if (fetchDebounceTimerRef.current) {
         clearTimeout(fetchDebounceTimerRef.current);
@@ -662,23 +715,35 @@ export default function NotificationsPage() {
       window.removeEventListener(REMINDER_EVENTS.DELETED, handleReminderChange);
       window.removeEventListener(REMINDER_EVENTS.TOGGLE_COMPLETED, handleReminderChange);
       window.removeEventListener(REMINDER_EVENTS.TOGGLE_ACTIVE, handleReminderChange);
-      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener("focus", handleFocus);
     };
   }, [fetchNotifications]);
+
+  // Real-time refresh via SSE, with automatic polling fallback. This replaces
+  // the previous 60s `setInterval` poller. Refreshes are suppressed while the
+  // user is actively interacting to avoid clobbering optimistic UI updates.
+  const handleStreamRefresh = useCallback(() => {
+    const timeSinceLastAction = Date.now() - lastUserActionRef.current;
+    if (!isUserInteractingRef.current && timeSinceLastAction > 5000) {
+      fetchNotifications();
+    }
+  }, [fetchNotifications]);
+
+  useNotificationsStream({ onRefresh: handleStreamRefresh });
 
   const handleMarkAllAsRead = async () => {
     // PREVENIR BUG DE SINCRONIZACIÓN: Registrar interacción del usuario
     isUserInteractingRef.current = true;
     lastUserActionRef.current = Date.now();
-    
+
     try {
       // Obtener todas las notificaciones no leídas
       const unreadNotifications = notificationList.filter((n) => !n.isRead);
-      
+
       // 1. REGISTRAR TODOS los IDs para ignorar futuros fetches de estos eventos
-      const unreadKeys = unreadNotifications.map(n => getNotificationKey(n));
-      unreadKeys.forEach(key => locallyUpdatedRef.current.add(key));
-      
+      const unreadKeys = unreadNotifications.map((n) => getNotificationKey(n));
+      unreadKeys.forEach((key) => locallyUpdatedRef.current.add(key));
+
       // Actualizar TODAS localmente primero (optimista inmediata)
       setNotificationMap((prev) => {
         const newMap = new Map(prev);
@@ -691,20 +756,21 @@ export default function NotificationsPage() {
         });
         return newMap;
       });
-      
+
       // 2. Procesar en batches de 5 para evitar saturar conexiones HTTP
       const BATCH_SIZE = 5;
       const apiNotifications = unreadNotifications.filter(
         (n) => n.notificationId || n.notificationDocumentId
       );
-      
+
       for (let i = 0; i < apiNotifications.length; i += BATCH_SIZE) {
         const batch = apiNotifications.slice(i, i + BATCH_SIZE);
-        
+
         // Procesar batch concurrentemente (máximo 5)
         await Promise.all(
           batch.map(async (notification) => {
-            const notificationId = notification.notificationId || notification.notificationDocumentId;
+            const notificationId =
+              notification.notificationId || notification.notificationDocumentId;
             try {
               await fetch(`/api/notifications/${notificationId}`, {
                 method: "PATCH",
@@ -719,18 +785,18 @@ export default function NotificationsPage() {
             }
           })
         );
-        
+
         // Pequeña pausa entre batches para no saturar
         if (i + BATCH_SIZE < apiNotifications.length) {
-          await new Promise(resolve => setTimeout(resolve, 50));
+          await new Promise((resolve) => setTimeout(resolve, 50));
         }
       }
-      
+
       toast.success("Todas las notificaciones han sido marcadas como leídas");
-      
+
       // 3. LIMPIAR registros después de un tiempo para evitar fugas de memoria
       setTimeout(() => {
-        unreadKeys.forEach(key => locallyUpdatedRef.current.delete(key));
+        unreadKeys.forEach((key) => locallyUpdatedRef.current.delete(key));
         isUserInteractingRef.current = false;
       }, 2000);
     } catch (error) {
@@ -746,21 +812,21 @@ export default function NotificationsPage() {
   const handleMarkAsRead = async (notification: Notification) => {
     // Solo aplica a notificaciones manuales (no recordatorios)
     if (notification.source !== "manual") return;
-    
+
     const notificationId = notification.notificationId || notification.notificationDocumentId;
     if (!notificationId) {
       console.error("No se pudo obtener el ID de la notificación");
       return;
     }
-    
+
     // PREVENIR BUG DE SINCRONIZACIÓN: Registrar interacción del usuario
     isUserInteractingRef.current = true;
     lastUserActionRef.current = Date.now();
-    
+
     // 1. REGISTRAR ID inmediatamente para ignorar futuros fetches de este evento
     const notificationKey = getNotificationKey(notification);
     locallyUpdatedRef.current.add(notificationKey);
-    
+
     // Actualización optimista: remover la notificación del Map (ya que al marcarla como leída
     // deja de ser "activa" y no debe mostrarse en la pestaña de activas)
     setNotificationMap((prev) => {
@@ -773,15 +839,15 @@ export default function NotificationsPage() {
       }
       return newMap;
     });
-    
+
     // Forzar actualización inmediata de la UI
     // Esto asegura que la notificación desaparezca de la lista de activas inmediatamente
-    
+
     // Limpiar el registro después de un tiempo para evitar fugas de memoria
     setTimeout(() => {
       locallyUpdatedRef.current.delete(notificationKey);
     }, 5000);
-    
+
     try {
       const response = await fetch(`/api/notifications/${notificationId}`, {
         method: "PATCH",
@@ -794,7 +860,7 @@ export default function NotificationsPage() {
 
       if (response.status === 410) {
         // La notificación no existe en la BD - eliminarla del estado local
-        console.log('Notificación no existe en BD, eliminando del estado local:', notificationId);
+        console.log("Notificación no existe en BD, eliminando del estado local:", notificationId);
         setNotificationMap((prev) => {
           const newMap = new Map(prev);
           newMap.delete(notificationKey);
@@ -810,7 +876,7 @@ export default function NotificationsPage() {
       }
 
       toast.success("Notificación marcada como leída");
-      
+
       // Éxito: confiar en la actualización optimista
       setTimeout(() => {
         isUserInteractingRef.current = false;
@@ -827,43 +893,44 @@ export default function NotificationsPage() {
   // Marcar recordatorio como completado
   const handleToggleCompleted = async (notification: Notification) => {
     if (notification.source !== "reminder") return;
-    
+
     // PREVENIR BUG DE SINCRONIZACIÓN: Registrar interacción del usuario
     isUserInteractingRef.current = true;
     lastUserActionRef.current = Date.now();
-    
+
     // Usar reminderDocumentId si existe, sino usar reminderId o notificationId
-    const reminderId = notification.reminderDocumentId || 
-                       (notification.reminderId ? String(notification.reminderId) : null) ||
-                       (notification.notificationId ? String(notification.notificationId) : null);
-    
+    const reminderId =
+      notification.reminderDocumentId ||
+      (notification.reminderId ? String(notification.reminderId) : null) ||
+      (notification.notificationId ? String(notification.notificationId) : null);
+
     if (!reminderId) {
       console.error("No se pudo obtener el ID del recordatorio para actualizar:", notification);
       toast.error("Error: No se pudo identificar el recordatorio");
       isUserInteractingRef.current = false;
       return;
     }
-    
+
     const notificationId = notification.id;
-    
+
     // Prevenir múltiples clics de forma síncrona usando ref
     if (togglingCompletedRef.current.has(notificationId)) {
       isUserInteractingRef.current = false;
       return;
     }
-    
+
     // Agregar inmediatamente al ref (síncrono)
     togglingCompletedRef.current.add(notificationId);
-    
+
     // También actualizar el estado para el disabled del botón
     setTogglingCompleted((prev) => new Set(prev).add(notificationId));
-    
+
     const newCompletedState = !notification.isCompleted;
-    
+
     // Actualización optimista del estado ANTES de la petición
     const previousState = notification.isCompleted;
     const notificationKey = getNotificationKey(notification);
-    
+
     // Actualizar el Map directamente
     setNotificationMap((prev) => {
       const newMap = new Map(prev);
@@ -879,10 +946,10 @@ export default function NotificationsPage() {
       }
       return newMap;
     });
-    
+
     try {
       // Log para depuración
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV === "development") {
         console.log("Actualizando recordatorio:", {
           reminderId,
           notificationId: notification.id,
@@ -892,7 +959,7 @@ export default function NotificationsPage() {
           newCompletedState,
         });
       }
-      
+
       const response = await fetch(`/api/notifications/${encodeURIComponent(reminderId)}`, {
         method: "PUT",
         credentials: "include",
@@ -934,10 +1001,10 @@ export default function NotificationsPage() {
       setLocallyUpdatedReminders((prev) => new Set(prev).add(reminderId));
       locallyUpdatedRef.current.add(reminderId);
       locallyUpdatedRef.current.add(notificationKey); // Registrar también la key completa
-      
+
       // Emitir evento para sincronización con otros componentes
       emitReminderToggleCompleted(reminderId, newCompletedState);
-      
+
       // Limpiar la marca después de un tiempo para permitir futuras actualizaciones desde otros componentes
       setTimeout(() => {
         setLocallyUpdatedReminders((prev) => {
@@ -948,8 +1015,10 @@ export default function NotificationsPage() {
         locallyUpdatedRef.current.delete(reminderId);
         locallyUpdatedRef.current.delete(notificationKey); // Limpiar también la key completa
       }, 2000);
-      
-      toast.success(newCompletedState ? "Recordatorio completado" : "Recordatorio marcado como pendiente");
+
+      toast.success(
+        newCompletedState ? "Recordatorio completado" : "Recordatorio marcado como pendiente"
+      );
     } catch (error) {
       console.error("Error actualizando recordatorio:", error);
       // Revertir el estado optimista en caso de error
@@ -967,8 +1036,9 @@ export default function NotificationsPage() {
         }
         return newMap;
       });
-      
-      const errorMessage = error instanceof Error ? error.message : "Error al actualizar el recordatorio";
+
+      const errorMessage =
+        error instanceof Error ? error.message : "Error al actualizar el recordatorio";
       toast.error(errorMessage);
     } finally {
       // Remover de la lista de procesando (tanto del ref como del estado)
@@ -988,35 +1058,36 @@ export default function NotificationsPage() {
   // Pausar/Activar recordatorio
   const handleToggleActive = async (notification: Notification) => {
     if (notification.source !== "reminder") return;
-    
+
     // PREVENIR BUG DE SINCRONIZACIÓN: Registrar interacción del usuario
     isUserInteractingRef.current = true;
     lastUserActionRef.current = Date.now();
-    
+
     // Usar reminderDocumentId si existe, sino usar reminderId o notificationId
-    const reminderId = notification.reminderDocumentId || 
-                       (notification.reminderId ? String(notification.reminderId) : null) ||
-                       (notification.notificationId ? String(notification.notificationId) : null);
-    
+    const reminderId =
+      notification.reminderDocumentId ||
+      (notification.reminderId ? String(notification.reminderId) : null) ||
+      (notification.notificationId ? String(notification.notificationId) : null);
+
     if (!reminderId) {
       console.error("No se pudo obtener el ID del recordatorio para actualizar:", notification);
       toast.error("Error: No se pudo identificar el recordatorio");
       isUserInteractingRef.current = false;
       return;
     }
-    
+
     const notificationId = notification.id;
-    
+
     // Prevenir múltiples clics de forma síncrona usando ref
     if (togglingActiveRef.current.has(notificationId)) {
       return;
     }
-    
+
     // Agregar inmediatamente al ref (síncrono)
     togglingActiveRef.current.add(notificationId);
-    
+
     const newActiveState = !notification.isActive;
-    
+
     try {
       const response = await fetch(`/api/notifications/${encodeURIComponent(reminderId)}`, {
         method: "PUT",
@@ -1055,7 +1126,7 @@ export default function NotificationsPage() {
         }
         return newMap;
       });
-      
+
       // REGISTRAR ID para ignorar futuros fetches de este evento
       locallyUpdatedRef.current.add(reminderId);
       locallyUpdatedRef.current.add(notificationKey);
@@ -1063,7 +1134,7 @@ export default function NotificationsPage() {
       // Emitir evento para sincronización
       emitReminderToggleActive(reminderId, newActiveState);
       toast.success(newActiveState ? "Recordatorio activado" : "Recordatorio pausado");
-      
+
       // Limpiar registros después de un tiempo
       setTimeout(() => {
         locallyUpdatedRef.current.delete(reminderId);
@@ -1071,7 +1142,8 @@ export default function NotificationsPage() {
       }, 2000);
     } catch (error) {
       console.error("Error actualizando recordatorio:", error);
-      const errorMessage = error instanceof Error ? error.message : "Error al actualizar el recordatorio";
+      const errorMessage =
+        error instanceof Error ? error.message : "Error al actualizar el recordatorio";
       toast.error(errorMessage);
     } finally {
       // Remover de la lista de procesando
@@ -1085,18 +1157,19 @@ export default function NotificationsPage() {
 
   const handleRequestDeleteReminder = (notification: Notification) => {
     if (notification.source !== "reminder") return;
-    
+
     // Usar reminderDocumentId si existe, sino usar reminderId o notificationId
-    const reminderId = notification.reminderDocumentId || 
-                       (notification.reminderId ? String(notification.reminderId) : null) ||
-                       (notification.notificationId ? String(notification.notificationId) : null);
-    
+    const reminderId =
+      notification.reminderDocumentId ||
+      (notification.reminderId ? String(notification.reminderId) : null) ||
+      (notification.notificationId ? String(notification.notificationId) : null);
+
     if (!reminderId) {
       console.error("No se pudo obtener el ID del recordatorio para eliminar:", notification);
       toast.error("Error: No se pudo identificar el recordatorio");
       return;
     }
-    
+
     if (deletingReminders.has(notification.id)) return;
     setNotificationToDelete(notification);
     setShowDeleteReminderDialog(true);
@@ -1105,96 +1178,99 @@ export default function NotificationsPage() {
   // Eliminar recordatorio (lógica real, llamada desde el modal de confirmación)
   // Solicitar eliminación de notificación manual (abrir modal de confirmación)
   const handleRequestDeleteManual = (notification: Notification) => {
-    console.log('🗑️ [handleRequestDeleteManual] Iniciando:', {
+    console.log("🗑️ [handleRequestDeleteManual] Iniciando:", {
       id: notification.id,
       notificationId: notification.notificationId,
       notificationDocumentId: notification.notificationDocumentId,
       source: notification.source,
       title: notification.title,
     });
-    
+
     if (notification.source !== "manual") {
-      console.log('❌ [handleRequestDeleteManual] No es notificación manual');
+      console.log("❌ [handleRequestDeleteManual] No es notificación manual");
       return;
     }
-    
+
     if (deletingReminders.has(notification.id)) {
-      console.log('❌ [handleRequestDeleteManual] Ya se está eliminando');
+      console.log("❌ [handleRequestDeleteManual] Ya se está eliminando");
       return;
     }
-    
+
     const notificationId = notification.notificationId || notification.notificationDocumentId;
     if (!notificationId) {
-      console.error('❌ [handleRequestDeleteManual] No hay ID de notificación:', notification);
+      console.error("❌ [handleRequestDeleteManual] No hay ID de notificación:", notification);
       toast.error("Error: No se pudo identificar la notificación");
       return;
     }
-    
-    console.log('✅ [handleRequestDeleteManual] Abriendo diálogo de confirmación');
+
+    console.log("✅ [handleRequestDeleteManual] Abriendo diálogo de confirmación");
     setNotificationToDelete(notification);
     setShowDeleteReminderDialog(true);
   };
-  
+
   // Eliminar notificación manual (lógica real)
   const handleDeleteManual = async (notification: Notification) => {
-    console.log('🗑️ [handleDeleteManual] Iniciando eliminación:', {
+    console.log("🗑️ [handleDeleteManual] Iniciando eliminación:", {
       id: notification.id,
       notificationId: notification.notificationId,
       notificationDocumentId: notification.notificationDocumentId,
       source: notification.source,
     });
-    
+
     if (notification.source !== "manual") {
-      console.log('❌ [handleDeleteManual] No es notificación manual');
+      console.log("❌ [handleDeleteManual] No es notificación manual");
       return;
     }
-    
+
     // PREVENIR BUG DE SINCRONIZACIÓN: Registrar interacción del usuario
     isUserInteractingRef.current = true;
     lastUserActionRef.current = Date.now();
-    
+
     const notificationId = notification.notificationId || notification.notificationDocumentId;
-    
+
     if (!notificationId) {
       isUserInteractingRef.current = false;
-      console.error("❌ [handleDeleteManual] No se pudo obtener el ID de la notificación:", notification);
+      console.error(
+        "❌ [handleDeleteManual] No se pudo obtener el ID de la notificación:",
+        notification
+      );
       toast.error("Error: No se pudo identificar la notificación");
       return;
     }
-    
-    console.log('✅ [handleDeleteManual] ID a eliminar:', notificationId);
-    
+
+    console.log("✅ [handleDeleteManual] ID a eliminar:", notificationId);
+
     const id = notification.id;
-    
+
     // Prevenir múltiples clics
     if (deletingRemindersRef.current.has(id)) {
-      console.log('❌ [handleDeleteManual] Ya se está eliminando');
+      console.log("❌ [handleDeleteManual] Ya se está eliminando");
       return;
     }
-    
+
     deletingRemindersRef.current.add(id);
     setDeletingReminders((prev) => new Set(prev).add(id));
-    
+
     // Actualización optimista: remover del Map
     const notificationKey = getNotificationKey(notification);
     const previousNotification = notificationMap.get(notificationKey);
-    
+
     setNotificationMap((prev) => {
       const newMap = new Map(prev);
       newMap.delete(notificationKey);
       return newMap;
     });
-    
+
     try {
       const url = `/api/notifications/${encodeURIComponent(String(notificationId))}`;
-      console.log('📤 [handleDeleteManual] Enviando DELETE a:', url);
-      
+      console.log("📤 [handleDeleteManual] Enviando DELETE a:", url);
+
       const response = await fetch(url, {
         method: "DELETE",
         credentials: "include",
       });
 
-      console.log('📥 [handleDeleteManual] Respuesta:', {
+      console.log("📥 [handleDeleteManual] Respuesta:", {
         ok: response.ok,
         status: response.status,
         statusText: response.statusText,
@@ -1202,14 +1278,14 @@ export default function NotificationsPage() {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ [handleDeleteManual] Error en respuesta:', errorText);
+        console.error("❌ [handleDeleteManual] Error en respuesta:", errorText);
         throw new Error(`Error al eliminar la notificación: ${errorText}`);
       }
 
       // Marcar como eliminado permanentemente
       permanentlyDeletedIdsRef.current.add(String(notificationId));
-      
-      console.log('✅ [handleDeleteManual] Notificación eliminada exitosamente');
+
+      console.log("✅ [handleDeleteManual] Notificación eliminada exitosamente");
       toast.success("Notificación eliminada");
     } catch (error) {
       console.error("❌ [handleDeleteManual] Error eliminando notificación:", error);
@@ -1237,63 +1313,64 @@ export default function NotificationsPage() {
 
   const handleDeleteReminder = async (notification: Notification) => {
     if (notification.source !== "reminder") return;
-    
+
     // PREVENIR BUG DE SINCRONIZACIÓN: Registrar interacción del usuario
     isUserInteractingRef.current = true;
     lastUserActionRef.current = Date.now();
-    
+
     // Usar reminderDocumentId si existe, sino usar reminderId o notificationId
-    const reminderId = notification.reminderDocumentId || 
-                       (notification.reminderId ? String(notification.reminderId) : null) ||
-                       (notification.notificationId ? String(notification.notificationId) : null);
-    
+    const reminderId =
+      notification.reminderDocumentId ||
+      (notification.reminderId ? String(notification.reminderId) : null) ||
+      (notification.notificationId ? String(notification.notificationId) : null);
+
     if (!reminderId) {
       isUserInteractingRef.current = false;
       console.error("No se pudo obtener el ID del recordatorio para eliminar:", notification);
       toast.error("Error: No se pudo identificar el recordatorio");
       return;
     }
-    
+
     const notificationId = notification.id;
-    
+
     // Prevenir múltiples clics de forma síncrona usando ref
     if (deletingRemindersRef.current.has(notificationId)) {
       return;
     }
-    
+
     // Agregar inmediatamente al ref (síncrono)
     deletingRemindersRef.current.add(notificationId);
-    
+
     // También actualizar el estado para el disabled del botón
     setDeletingReminders((prev) => new Set(prev).add(notificationId));
-    
+
     // Actualización optimista: remover del Map inmediatamente
     const notificationKey = getNotificationKey(notification);
     const previousNotification = notificationMap.get(notificationKey);
-    
+
     setNotificationMap((prev) => {
       const newMap = new Map(prev);
       newMap.delete(notificationKey);
       return newMap;
     });
-    
+
     try {
       // Obtener información del recordatorio antes de eliminarlo para verificar si es de mantenimiento
       const reminderResponse = await fetch(`/api/notifications/${encodeURIComponent(reminderId)}`, {
         cache: "no-store",
         credentials: "include",
       });
-      
+
       let isMaintenanceReminder = false;
       let vehicleId: string | null = null;
-      
+
       if (reminderResponse.ok) {
         const reminderData = await reminderResponse.json();
         const reminder = reminderData.data;
-        isMaintenanceReminder = 
-          reminder.title?.toLowerCase().includes("mantenimiento") || 
+        isMaintenanceReminder =
+          reminder.title?.toLowerCase().includes("mantenimiento") ||
           reminder.title === "Mantenimiento completo del vehículo";
-        
+
         // Usar fleetVehicle en lugar de vehicle
         if (reminder.fleetVehicle?.documentId) {
           vehicleId = reminder.fleetVehicle.documentId;
@@ -1305,7 +1382,7 @@ export default function NotificationsPage() {
           vehicleId = String(reminder.vehicle.id);
         }
       }
-      
+
       // Eliminar el recordatorio
       const response = await fetch(`/api/notifications/${encodeURIComponent(reminderId)}`, {
         method: "DELETE",
@@ -1337,18 +1414,18 @@ export default function NotificationsPage() {
 
       // Marcar como eliminado permanentemente para filtrarlo de futuras cargas
       permanentlyDeletedIdsRef.current.add(reminderId);
-      
+
       // Marcar como eliminado recientemente para evitar recarga duplicada del evento
       setRecentlyDeletedReminders((prev) => new Set(prev).add(reminderId));
       recentlyDeletedRef.current.add(reminderId);
-      
+
       // Emitir evento para sincronización con otros componentes
       emitReminderDeleted(reminderId);
-      
+
       // No recargar inmediatamente - confiar en la actualización optimista
       // El recordatorio ya fue removido del estado local arriba
       // La próxima recarga natural (intervalo/focus) verificará permanentDeletedIdsRef
-      
+
       // Limpiar la marca de "reciente" después de un tiempo (pero mantener en permanent)
       setTimeout(() => {
         setRecentlyDeletedReminders((prev) => {
@@ -1358,9 +1435,9 @@ export default function NotificationsPage() {
         });
         recentlyDeletedRef.current.delete(reminderId);
       }, 5000);
-      
+
       toast.success("Recordatorio eliminado", {
-        description: isMaintenanceReminder 
+        description: isMaintenanceReminder
           ? "El recordatorio de mantenimiento y la fecha han sido eliminados"
           : "El recordatorio ha sido eliminado correctamente",
       });
@@ -1409,7 +1486,7 @@ export default function NotificationsPage() {
     lastUserActionRef.current = Date.now();
 
     setIsCreating(true);
-    
+
     const requestData = {
       title: formTitle.trim(),
       description: formDescription.trim() || null,
@@ -1420,7 +1497,7 @@ export default function NotificationsPage() {
       isPinned: formIsPinned, // Solo se fija si el admin marca el checkbox
     };
 
-    console.log('📤 [notifications] Enviando petición para crear notificación:', requestData);
+    console.log("📤 [notifications] Enviando petición para crear notificación:", requestData);
 
     try {
       const response = await fetch("/api/notifications", {
@@ -1431,7 +1508,7 @@ export default function NotificationsPage() {
         body: JSON.stringify(requestData),
       });
 
-      console.log('📥 [notifications] Respuesta recibida:', {
+      console.log("📥 [notifications] Respuesta recibida:", {
         ok: response.ok,
         status: response.status,
         statusText: response.statusText,
@@ -1442,19 +1519,19 @@ export default function NotificationsPage() {
         try {
           const error = await response.json();
           errorMessage = error.error || error.message || errorMessage;
-          console.error('❌ [notifications] Error del servidor:', error);
+          console.error("❌ [notifications] Error del servidor:", error);
         } catch (parseError) {
           const errorText = await response.text();
-          console.error('❌ [notifications] Error al parsear respuesta:', errorText);
+          console.error("❌ [notifications] Error al parsear respuesta:", errorText);
           errorMessage = errorText || errorMessage;
         }
         throw new Error(errorMessage);
       }
 
       const result = await response.json();
-      console.log('✅ [notifications] Notificación creada exitosamente:', result);
+      console.log("✅ [notifications] Notificación creada exitosamente:", result);
       toast.success(result.message || "Notificación creada exitosamente");
-      
+
       // Limpiar formulario
       setFormTitle("");
       setFormDescription("");
@@ -1492,7 +1569,7 @@ export default function NotificationsPage() {
     const pinned = normalizeBoolean(n.isPinned);
     const completed = normalizeBoolean(n.isCompleted);
     const expired = isExpired(n);
-    
+
     // Una notificación es "Activa" (debe aparecer en badge y tab Activas) si:
     // - NO está leída
     // - NO está fijada (las fijadas van en sección separada)
@@ -1506,7 +1583,7 @@ export default function NotificationsPage() {
     const read = normalizeBoolean(n.isRead);
     const completed = normalizeBoolean(n.isCompleted);
     const expired = isExpired(n);
-    
+
     // Una notificación es "Completada" si:
     // - Está marcada como completada (recordatorios)
     // - O está leída (notificaciones manuales)
@@ -1519,7 +1596,7 @@ export default function NotificationsPage() {
     const active = normalizeBoolean(n.isActive);
     const completed = normalizeBoolean(n.isCompleted);
     const expired = isExpired(n);
-    
+
     // Solo los recordatorios pueden estar pausados
     // Debe estar inactivo, no completado, y no expirado
     return n.source === "reminder" && !active && !completed && !expired;
@@ -1531,8 +1608,8 @@ export default function NotificationsPage() {
     switch (activeTab) {
       case "completed":
         // Usar función unificada de completadas (excluye fijadas y expiradas)
-        return notificationList.filter((n) => 
-          !normalizeBoolean(n.isPinned) && isNotificationCompleted(n)
+        return notificationList.filter(
+          (n) => !normalizeBoolean(n.isPinned) && isNotificationCompleted(n)
         );
       case "paused":
         // Usar función unificada de pausadas
@@ -1546,23 +1623,23 @@ export default function NotificationsPage() {
 
   // Obtener notificaciones del tab activo (sin fijadas)
   const displayedNotifications = getDisplayedNotifications();
-  
+
   // Las notificaciones fijadas son SIEMPRE visibles en su propia sección, independiente del tab
   // Se excluyen de los tabs Active/Completed/Paused para evitar duplicación visual
-  const pinnedNotifications = notificationList.filter(n => 
-    normalizeBoolean(n.isPinned) && !isExpired(n)
+  const pinnedNotifications = notificationList.filter(
+    (n) => normalizeBoolean(n.isPinned) && !isExpired(n)
   );
-  
+
   // Las notificaciones regulares son las del tab actual (ya filtradas sin fijadas)
   const regularNotifications = displayedNotifications;
 
   // CONTADORES CONSISTENTES: Usan las mismas funciones que los filtros de tabs
   const unreadCount = notificationList.filter(isNotificationActive).length;
-  
+
   const pausedCount = notificationList.filter(isNotificationPaused).length;
-  
+
   const completedCount = notificationList.filter(isNotificationCompleted).length;
-  
+
   const isAdmin = currentUserRole === "admin";
 
   // Convertir notificaciones a eventos de calendario
@@ -1570,10 +1647,11 @@ export default function NotificationsPage() {
     return notificationList.map((notification) => {
       // Para recordatorios, usar nextTrigger o timestamp
       // Para notificaciones manuales, usar timestamp
-      const startDate = notification.source === "reminder" 
-        ? (notification as any).originalTimestamp || notification.timestamp
-        : (notification as any).originalTimestamp || notification.timestamp;
-      
+      const startDate =
+        notification.source === "reminder"
+          ? (notification as any).originalTimestamp || notification.timestamp
+          : (notification as any).originalTimestamp || notification.timestamp;
+
       // Parsear la fecha (formatRelativeTime devuelve strings como "Hace 2 días")
       // Intentar obtener la fecha original del timestamp
       let eventDate: Date;
@@ -1609,13 +1687,15 @@ export default function NotificationsPage() {
   // Función auxiliar para validar y redirigir a vehículo de forma segura
   const navigateToVehicle = async (vehicleDocumentId: string | undefined, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    
-    if (!vehicleDocumentId || 
-        vehicleDocumentId === 'undefined' || 
-        vehicleDocumentId === 'null' || 
-        vehicleDocumentId === '') {
+
+    if (
+      !vehicleDocumentId ||
+      vehicleDocumentId === "undefined" ||
+      vehicleDocumentId === "null" ||
+      vehicleDocumentId === ""
+    ) {
       toast.error("Error de navegación", {
-        description: "El vehículo asociado a esta notificación no tiene un ID válido."
+        description: "El vehículo asociado a esta notificación no tiene un ID válido.",
       });
       return;
     }
@@ -1623,23 +1703,23 @@ export default function NotificationsPage() {
     // Solo los administradores pueden navegar al detalle de flota
     if (!isAdmin) {
       toast.error("Acceso restringido", {
-        description: "Se requieren permisos de administrador para ver el detalle del vehículo."
+        description: "Se requieren permisos de administrador para ver el detalle del vehículo.",
       });
       return;
     }
-    
+
     // Verificar que el vehículo existe antes de redirigir
     try {
       const response = await fetch(`/api/fleet/${vehicleDocumentId}`, {
-        method: 'HEAD',
-        cache: 'no-store'
+        method: "HEAD",
+        cache: "no-store",
       });
-      
+
       if (response.ok) {
         router.push(`/fleet/details/${vehicleDocumentId}`);
       } else {
         toast.error("Vehículo no encontrado", {
-          description: "El vehículo asociado a esta notificación ya no existe o ha sido eliminado."
+          description: "El vehículo asociado a esta notificación ya no existe o ha sido eliminado.",
         });
       }
     } catch {
@@ -1651,7 +1731,7 @@ export default function NotificationsPage() {
   const handleCalendarEventClick = (event: CalendarEvent) => {
     // Encontrar la notificación correspondiente y navegar si es de un vehículo
     if (event.source === "reminder" && event.vehicleName) {
-      const notification = notificationList.find(n => n.id === event.id);
+      const notification = notificationList.find((n) => n.id === event.id);
       if (notification?.vehicleDocumentId) {
         navigateToVehicle(notification.vehicleDocumentId);
       }
@@ -1660,194 +1740,240 @@ export default function NotificationsPage() {
 
   return (
     <AdminLayout title="Centro de Notificaciones">
-      {/* Header con botón de crear (todos los roles pueden crear) */}
+      {/* Header con botón de crear (visible solo para roles con permiso notifications/canCreate) */}
       <div className="flex justify-end mb-4">
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Can module="notifications" action="canCreate">
             <DialogTrigger asChild>
               <Button className="flex items-center gap-2">
                 <Plus className="h-4 w-4" />
                 Crear Notificación
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md h-[90vh] p-0 !flex !flex-col overflow-hidden">
-              <DialogHeader className={`${spacing.card.header} border-b shrink-0`}>
-                <DialogTitle className={typography.h2}>Crear Nueva Notificación</DialogTitle>
-              </DialogHeader>
-              
-              <ScrollAreaPrimitive.Root className="relative flex-1 min-h-0 overflow-hidden">
-                <ScrollAreaPrimitive.Viewport className="h-full w-full rounded-[inherit] scroll-smooth">
-                  <div className={`flex flex-col ${spacing.gap.medium} ${spacing.card.content} pt-6`}>
-                    <div className={`flex flex-col ${spacing.gap.small}`}>
-                      <Label htmlFor="title" className={typography.label}>
-                        Título <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="title"
-                        value={formTitle}
-                        onChange={(e) => setFormTitle(e.target.value)}
-                        placeholder="Ej: Reunión importante"
-                        className="rounded-lg"
-                      />
-                    </div>
-                    <div className={`flex flex-col ${spacing.gap.small}`}>
-                      <Label htmlFor="description" className={typography.label}>
-                        Descripción
-                      </Label>
-                      <Textarea
-                        id="description"
-                        value={formDescription}
-                        onChange={(e) => setFormDescription(e.target.value)}
-                        placeholder="Descripción de la notificación..."
-                        rows={3}
-                        className="rounded-lg resize-none"
-                      />
-                    </div>
-                    <div className={`flex flex-col ${spacing.gap.small}`}>
-                      <Label htmlFor="type" className={typography.label}>
-                        Tipo
-                      </Label>
-                      <Select value={formType} onValueChange={(value: any) => setFormType(value)}>
-                        <SelectTrigger id="type" className="rounded-lg">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="lead">Lead</SelectItem>
-                          <SelectItem value="sale">Venta</SelectItem>
-                          <SelectItem value="payment">Pago</SelectItem>
-                          <SelectItem value="inventory">Inventario</SelectItem>
-                          <SelectItem value="reminder">Aviso/Recordatorio</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      {formType === "reminder" && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Nota: Esta es una notificación manual. Los recordatorios completos con fecha programada se crean desde la sección de Flota.
-                        </p>
-                      )}
-                    </div>
-                    <div className={`flex flex-col ${spacing.gap.small}`}>
-                      <Label htmlFor="recipientType" className={typography.label}>
-                        Destinatario
-                      </Label>
-                      <Select value={formRecipientType} onValueChange={(value: any) => setFormRecipientType(value)}>
-                        <SelectTrigger id="recipientType" className="rounded-lg">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="specific">Usuario específico</SelectItem>
-                          <SelectItem value="all_admins">Todos los administradores</SelectItem>
-                          <SelectItem value="all_drivers">Todos los conductores</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {formRecipientType === "specific" && (
-                      <div className={`flex flex-col ${spacing.gap.small}`}>
-                        <Label htmlFor="recipientId" className={typography.label}>
-                          Usuario
-                        </Label>
-                        <Select value={formRecipientId} onValueChange={setFormRecipientId}>
-                          <SelectTrigger id="recipientId" className="rounded-lg">
-                            <SelectValue placeholder="Selecciona un usuario" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {users.map((user) => (
-                              <SelectItem key={user.documentId} value={user.documentId}>
-                                {user.displayName} ({user.role === "admin" ? "Admin" : "Conductor"})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-                    
-                    {/* Campo de duración */}
-                    <div className={`flex flex-col ${spacing.gap.small}`}>
-                      <Label htmlFor="durationDays" className={typography.label}>
-                        Duración (días)
-                      </Label>
-                      <Select 
-                        value={String(formDurationDays)} 
-                        onValueChange={(value) => setFormDurationDays(Number(value))}
-                      >
-                        <SelectTrigger id="durationDays" className="rounded-lg">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="1">1 día</SelectItem>
-                          <SelectItem value="3">3 días</SelectItem>
-                          <SelectItem value="7">1 semana</SelectItem>
-                          <SelectItem value="14">2 semanas</SelectItem>
-                          <SelectItem value="30">1 mes</SelectItem>
-                          <SelectItem value="90">3 meses</SelectItem>
-                          <SelectItem value="365">1 año</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-muted-foreground">
-                        La notificación expirará automáticamente después de este período
+          </Can>
+          <DialogContent className="max-w-md h-[90vh] p-0 !flex !flex-col overflow-hidden">
+            <DialogHeader className={`${spacing.card.header} border-b shrink-0`}>
+              <DialogTitle className={typography.h2}>Crear Nueva Notificación</DialogTitle>
+            </DialogHeader>
+
+            <ScrollAreaPrimitive.Root className="relative flex-1 min-h-0 overflow-hidden">
+              <ScrollAreaPrimitive.Viewport className="h-full w-full rounded-[inherit] scroll-smooth">
+                <div className={`flex flex-col ${spacing.gap.medium} ${spacing.card.content} pt-6`}>
+                  <div className={`flex flex-col ${spacing.gap.small}`}>
+                    <Label htmlFor="title" className={typography.label}>
+                      Título <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="title"
+                      value={formTitle}
+                      onChange={(e) => setFormTitle(e.target.value)}
+                      placeholder="Ej: Reunión importante"
+                      className="rounded-lg"
+                    />
+                  </div>
+                  <div className={`flex flex-col ${spacing.gap.small}`}>
+                    <Label htmlFor="description" className={typography.label}>
+                      Descripción
+                    </Label>
+                    <Textarea
+                      id="description"
+                      value={formDescription}
+                      onChange={(e) => setFormDescription(e.target.value)}
+                      placeholder="Descripción de la notificación..."
+                      rows={3}
+                      className="rounded-lg resize-none"
+                    />
+                  </div>
+                  <div className={`flex flex-col ${spacing.gap.small}`}>
+                    <Label htmlFor="type" className={typography.label}>
+                      Tipo
+                    </Label>
+                    <Select value={formType} onValueChange={(value: any) => setFormType(value)}>
+                      <SelectTrigger id="type" className="rounded-lg">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="lead">Lead</SelectItem>
+                        <SelectItem value="sale">Venta</SelectItem>
+                        <SelectItem value="payment">Pago</SelectItem>
+                        <SelectItem value="inventory">Inventario</SelectItem>
+                        <SelectItem value="reminder">Aviso/Recordatorio</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {formType === "reminder" && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Nota: Esta es una notificación manual. Los recordatorios completos con fecha
+                        programada se crean desde la sección de Flota.
                       </p>
-                    </div>
-                    
-                    {/* Checkbox para fijar notificación - solo visible y permitido para admins */}
-                    {currentUserRole === "admin" && (
-                      <div className={`flex flex-col ${spacing.gap.small} p-3 bg-muted/50 rounded-lg border`}>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            id="isPinned"
-                            checked={formIsPinned}
-                            onChange={(e) => setFormIsPinned(e.target.checked)}
-                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                          />
-                          <Label htmlFor="isPinned" className={`${typography.label} cursor-pointer flex items-center gap-2`}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                              <line x1="12" y1="17" x2="12" y2="22"></line>
-                              <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path>
-                            </svg>
-                            Fijar notificación
-                          </Label>
-                        </div>
-                        <p className="text-xs text-muted-foreground ml-6">
-                          Las notificaciones fijadas no se pueden descartar y no tienen fecha de expiración
-                        </p>
-                      </div>
-                    )}
-                    
-                    {/* Info para usuarios no-admin sobre restricciones */}
-                    {currentUserRole !== "admin" && (
-                      <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600 mt-0.5 shrink-0">
-                          <circle cx="12" cy="12" r="10"></circle>
-                          <path d="M12 16v-4"></path>
-                          <path d="M12 8h.01"></path>
-                        </svg>
-                        <p className="text-xs text-blue-700 dark:text-blue-300">
-                          Solo los administradores pueden fijar notificaciones. Tu notificación expirará según la duración seleccionada.
-                        </p>
-                      </div>
                     )}
                   </div>
-                </ScrollAreaPrimitive.Viewport>
-                <ScrollAreaPrimitive.Scrollbar
-                  className="flex touch-none select-none transition-colors h-2 bg-transparent p-[2px] group relative"
-                  orientation="vertical"
-                >
-                  <ScrollAreaPrimitive.Thumb className="relative flex-1 rounded-full bg-border" />
-                </ScrollAreaPrimitive.Scrollbar>
-              </ScrollAreaPrimitive.Root>
-              
-              <DialogFooter className={`${spacing.card.header} border-t shrink-0`}>
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="rounded-lg">
-                  Cancelar
-                </Button>
-                <Button onClick={handleCreateNotification} disabled={isCreating} className="rounded-lg">
-                  {isCreating ? "Creando..." : "Crear"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+                  <div className={`flex flex-col ${spacing.gap.small}`}>
+                    <Label htmlFor="recipientType" className={typography.label}>
+                      Destinatario
+                    </Label>
+                    <Select
+                      value={formRecipientType}
+                      onValueChange={(value: any) => setFormRecipientType(value)}
+                    >
+                      <SelectTrigger id="recipientType" className="rounded-lg">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="specific">Usuario específico</SelectItem>
+                        <SelectItem value="all_admins">Todos los administradores</SelectItem>
+                        <SelectItem value="all_drivers">Todos los conductores</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {formRecipientType === "specific" && (
+                    <div className={`flex flex-col ${spacing.gap.small}`}>
+                      <Label htmlFor="recipientId" className={typography.label}>
+                        Usuario
+                      </Label>
+                      <Select value={formRecipientId} onValueChange={setFormRecipientId}>
+                        <SelectTrigger id="recipientId" className="rounded-lg">
+                          <SelectValue placeholder="Selecciona un usuario" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {users.map((user) => (
+                            <SelectItem key={user.documentId} value={user.documentId}>
+                              {user.displayName} ({user.role === "admin" ? "Admin" : "Conductor"})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {/* Campo de duración */}
+                  <div className={`flex flex-col ${spacing.gap.small}`}>
+                    <Label htmlFor="durationDays" className={typography.label}>
+                      Duración (días)
+                    </Label>
+                    <Select
+                      value={String(formDurationDays)}
+                      onValueChange={(value) => setFormDurationDays(Number(value))}
+                    >
+                      <SelectTrigger id="durationDays" className="rounded-lg">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1 día</SelectItem>
+                        <SelectItem value="3">3 días</SelectItem>
+                        <SelectItem value="7">1 semana</SelectItem>
+                        <SelectItem value="14">2 semanas</SelectItem>
+                        <SelectItem value="30">1 mes</SelectItem>
+                        <SelectItem value="90">3 meses</SelectItem>
+                        <SelectItem value="365">1 año</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      La notificación expirará automáticamente después de este período
+                    </p>
+                  </div>
+
+                  {/* Checkbox para fijar notificación - solo visible y permitido para admins */}
+                  {currentUserRole === "admin" && (
+                    <div
+                      className={`flex flex-col ${spacing.gap.small} p-3 bg-muted/50 rounded-lg border`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="isPinned"
+                          checked={formIsPinned}
+                          onChange={(e) => setFormIsPinned(e.target.checked)}
+                          className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                        />
+                        <Label
+                          htmlFor="isPinned"
+                          className={`${typography.label} cursor-pointer flex items-center gap-2`}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="text-primary"
+                          >
+                            <line x1="12" y1="17" x2="12" y2="22"></line>
+                            <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"></path>
+                          </svg>
+                          Fijar notificación
+                        </Label>
+                      </div>
+                      <p className="text-xs text-muted-foreground ml-6">
+                        Las notificaciones fijadas no se pueden descartar y no tienen fecha de
+                        expiración
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Info para usuarios no-admin sobre restricciones */}
+                  {currentUserRole !== "admin" && (
+                    <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="text-blue-600 mt-0.5 shrink-0"
+                      >
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4"></path>
+                        <path d="M12 8h.01"></path>
+                      </svg>
+                      <p className="text-xs text-blue-700 dark:text-blue-300">
+                        Solo los administradores pueden fijar notificaciones. Tu notificación
+                        expirará según la duración seleccionada.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </ScrollAreaPrimitive.Viewport>
+              <ScrollAreaPrimitive.Scrollbar
+                className="flex touch-none select-none transition-colors h-2 bg-transparent p-[2px] group relative"
+                orientation="vertical"
+              >
+                <ScrollAreaPrimitive.Thumb className="relative flex-1 rounded-full bg-border" />
+              </ScrollAreaPrimitive.Scrollbar>
+            </ScrollAreaPrimitive.Root>
+
+            <DialogFooter className={`${spacing.card.header} border-t shrink-0`}>
+              <Button
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+                className="rounded-lg"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleCreateNotification}
+                disabled={isCreating}
+                className="rounded-lg"
+              >
+                {isCreating ? "Creando..." : "Crear"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
 
       <div className="px-0">
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "notifications" | "paused" | "completed")}>
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as "notifications" | "paused" | "completed")}
+        >
           <TabsList className="flex items-center justify-start w-full bg-transparent p-0 h-auto border-0 shadow-none gap-2">
             <TabsTrigger
               value="notifications"
@@ -1895,7 +2021,9 @@ export default function NotificationsPage() {
         <div className="lg:col-span-8 xl:col-span-9">
           {isLoading ? (
             <Card className={commonClasses.card}>
-              <CardContent className={`flex flex-col items-center justify-center text-center ${spacing.card.padding}`}>
+              <CardContent
+                className={`flex flex-col items-center justify-center text-center ${spacing.card.padding}`}
+              >
                 <div className="flex items-center justify-center bg-muted rounded-full size-24 mb-6">
                   <Calendar className="h-10 w-10 text-muted-foreground animate-pulse" />
                 </div>
@@ -1907,19 +2035,21 @@ export default function NotificationsPage() {
             </Card>
           ) : error ? (
             <Card className={commonClasses.card}>
-              <CardContent className={`flex flex-col items-center justify-center text-center ${spacing.card.padding}`}>
+              <CardContent
+                className={`flex flex-col items-center justify-center text-center ${spacing.card.padding}`}
+              >
                 <div className="flex items-center justify-center bg-red-500/10 rounded-full size-24 mb-6">
                   <Calendar className="h-10 w-10 text-red-600" />
                 </div>
                 <h3 className={typography.h3}>Error al cargar</h3>
-                <p className={`${typography.body.small} mt-2 text-muted-foreground`}>
-                  {error}
-                </p>
+                <p className={`${typography.body.small} mt-2 text-muted-foreground`}>{error}</p>
               </CardContent>
             </Card>
           ) : regularNotifications.length === 0 ? (
             <Card className={commonClasses.card}>
-              <CardContent className={`flex flex-col items-center justify-center text-center ${spacing.card.padding}`}>
+              <CardContent
+                className={`flex flex-col items-center justify-center text-center ${spacing.card.padding}`}
+              >
                 <div className="flex items-center justify-center bg-muted rounded-full size-24 mb-6">
                   <Archive className="h-10 w-10 text-muted-foreground" />
                 </div>
@@ -1928,8 +2058,8 @@ export default function NotificationsPage() {
                   {activeTab === "completed"
                     ? "No tienes notificaciones completadas. Las notificaciones marcadas como leídas aparecerán aquí hasta que expiren."
                     : activeTab === "paused"
-                    ? "No tienes ninguna tarea pausada de momento."
-                    : "No tienes notificaciones nuevas."}
+                      ? "No tienes ninguna tarea pausada de momento."
+                      : "No tienes notificaciones nuevas."}
                 </p>
               </CardContent>
             </Card>
@@ -1938,13 +2068,15 @@ export default function NotificationsPage() {
             <div className="relative">
               {/* Línea vertical del timeline */}
               <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/50 via-primary/30 to-transparent hidden md:block" />
-              
+
               <div className={`flex flex-col ${spacing.gap.large}`}>
                 {regularNotifications.map((notification, index) => {
                   const Icon = notification.icon;
                   const isReminder = notification.source === "reminder";
-                  const moduleColors = notification.module ? MODULE_COLORS[notification.module] : null;
-                  
+                  const moduleColors = notification.module
+                    ? MODULE_COLORS[notification.module]
+                    : null;
+
                   const handleCardClick = () => {
                     if (deletingReminders.has(notification.id)) return;
                     if (isReminder && notification.vehicleDocumentId) {
@@ -1956,13 +2088,13 @@ export default function NotificationsPage() {
                     <div key={notification.id} className="relative flex gap-4 group">
                       {/* Marcador del timeline */}
                       <div className="hidden md:flex flex-col items-center shrink-0">
-                        <div 
+                        <div
                           className={`w-12 h-12 rounded-full flex items-center justify-center border-4 border-background shadow-lg z-10 transition-all group-hover:scale-110 ${
-                            notification.isCompleted 
-                              ? "bg-green-500 text-white" 
+                            notification.isCompleted
+                              ? "bg-green-500 text-white"
                               : notification.isPinned
-                              ? "bg-amber-500 text-white"
-                              : `${notification.iconBgColor} ${notification.iconColor}`
+                                ? "bg-amber-500 text-white"
+                                : `${notification.iconBgColor} ${notification.iconColor}`
                           }`}
                         >
                           {notification.isCompleted ? (
@@ -1993,14 +2125,18 @@ export default function NotificationsPage() {
                             <div className="flex items-start gap-3">
                               {/* Icono móvil */}
                               <div className="md:hidden shrink-0">
-                                <div 
+                                <div
                                   className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                                    notification.isCompleted 
-                                      ? "bg-green-500 text-white" 
+                                    notification.isCompleted
+                                      ? "bg-green-500 text-white"
                                       : `${notification.iconBgColor} ${notification.iconColor}`
                                   }`}
                                 >
-                                  {notification.isCompleted ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+                                  {notification.isCompleted ? (
+                                    <CheckCircle2 className="h-4 w-4" />
+                                  ) : (
+                                    <Icon className="h-4 w-4" />
+                                  )}
                                 </div>
                               </div>
 
@@ -2008,9 +2144,13 @@ export default function NotificationsPage() {
                                 {/* Header */}
                                 <div className="flex items-start justify-between gap-2 mb-2">
                                   <div className="flex items-center gap-2 flex-wrap">
-                                    <h4 className={`font-semibold text-base ${
-                                      notification.isCompleted ? "line-through text-muted-foreground" : ""
-                                    }`}>
+                                    <h4
+                                      className={`font-semibold text-base ${
+                                        notification.isCompleted
+                                          ? "line-through text-muted-foreground"
+                                          : ""
+                                      }`}
+                                    >
                                       {notification.title}
                                     </h4>
                                     {isReminder && (
@@ -2019,22 +2159,27 @@ export default function NotificationsPage() {
                                       </Badge>
                                     )}
                                     {isReminder && notification.module && moduleColors && (
-                                      <Badge 
-                                        variant="outline" 
+                                      <Badge
+                                        variant="outline"
                                         className={`text-xs ${moduleColors.bg} ${moduleColors.text} ${moduleColors.border}`}
                                       >
                                         {MODULE_LABELS[notification.module]}
                                       </Badge>
                                     )}
-                                    {isReminder && notification.isActive === false && !notification.isCompleted && (
-                                      <Badge variant="secondary" className="text-xs">
-                                        Pausado
-                                      </Badge>
-                                    )}
+                                    {isReminder &&
+                                      notification.isActive === false &&
+                                      !notification.isCompleted && (
+                                        <Badge variant="secondary" className="text-xs">
+                                          Pausado
+                                        </Badge>
+                                      )}
                                   </div>
-                                  
+
                                   {/* Acciones */}
-                                  <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                  <div
+                                    className="flex items-center gap-1 shrink-0"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
                                     {isReminder && notification.vehicleDocumentId && (
                                       <Button
                                         variant="ghost"
@@ -2049,74 +2194,84 @@ export default function NotificationsPage() {
                                       </Button>
                                     )}
                                     {isReminder && !notification.isCompleted && (
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-7 w-7"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleToggleActive(notification);
-                                        }}
-                                        title={notification.isActive ? "Pausar" : "Activar"}
-                                      >
-                                        {notification.isActive ? (
-                                          <Pause className="h-3.5 w-3.5 text-muted-foreground" />
-                                        ) : (
-                                          <Play className="h-3.5 w-3.5 text-green-600" />
-                                        )}
-                                      </Button>
+                                      <Can module="notifications" action="canUpdate">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleToggleActive(notification);
+                                          }}
+                                          title={notification.isActive ? "Pausar" : "Activar"}
+                                        >
+                                          {notification.isActive ? (
+                                            <Pause className="h-3.5 w-3.5 text-muted-foreground" />
+                                          ) : (
+                                            <Play className="h-3.5 w-3.5 text-green-600" />
+                                          )}
+                                        </Button>
+                                      </Can>
                                     )}
                                     {isReminder && (
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-7 w-7 text-destructive hover:text-destructive"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleRequestDeleteReminder(notification);
-                                        }}
-                                        title="Eliminar"
-                                      >
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                      </Button>
+                                      <Can module="notifications" action="canDelete">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7 text-destructive hover:text-destructive"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleRequestDeleteReminder(notification);
+                                          }}
+                                          title="Eliminar"
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </Can>
                                     )}
                                     {/* Botón para marcar como leída - solo para notificaciones manuales no leídas */}
-                                    {!isReminder && !notification.isRead && activeTab === "notifications" && (
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-7 w-7 text-primary hover:text-primary"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleMarkAsRead(notification);
-                                        }}
-                                        title="Marcar como leída"
-                                      >
-                                        <CheckCircle2 className="h-3.5 w-3.5" />
-                                      </Button>
-                                    )}
+                                    {!isReminder &&
+                                      !notification.isRead &&
+                                      activeTab === "notifications" && (
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7 text-primary hover:text-primary"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleMarkAsRead(notification);
+                                          }}
+                                          title="Marcar como leída"
+                                        >
+                                          <CheckCircle2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                      )}
                                     {/* Botón para eliminar - solo para notificaciones manuales */}
                                     {!isReminder && (
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-7 w-7 text-destructive hover:text-destructive"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleRequestDeleteManual(notification);
-                                        }}
-                                        title="Eliminar notificación"
-                                      >
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                      </Button>
+                                      <Can module="notifications" action="canDelete">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7 text-destructive hover:text-destructive"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleRequestDeleteManual(notification);
+                                          }}
+                                          title="Eliminar notificación"
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </Can>
                                     )}
                                   </div>
                                 </div>
 
                                 {/* Descripción */}
-                                <p className={`text-sm text-muted-foreground mb-3 ${
-                                  notification.isCompleted ? "line-through" : ""
-                                }`}>
+                                <p
+                                  className={`text-sm text-muted-foreground mb-3 ${
+                                    notification.isCompleted ? "line-through" : ""
+                                  }`}
+                                >
                                   {notification.description}
                                 </p>
 
@@ -2129,19 +2284,23 @@ export default function NotificationsPage() {
                                       Completado
                                     </span>
                                   )}
-                                  {isReminder && notification.isActive === false && !notification.isCompleted && (
-                                    <span className="flex items-center gap-1">
-                                      <Pause className="h-3 w-3" />
-                                      Pausado
-                                    </span>
-                                  )}
+                                  {isReminder &&
+                                    notification.isActive === false &&
+                                    !notification.isCompleted && (
+                                      <span className="flex items-center gap-1">
+                                        <Pause className="h-3 w-3" />
+                                        Pausado
+                                      </span>
+                                    )}
                                   {/* Mostrar fecha de expiración para notificaciones manuales no fijadas */}
-                                  {!isReminder && notification.expiresAt && !notification.isPinned && (
-                                    <span className="flex items-center gap-1 text-amber-600">
-                                      <Clock className="h-3 w-3" />
-                                      Expira {formatRelativeTime(notification.expiresAt)}
-                                    </span>
-                                  )}
+                                  {!isReminder &&
+                                    notification.expiresAt &&
+                                    !notification.isPinned && (
+                                      <span className="flex items-center gap-1 text-amber-600">
+                                        <Clock className="h-3 w-3" />
+                                        Expira {formatRelativeTime(notification.expiresAt)}
+                                      </span>
+                                    )}
                                   {/* Mostrar que no expira para notificaciones fijadas */}
                                   {!isReminder && notification.isPinned && (
                                     <span className="flex items-center gap-1 text-amber-600">
@@ -2154,24 +2313,30 @@ export default function NotificationsPage() {
 
                               {/* Checkbox de completado */}
                               {isReminder && (
-                                <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      e.preventDefault();
-                                      handleToggleCompleted(notification);
-                                    }}
-                                    disabled={togglingCompleted.has(notification.id)}
-                                    className="h-6 w-6 shrink-0 flex items-center justify-center disabled:opacity-50"
-                                    title={notification.isCompleted ? "Marcar como pendiente" : "Marcar como completado"}
-                                  >
-                                    {notification.isCompleted ? (
-                                      <CheckCircle2 className="h-6 w-6 text-green-600" />
-                                    ) : (
-                                      <Circle className="h-6 w-6 text-muted-foreground/40 hover:text-primary transition-colors" />
-                                    )}
-                                  </button>
-                                </div>
+                                <Can module="notifications" action="canUpdate">
+                                  <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                        handleToggleCompleted(notification);
+                                      }}
+                                      disabled={togglingCompleted.has(notification.id)}
+                                      className="h-6 w-6 shrink-0 flex items-center justify-center disabled:opacity-50"
+                                      title={
+                                        notification.isCompleted
+                                          ? "Marcar como pendiente"
+                                          : "Marcar como completado"
+                                      }
+                                    >
+                                      {notification.isCompleted ? (
+                                        <CheckCircle2 className="h-6 w-6 text-green-600" />
+                                      ) : (
+                                        <Circle className="h-6 w-6 text-muted-foreground/40 hover:text-primary transition-colors" />
+                                      )}
+                                    </button>
+                                  </div>
+                                </Can>
                               )}
                             </div>
                           </CardContent>
@@ -2203,9 +2368,7 @@ export default function NotificationsPage() {
             {pinnedNotifications.length === 0 ? (
               <div className="text-center py-8 px-4 bg-muted/30 rounded-lg border border-dashed">
                 <Pin className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">
-                  No hay notificaciones fijadas
-                </p>
+                <p className="text-sm text-muted-foreground">No hay notificaciones fijadas</p>
                 <p className="text-xs text-muted-foreground/70 mt-1">
                   Los administradores pueden fijar notificaciones importantes
                 </p>
@@ -2215,7 +2378,7 @@ export default function NotificationsPage() {
                 {pinnedNotifications.map((notification) => {
                   const Icon = notification.icon;
                   const isReminder = notification.source === "reminder";
-                  
+
                   return (
                     <Card
                       key={notification.id}
@@ -2225,46 +2388,58 @@ export default function NotificationsPage() {
                     >
                       <CardContent className="p-4">
                         <div className="flex items-start gap-3">
-                          <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${notification.iconBgColor} ${notification.iconColor}`}>
+                          <div
+                            className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${notification.iconBgColor} ${notification.iconColor}`}
+                          >
                             <Icon className="h-4 w-4" />
                           </div>
-                          
+
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               <Pin className="h-3 w-3 text-amber-500 shrink-0" />
-                              <h5 className={`font-medium text-sm ${
-                                notification.isCompleted ? "line-through text-muted-foreground" : ""
-                              }`}>
+                              <h5
+                                className={`font-medium text-sm ${
+                                  notification.isCompleted
+                                    ? "line-through text-muted-foreground"
+                                    : ""
+                                }`}
+                              >
                                 {notification.title}
                               </h5>
                             </div>
-                            
-                            <p className={`text-xs text-muted-foreground mb-2 ${
-                              notification.isCompleted ? "line-through" : ""
-                            }`}>
+
+                            <p
+                              className={`text-xs text-muted-foreground mb-2 ${
+                                notification.isCompleted ? "line-through" : ""
+                              }`}
+                            >
                               {notification.description}
                             </p>
-                            
+
                             <div className="flex items-center justify-between">
                               <span className="text-xs text-muted-foreground/70">
                                 {notification.timestamp}
                               </span>
-                              
+
                               {isReminder && (
-                                <div className="flex items-center gap-1">
-                                  <button
-                                    onClick={() => handleToggleCompleted(notification)}
-                                    disabled={togglingCompleted.has(notification.id)}
-                                    className="p-1 rounded hover:bg-muted transition-colors"
-                                    title={notification.isCompleted ? "Marcar pendiente" : "Completar"}
-                                  >
-                                    {notification.isCompleted ? (
-                                      <CheckCircle2 className="h-4 w-4 text-green-600" />
-                                    ) : (
-                                      <Circle className="h-4 w-4 text-muted-foreground/50" />
-                                    )}
-                                  </button>
-                                </div>
+                                <Can module="notifications" action="canUpdate">
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      onClick={() => handleToggleCompleted(notification)}
+                                      disabled={togglingCompleted.has(notification.id)}
+                                      className="p-1 rounded hover:bg-muted transition-colors"
+                                      title={
+                                        notification.isCompleted ? "Marcar pendiente" : "Completar"
+                                      }
+                                    >
+                                      {notification.isCompleted ? (
+                                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                      ) : (
+                                        <Circle className="h-4 w-4 text-muted-foreground/50" />
+                                      )}
+                                    </button>
+                                  </div>
+                                </Can>
                               )}
                             </div>
                           </div>
@@ -2281,7 +2456,8 @@ export default function NotificationsPage() {
               <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
                 <Clock className="h-4 w-4 shrink-0" />
                 <span>
-                  Las notificaciones fijadas permanecen visibles indefinidamente (solo pueden eliminarlas los administradores)
+                  Las notificaciones fijadas permanecen visibles indefinidamente (solo pueden
+                  eliminarlas los administradores)
                 </span>
               </div>
             )}
@@ -2289,7 +2465,7 @@ export default function NotificationsPage() {
             {/* Calendario de Notificaciones - Compacto debajo de fijadas */}
             {!isLoading && !error && calendarEvents.length > 0 && (
               <div className="mt-6">
-                <NotificationCalendar 
+                <NotificationCalendar
                   events={[]}
                   onEventClick={handleCalendarEventClick}
                   className="compact-calendar"
@@ -2376,4 +2552,3 @@ export default function NotificationsPage() {
     </AdminLayout>
   );
 }
-

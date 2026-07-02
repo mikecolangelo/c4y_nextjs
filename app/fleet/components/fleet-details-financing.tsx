@@ -1,24 +1,25 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components_shadcn/ui/card";
-import { Badge } from "@/components_shadcn/ui/badge";
+import { StatusBadge, type StatusTone } from "@/components/ui";
 import { Button } from "@/components_shadcn/ui/button";
 import { Progress } from "@/components_shadcn/ui/progress";
-import { 
-  Banknote, 
-  Calendar, 
-  TrendingUp, 
-  AlertTriangle, 
+import {
+  Banknote,
+  Calendar,
+  TrendingUp,
+  AlertTriangle,
   CheckCircle2,
   Clock,
   ExternalLink,
-  CreditCard
+  CreditCard,
 } from "lucide-react";
 import { typography, spacing } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import Link from "next/link";
+import { Can } from "@/components/auth/can";
 
 interface FinancingInfo {
   id: number;
@@ -40,40 +41,35 @@ interface FleetDetailsFinancingCardProps {
   vehicleName: string;
 }
 
-const statusConfig: Record<string, {
-  label: string;
-  icon: typeof CheckCircle2;
-  bgColor: string;
-  textColor: string;
-  borderColor: string;
-}> = {
+// Maps each financing status to a shared StatusBadge tone + icon, replacing the
+// previous ad-hoc bg/text/border color sets.
+const statusConfig: Record<
+  string,
+  {
+    label: string;
+    icon: typeof CheckCircle2;
+    tone: StatusTone;
+  }
+> = {
   activo: {
     label: "Activo",
     icon: CheckCircle2,
-    bgColor: "bg-green-50 dark:bg-green-950/30",
-    textColor: "text-green-700 dark:text-green-400",
-    borderColor: "border-green-200 dark:border-green-800",
+    tone: "success",
   },
   en_mora: {
     label: "En Mora",
     icon: AlertTriangle,
-    bgColor: "bg-red-50 dark:bg-red-950/30",
-    textColor: "text-red-700 dark:text-red-400",
-    borderColor: "border-red-200 dark:border-red-800",
+    tone: "danger",
   },
   completado: {
     label: "Completado",
     icon: CheckCircle2,
-    bgColor: "bg-blue-50 dark:bg-blue-950/30",
-    textColor: "text-blue-700 dark:text-blue-400",
-    borderColor: "border-blue-200 dark:border-blue-800",
+    tone: "info",
   },
   inactivo: {
     label: "Inactivo",
     icon: Clock,
-    bgColor: "bg-gray-50 dark:bg-gray-950/30",
-    textColor: "text-gray-700 dark:text-gray-400",
-    borderColor: "border-gray-200 dark:border-gray-800",
+    tone: "neutral",
   },
 };
 
@@ -94,16 +90,21 @@ const formatDate = (dateString?: string): string => {
   }
 };
 
-export function FleetDetailsFinancingCard({ financing, vehicleName }: FleetDetailsFinancingCardProps) {
+export function FleetDetailsFinancingCard({
+  financing,
+  vehicleName,
+}: FleetDetailsFinancingCardProps) {
   // Si no hay financiamiento, mostrar estado vacío
   if (!financing) {
     return (
-      <Card 
+      <Card
         className="shadow-sm backdrop-blur-sm border rounded-lg"
-        style={{
-          backgroundColor: 'color-mix(in oklch, var(--background) 50%, transparent)',
-          borderColor: 'color-mix(in oklch, var(--border) 85%, transparent)',
-        } as React.CSSProperties}
+        style={
+          {
+            backgroundColor: "color-mix(in oklch, var(--background) 50%, transparent)",
+            borderColor: "color-mix(in oklch, var(--border) 85%, transparent)",
+          } as React.CSSProperties
+        }
       >
         <CardHeader className="px-6 pt-6 pb-4">
           <CardTitle className={cn(typography.h4, "flex items-center gap-2")}>
@@ -111,17 +112,25 @@ export function FleetDetailsFinancingCard({ financing, vehicleName }: FleetDetai
             Financiamiento
           </CardTitle>
         </CardHeader>
-        <CardContent className={cn("flex flex-col items-center justify-center py-8", spacing.gap.base, "px-6 pb-6")}>
+        <CardContent
+          className={cn(
+            "flex flex-col items-center justify-center py-8",
+            spacing.gap.base,
+            "px-6 pb-6"
+          )}
+        >
           <Banknote className="h-12 w-12 text-muted-foreground/50" />
           <p className={cn(typography.body.base, "text-muted-foreground text-center")}>
             Este vehículo no tiene un financiamiento activo
           </p>
-          <Link href="/billing">
-            <Button variant="outline" size="sm" className="mt-2">
-              <CreditCard className="h-4 w-4 mr-2" />
-              Crear Financiamiento
-            </Button>
-          </Link>
+          <Can module="billing" action="canCreate">
+            <Link href="/billing">
+              <Button variant="outline" size="sm" className="mt-2">
+                <CreditCard className="h-4 w-4 mr-2" />
+                Crear Financiamiento
+              </Button>
+            </Link>
+          </Can>
         </CardContent>
       </Card>
     );
@@ -130,18 +139,21 @@ export function FleetDetailsFinancingCard({ financing, vehicleName }: FleetDetai
   const status = financing.status || "activo";
   const config = statusConfig[status] || statusConfig.activo;
   const StatusIcon = config.icon;
-  
-  const progressPercentage = financing.totalQuotas && financing.paidQuotas 
-    ? Math.round((financing.paidQuotas / financing.totalQuotas) * 100)
-    : 0;
+
+  const progressPercentage =
+    financing.totalQuotas && financing.paidQuotas
+      ? Math.round((financing.paidQuotas / financing.totalQuotas) * 100)
+      : 0;
 
   return (
-    <Card 
+    <Card
       className="shadow-sm backdrop-blur-sm border rounded-lg"
-      style={{
-        backgroundColor: 'color-mix(in oklch, var(--background) 50%, transparent)',
-        borderColor: 'color-mix(in oklch, var(--border) 85%, transparent)',
-      } as React.CSSProperties}
+      style={
+        {
+          backgroundColor: "color-mix(in oklch, var(--background) 50%, transparent)",
+          borderColor: "color-mix(in oklch, var(--border) 85%, transparent)",
+        } as React.CSSProperties
+      }
     >
       <CardHeader className="px-6 pt-6 pb-4 flex flex-row items-center justify-between">
         <CardTitle className={cn(typography.h4, "flex items-center gap-2")}>
@@ -149,16 +161,10 @@ export function FleetDetailsFinancingCard({ financing, vehicleName }: FleetDetai
           Financiamiento
         </CardTitle>
         <div className="flex items-center gap-2">
-          <Badge className={cn(
-            "text-xs",
-            config.bgColor,
-            config.textColor,
-            "border",
-            config.borderColor
-          )}>
-            <StatusIcon className="h-3 w-3 mr-1" />
+          <StatusBadge tone={config.tone}>
+            <StatusIcon />
             {config.label}
-          </Badge>
+          </StatusBadge>
           {financing.documentId && (
             <Link href={`/billing/financing/${financing.documentId}`}>
               <Button variant="ghost" size="sm" className="h-8 px-2">
@@ -182,7 +188,8 @@ export function FleetDetailsFinancingCard({ financing, vehicleName }: FleetDetai
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Progreso</span>
             <span className={typography.body.base}>
-              {financing.paidQuotas || 0} de {financing.totalQuotas || 0} cuotas ({progressPercentage}%)
+              {financing.paidQuotas || 0} de {financing.totalQuotas || 0} cuotas (
+              {progressPercentage}%)
             </span>
           </div>
           <Progress value={progressPercentage} className="h-2" />
@@ -191,60 +198,58 @@ export function FleetDetailsFinancingCard({ financing, vehicleName }: FleetDetai
         {/* Grid de información financiera */}
         <div className="grid grid-cols-2 gap-3 mt-2">
           {/* Monto Total */}
-          <div className={cn(
-            "rounded-lg p-3",
-            "bg-muted/50 border"
-          )}>
+          <div className={cn("rounded-lg p-3", "bg-muted/50 border")}>
             <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
               <Banknote className="h-3 w-3" />
               Monto Total
             </div>
-            <p className={typography.body.large}>
-              {formatCurrency(financing.totalAmount || 0)}
-            </p>
+            <p className={typography.body.large}>{formatCurrency(financing.totalAmount || 0)}</p>
           </div>
 
           {/* Cuota */}
-          <div className={cn(
-            "rounded-lg p-3",
-            "bg-muted/50 border"
-          )}>
+          <div className={cn("rounded-lg p-3", "bg-muted/50 border")}>
             <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
               <TrendingUp className="h-3 w-3" />
               Cuota
             </div>
-            <p className={typography.body.large}>
-              {formatCurrency(financing.quotaAmount || 0)}
-            </p>
+            <p className={typography.body.large}>{formatCurrency(financing.quotaAmount || 0)}</p>
           </div>
 
           {/* Saldo Pendiente */}
-          <div className={cn(
-            "rounded-lg p-3",
-            status === "en_mora" 
-              ? "bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800"
-              : "bg-muted/50 border"
-          )}>
-            <div className={cn(
-              "flex items-center gap-1 text-xs mb-1",
-              status === "en_mora" ? "text-red-600 dark:text-red-400" : "text-muted-foreground"
-            )}>
+          <div
+            className={cn(
+              "rounded-lg p-3",
+              status === "en_mora"
+                ? "bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800"
+                : "bg-muted/50 border"
+            )}
+          >
+            <div
+              className={cn(
+                "flex items-center gap-1 text-xs mb-1",
+                status === "en_mora" ? "text-red-600 dark:text-red-400" : "text-muted-foreground"
+              )}
+            >
               <AlertTriangle className="h-3 w-3" />
               Saldo Pendiente
             </div>
-            <p className={cn(
-              typography.body.large,
-              status === "en_mora" && "text-red-700 dark:text-red-400"
-            )}>
+            <p
+              className={cn(
+                typography.body.large,
+                status === "en_mora" && "text-red-700 dark:text-red-400"
+              )}
+            >
               {formatCurrency(financing.currentBalance || 0)}
             </p>
           </div>
 
           {/* Total Pagado */}
-          <div className={cn(
-            "rounded-lg p-3",
-            "bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800"
-          )}>
+          <div
+            className={cn(
+              "rounded-lg p-3",
+              "bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800"
+            )}
+          >
             <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400 mb-1">
               <CheckCircle2 className="h-3 w-3" />
               Total Pagado
@@ -257,10 +262,12 @@ export function FleetDetailsFinancingCard({ financing, vehicleName }: FleetDetai
 
         {/* Próximo vencimiento */}
         {financing.nextDueDate && status !== "completado" && (
-          <div className={cn(
-            "flex items-center justify-between p-3 rounded-lg",
-            "bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800"
-          )}>
+          <div
+            className={cn(
+              "flex items-center justify-between p-3 rounded-lg",
+              "bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800"
+            )}
+          >
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-amber-600 dark:text-amber-400" />
               <span className="text-sm text-amber-700 dark:text-amber-400">
@@ -275,15 +282,15 @@ export function FleetDetailsFinancingCard({ financing, vehicleName }: FleetDetai
 
         {/* Crédito a favor */}
         {financing.partialPaymentCredit && financing.partialPaymentCredit > 0 && (
-          <div className={cn(
-            "flex items-center justify-between p-3 rounded-lg",
-            "bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800"
-          )}>
+          <div
+            className={cn(
+              "flex items-center justify-between p-3 rounded-lg",
+              "bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800"
+            )}
+          >
             <div className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <span className="text-sm text-blue-700 dark:text-blue-400">
-                Crédito a favor
-              </span>
+              <span className="text-sm text-blue-700 dark:text-blue-400">Crédito a favor</span>
             </div>
             <span className="text-sm font-medium text-blue-700 dark:text-blue-400">
               {formatCurrency(financing.partialPaymentCredit)}

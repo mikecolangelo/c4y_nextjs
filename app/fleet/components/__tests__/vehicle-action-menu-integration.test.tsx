@@ -12,6 +12,10 @@ vi.mock("next/image", () => ({
   },
 }));
 
+vi.mock("@/components/auth/can", () => ({
+  Can: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 const vehicles: FleetVehicleCard[] = [
   {
     id: "1",
@@ -148,7 +152,7 @@ describe("VehicleActionMenu - Pruebas de integración en vistas", () => {
         year: 2023,
         imageUrl: "https://example.com/car-1.jpg",
         assignedDrivers: [],
-    responsables: [],
+        responsables: [],
         interestedDrivers: [],
         interestedPersons: [],
       },

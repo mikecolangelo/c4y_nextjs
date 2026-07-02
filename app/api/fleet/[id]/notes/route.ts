@@ -3,14 +3,14 @@ import { cookies } from "next/headers";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
 import qs from "qs";
 import { fetchFleetVehicleByIdFromStrapi } from "@/lib/fleet";
-import { requireAdmin } from "@/lib/admin-guard";
+import { requireModulePermission } from "@/lib/module-guard";
 
 // Función helper para obtener el user-profile del usuario actual
 async function getCurrentUserProfile() {
   try {
     const cookieStore = await cookies();
     const jwt = cookieStore.get("jwt")?.value;
-    
+
     if (!jwt) {
       return null;
     }
@@ -29,11 +29,11 @@ async function getCurrentUserProfile() {
     }
 
     const userData = await userResponse.json();
-    
+
     // En este proyecto, /api/users/me devuelve el usuario directamente: { id, documentId, username, email, ... }
     // No está envuelto en { data: {...}, meta: {} }
     const userId = userData?.id;
-    
+
     if (!userId) {
       console.warn("⚠️ No se pudo obtener userId de /api/users/me:", {
         hasId: !!userData?.id,
@@ -58,16 +58,13 @@ async function getCurrentUserProfile() {
       },
     });
 
-    const profileResponse = await fetch(
-      `${STRAPI_BASE_URL}/api/user-profiles?${profileQuery}`,
-      {
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        cache: "no-store",
-      }
-    );
+    const profileResponse = await fetch(`${STRAPI_BASE_URL}/api/user-profiles?${profileQuery}`, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+    });
 
     if (!profileResponse.ok) {
       console.warn("No se pudo obtener el user-profile para el usuario:", userId);
@@ -76,27 +73,27 @@ async function getCurrentUserProfile() {
 
     const profileData = await profileResponse.json();
     const profile = profileData.data?.[0];
-    
+
     if (!profile || !profile.documentId) {
       console.warn("No se encontró user-profile o no tiene documentId para el usuario:", userId);
       return null;
     }
 
     // Retornar documentId y displayName para usarlo en la respuesta
-    const result = { 
+    const result = {
       documentId: profile.documentId,
       displayName: profile.displayName || profile.email || "Usuario",
       email: profile.email,
       avatar: profile.avatar,
     };
-    
+
     console.log("✅ Perfil del usuario obtenido:", {
       documentId: result.documentId,
       displayName: result.displayName,
       email: result.email,
       hasAvatar: !!result.avatar,
     });
-    
+
     return result;
   } catch (error) {
     console.error("Error obteniendo user-profile actual:", error);
@@ -119,7 +116,7 @@ interface FleetNotePayload {
 export async function GET(_: Request, context: RouteContext) {
   try {
     try {
-      await requireAdmin();
+      await requireModulePermission("fleet", "canRead");
     } catch {
       return NextResponse.json(
         { error: "Acceso restringido: Se requieren permisos de administrador" },
@@ -127,14 +124,11 @@ export async function GET(_: Request, context: RouteContext) {
       );
     }
     const { id } = await context.params;
-    
+
     // Primero obtener el vehículo para obtener su ID numérico
     const vehicle = await fetchFleetVehicleByIdFromStrapi(id);
     if (!vehicle) {
-      return NextResponse.json(
-        { error: "Vehículo no encontrado." },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Vehículo no encontrado." }, { status: 404 });
     }
 
     // Buscar el vehículo por documentId para obtener el ID numérico
@@ -145,15 +139,12 @@ export async function GET(_: Request, context: RouteContext) {
       fields: ["id"],
     });
 
-    const vehicleResponse = await fetch(
-      `${STRAPI_BASE_URL}/api/fleets?${vehicleQuery}`,
-      {
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-        },
-        cache: "no-store",
-      }
-    );
+    const vehicleResponse = await fetch(`${STRAPI_BASE_URL}/api/fleets?${vehicleQuery}`, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      },
+      cache: "no-store",
+    });
 
     if (!vehicleResponse.ok) {
       throw new Error("No se pudo obtener el vehículo");
@@ -178,15 +169,12 @@ export async function GET(_: Request, context: RouteContext) {
       sort: ["createdAt:desc"],
     });
 
-    const notesResponse = await fetch(
-      `${STRAPI_BASE_URL}/api/fleet-notes?${notesQuery}`,
-      {
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-        },
-        cache: "no-store",
-      }
-    );
+    const notesResponse = await fetch(`${STRAPI_BASE_URL}/api/fleet-notes?${notesQuery}`, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      },
+      cache: "no-store",
+    });
 
     if (!notesResponse.ok) {
       const errorText = await notesResponse.text();
@@ -201,7 +189,7 @@ export async function GET(_: Request, context: RouteContext) {
 
     const notesData = await notesResponse.json();
     console.log("Notas obtenidas de Strapi:", JSON.stringify(notesData.data, null, 2));
-    
+
     // Buscar el usuario para cada nota usando authorDocumentId
     const notesWithAuthor = await Promise.all(
       (notesData.data || []).map(async (note: any) => {
@@ -254,7 +242,11 @@ export async function GET(_: Request, context: RouteContext) {
                 }
               }
             } else {
-              console.warn("⚠️ Error al buscar autor (GET):", authorResponse.status, authorResponse.statusText);
+              console.warn(
+                "⚠️ Error al buscar autor (GET):",
+                authorResponse.status,
+                authorResponse.statusText
+              );
               // Si hay error, al menos asegurar que tenga algo
               if (note.authorDocumentId) {
                 note.author = {
@@ -288,7 +280,7 @@ export async function GET(_: Request, context: RouteContext) {
         return note;
       })
     );
-    
+
     // Log cada nota para verificar que tiene documentId y author
     if (notesWithAuthor && Array.isArray(notesWithAuthor)) {
       notesWithAuthor.forEach((note: any, index: number) => {
@@ -297,22 +289,21 @@ export async function GET(_: Request, context: RouteContext) {
           documentId: note.documentId,
           authorDocumentId: note.authorDocumentId,
           content: note.content?.substring(0, 50) + "...",
-          author: note.author ? {
-            id: note.author.id,
-            documentId: note.author.documentId,
-            displayName: note.author.displayName,
-            hasAvatar: !!note.author.avatar,
-          } : null,
+          author: note.author
+            ? {
+                id: note.author.id,
+                documentId: note.author.documentId,
+                displayName: note.author.displayName,
+                hasAvatar: !!note.author.avatar,
+              }
+            : null,
         });
       });
     }
     return NextResponse.json({ data: notesWithAuthor || [] });
   } catch (error) {
     console.error("Error fetching fleet notes:", error);
-    return NextResponse.json(
-      { error: "No pudimos obtener las notas." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "No pudimos obtener las notas." }, { status: 500 });
   }
 }
 
@@ -320,7 +311,7 @@ export async function GET(_: Request, context: RouteContext) {
 export async function POST(request: Request, context: RouteContext) {
   try {
     try {
-      await requireAdmin();
+      await requireModulePermission("fleet", "canCreate");
     } catch {
       return NextResponse.json(
         { error: "Acceso restringido: Se requieren permisos de administrador" },
@@ -329,10 +320,7 @@ export async function POST(request: Request, context: RouteContext) {
     }
     const body = (await request.json()) as { data?: FleetNotePayload };
     if (!body?.data?.content) {
-      return NextResponse.json(
-        { error: "El contenido de la nota es requerido." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "El contenido de la nota es requerido." }, { status: 400 });
     }
 
     const { id } = await context.params;
@@ -345,15 +333,12 @@ export async function POST(request: Request, context: RouteContext) {
       fields: ["id"],
     });
 
-    const vehicleResponse = await fetch(
-      `${STRAPI_BASE_URL}/api/fleets?${vehicleQuery}`,
-      {
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-        },
-        cache: "no-store",
-      }
-    );
+    const vehicleResponse = await fetch(`${STRAPI_BASE_URL}/api/fleets?${vehicleQuery}`, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      },
+      cache: "no-store",
+    });
 
     if (!vehicleResponse.ok) {
       throw new Error("No se pudo obtener el vehículo");
@@ -363,35 +348,37 @@ export async function POST(request: Request, context: RouteContext) {
     const vehicleId = vehicleData.data?.[0]?.id;
 
     if (!vehicleId) {
-      return NextResponse.json(
-        { error: "Vehículo no encontrado." },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Vehículo no encontrado." }, { status: 404 });
     }
 
     // Siempre obtener el perfil completo del usuario para tener el displayName y email
     const currentUserProfile = await getCurrentUserProfile();
-    
+
     // Obtener el authorDocumentId: primero del body (enviado desde el frontend), si no del usuario logueado
     // Ignorar null o undefined, tratarlos como si no viniera el campo
-    let authorDocumentId = body.data.authorDocumentId && body.data.authorDocumentId !== null 
-      ? body.data.authorDocumentId 
-      : undefined;
-    
+    let authorDocumentId =
+      body.data.authorDocumentId && body.data.authorDocumentId !== null
+        ? body.data.authorDocumentId
+        : undefined;
+
     // Si no viene del frontend (o es null), obtenerlo del usuario logueado
     if (!authorDocumentId) {
-      console.log("📥 No se recibió authorDocumentId del frontend (o es null), obteniéndolo del usuario logueado...");
+      console.log(
+        "📥 No se recibió authorDocumentId del frontend (o es null), obteniéndolo del usuario logueado..."
+      );
       authorDocumentId = currentUserProfile?.documentId;
-      
+
       if (!authorDocumentId) {
-        console.warn("⚠️ No se pudo obtener el documentId del usuario. La nota se creará sin authorDocumentId.");
+        console.warn(
+          "⚠️ No se pudo obtener el documentId del usuario. La nota se creará sin authorDocumentId."
+        );
       } else {
         console.log("✅ authorDocumentId obtenido del usuario logueado:", authorDocumentId);
       }
     } else {
       console.log("✅ Usando authorDocumentId enviado desde el frontend:", authorDocumentId);
     }
-    
+
     // Crear la nota
     console.log("Intentando crear nota con:", {
       content: body.data.content,
@@ -409,7 +396,7 @@ export async function POST(request: Request, context: RouteContext) {
       content: body.data.content,
       vehicle: vehicleId,
     };
-    
+
     // Incluir el documentId del autor si está disponible
     if (authorDocumentId) {
       noteData.authorDocumentId = authorDocumentId;
@@ -417,20 +404,17 @@ export async function POST(request: Request, context: RouteContext) {
       console.warn("⚠️ No se pudo obtener el authorDocumentId. La nota se creará sin autor.");
     }
 
-    const newNoteResponse = await fetch(
-      `${STRAPI_BASE_URL}/api/fleet-notes`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          data: noteData,
-        }),
-        cache: "no-store",
-      }
-    );
+    const newNoteResponse = await fetch(`${STRAPI_BASE_URL}/api/fleet-notes`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        data: noteData,
+      }),
+      cache: "no-store",
+    });
 
     console.log("Respuesta de Strapi:", {
       status: newNoteResponse.status,
@@ -444,7 +428,11 @@ export async function POST(request: Request, context: RouteContext) {
       try {
         errorData = errorText ? JSON.parse(errorText) : { error: { message: "Error desconocido" } };
       } catch (parseError) {
-        errorData = { error: { message: errorText || `Error ${newNoteResponse.status}: ${newNoteResponse.statusText}` } };
+        errorData = {
+          error: {
+            message: errorText || `Error ${newNoteResponse.status}: ${newNoteResponse.statusText}`,
+          },
+        };
       }
       console.error("Error creando nota en Strapi:", {
         status: newNoteResponse.status,
@@ -452,18 +440,26 @@ export async function POST(request: Request, context: RouteContext) {
         errorText,
         errorData,
       });
-      
+
       // Si es 404, probablemente el tipo de contenido no existe
       if (newNoteResponse.status === 404) {
-        throw new Error("El tipo de contenido 'fleet-note' no existe en Strapi. Reinicia Strapi para que reconozca el nuevo tipo.");
+        throw new Error(
+          "El tipo de contenido 'fleet-note' no existe en Strapi. Reinicia Strapi para que reconozca el nuevo tipo."
+        );
       }
-      
+
       // Si es 403, faltan permisos
       if (newNoteResponse.status === 403) {
-        throw new Error("No tienes permisos para crear notas. Configura los permisos en Strapi Settings → Roles.");
+        throw new Error(
+          "No tienes permisos para crear notas. Configura los permisos en Strapi Settings → Roles."
+        );
       }
-      
-      throw new Error(errorData.error?.message || errorData.message || `Error ${newNoteResponse.status}: ${newNoteResponse.statusText}`);
+
+      throw new Error(
+        errorData.error?.message ||
+          errorData.message ||
+          `Error ${newNoteResponse.status}: ${newNoteResponse.statusText}`
+      );
     }
 
     const newNote = await newNoteResponse.json();
@@ -489,7 +485,7 @@ export async function POST(request: Request, context: RouteContext) {
       if (createdNoteResponse.ok) {
         const createdNote = await createdNoteResponse.json();
         const noteData = createdNote.data;
-        
+
         // Si tiene authorDocumentId, buscar el usuario
         // Primero intentar usar el perfil del usuario actual si coincide
         if (noteData.authorDocumentId) {
@@ -542,52 +538,85 @@ export async function POST(request: Request, context: RouteContext) {
                     email: noteData.author.email,
                   });
                 } else {
-                  console.warn("⚠️ No se encontró autor con documentId:", noteData.authorDocumentId);
+                  console.warn(
+                    "⚠️ No se encontró autor con documentId:",
+                    noteData.authorDocumentId
+                  );
                   // Si no se encuentra, usar el perfil del usuario actual como fallback
-                  if (currentUserProfile && currentUserProfile.documentId === noteData.authorDocumentId) {
+                  if (
+                    currentUserProfile &&
+                    currentUserProfile.documentId === noteData.authorDocumentId
+                  ) {
                     noteData.author = {
                       id: 0,
                       documentId: currentUserProfile.documentId,
-                      displayName: currentUserProfile.displayName || currentUserProfile.email || "Usuario",
+                      displayName:
+                        currentUserProfile.displayName || currentUserProfile.email || "Usuario",
                       email: currentUserProfile.email,
                       avatar: currentUserProfile.avatar,
                     };
-                    console.log("✅ Usando perfil del usuario actual como autor (fallback):", noteData.author);
+                    console.log(
+                      "✅ Usando perfil del usuario actual como autor (fallback):",
+                      noteData.author
+                    );
                   }
                 }
               } else {
-                console.warn("⚠️ Error al buscar autor:", authorResponse.status, authorResponse.statusText);
+                console.warn(
+                  "⚠️ Error al buscar autor:",
+                  authorResponse.status,
+                  authorResponse.statusText
+                );
                 // Si hay error, usar el perfil del usuario actual como fallback
-                if (currentUserProfile && currentUserProfile.documentId === noteData.authorDocumentId) {
+                if (
+                  currentUserProfile &&
+                  currentUserProfile.documentId === noteData.authorDocumentId
+                ) {
                   noteData.author = {
                     id: 0,
                     documentId: currentUserProfile.documentId,
-                    displayName: currentUserProfile.displayName || currentUserProfile.email || "Usuario",
+                    displayName:
+                      currentUserProfile.displayName || currentUserProfile.email || "Usuario",
                     email: currentUserProfile.email,
                     avatar: currentUserProfile.avatar,
                   };
-                  console.log("✅ Usando perfil del usuario actual como autor (fallback - error):", noteData.author);
+                  console.log(
+                    "✅ Usando perfil del usuario actual como autor (fallback - error):",
+                    noteData.author
+                  );
                 }
               }
             } catch (error) {
               console.error("Error obteniendo autor para nota creada:", error);
               // Si hay error, usar el perfil del usuario actual como fallback
-              if (currentUserProfile && currentUserProfile.documentId === noteData.authorDocumentId) {
+              if (
+                currentUserProfile &&
+                currentUserProfile.documentId === noteData.authorDocumentId
+              ) {
                 noteData.author = {
                   id: 0,
                   documentId: currentUserProfile.documentId,
-                  displayName: currentUserProfile.displayName || currentUserProfile.email || "Usuario",
+                  displayName:
+                    currentUserProfile.displayName || currentUserProfile.email || "Usuario",
                   email: currentUserProfile.email,
                   avatar: currentUserProfile.avatar,
                 };
-                console.log("✅ Usando perfil del usuario actual como autor (fallback - excepción):", noteData.author);
+                console.log(
+                  "✅ Usando perfil del usuario actual como autor (fallback - excepción):",
+                  noteData.author
+                );
               }
             }
           }
         }
-        
+
         // Asegurar que siempre tenga el autor, incluso si no se encontró antes
-        if (!noteData.author && noteData.authorDocumentId && currentUserProfile && currentUserProfile.documentId === noteData.authorDocumentId) {
+        if (
+          !noteData.author &&
+          noteData.authorDocumentId &&
+          currentUserProfile &&
+          currentUserProfile.documentId === noteData.authorDocumentId
+        ) {
           noteData.author = {
             id: 0,
             documentId: currentUserProfile.documentId,
@@ -595,9 +624,12 @@ export async function POST(request: Request, context: RouteContext) {
             email: currentUserProfile.email,
             avatar: currentUserProfile.avatar,
           };
-          console.log("✅ Agregando autor del usuario actual (asegurando que esté presente):", noteData.author);
+          console.log(
+            "✅ Agregando autor del usuario actual (asegurando que esté presente):",
+            noteData.author
+          );
         }
-        
+
         console.log("Nota creada con documentId y autor:", {
           documentId: noteData.documentId,
           authorDocumentId: noteData.authorDocumentId,
@@ -607,15 +639,21 @@ export async function POST(request: Request, context: RouteContext) {
         });
         return NextResponse.json({ data: noteData }, { status: 201 });
       }
-      
+
       // Si no se puede obtener completa, construir la respuesta con el autor del usuario actual
-      console.log("⚠️ No se pudo obtener la nota completa, construyendo respuesta con perfil del usuario actual");
+      console.log(
+        "⚠️ No se pudo obtener la nota completa, construyendo respuesta con perfil del usuario actual"
+      );
       const fallbackNoteData = {
         ...newNote.data,
       };
-      
+
       // Siempre incluir el autor del usuario actual si coincide
-      if (newNote.data.authorDocumentId && currentUserProfile && currentUserProfile.documentId === newNote.data.authorDocumentId) {
+      if (
+        newNote.data.authorDocumentId &&
+        currentUserProfile &&
+        currentUserProfile.documentId === newNote.data.authorDocumentId
+      ) {
         fallbackNoteData.author = {
           id: 0,
           documentId: currentUserProfile.documentId,
@@ -623,9 +661,12 @@ export async function POST(request: Request, context: RouteContext) {
           email: currentUserProfile.email,
           avatar: currentUserProfile.avatar,
         };
-        console.log("✅ Agregando autor del usuario actual a la respuesta fallback:", fallbackNoteData.author);
+        console.log(
+          "✅ Agregando autor del usuario actual a la respuesta fallback:",
+          fallbackNoteData.author
+        );
       }
-      
+
       console.log("Nota creada (con autor del usuario actual):", {
         documentId: fallbackNoteData.documentId,
         authorDocumentId: fallbackNoteData.authorDocumentId,
@@ -633,7 +674,7 @@ export async function POST(request: Request, context: RouteContext) {
         authorEmail: fallbackNoteData.author?.email,
         hasAuthor: !!fallbackNoteData.author,
       });
-      
+
       return NextResponse.json({ data: fallbackNoteData }, { status: 201 });
     }
 
@@ -643,9 +684,9 @@ export async function POST(request: Request, context: RouteContext) {
     console.error("Error object:", error);
     console.error("Error type:", typeof error);
     console.error("Error instanceof Error:", error instanceof Error);
-    
+
     let errorMessage = "Error desconocido al crear la nota";
-    
+
     if (error instanceof Error) {
       errorMessage = error.message || "Error desconocido";
       console.error("Error message:", error.message);
@@ -661,14 +702,10 @@ export async function POST(request: Request, context: RouteContext) {
         console.error("No se pudo serializar el error");
       }
     }
-    
+
     console.error("Retornando error:", errorMessage);
     console.error("================================================");
-    
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
-

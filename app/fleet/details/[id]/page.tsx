@@ -4,10 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { MouseEvent } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components_shadcn/ui/button";
-import { ArrowLeft } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { usePermissions } from "@/lib/permissions-context";
 import { spacing, typography } from "@/lib/design-system";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { BackButton } from "@/components/admin/back-button";
 import { VehicleDocumentsCard } from "@/app/fleet/components/vehicle-documents-dnd/vehicle-documents-card";
 import { FleetDetailsFinancingCard } from "@/app/fleet/components/fleet-details-financing";
 import { FleetDetailsNotesCard } from "@/app/fleet/components/fleet-details-notes";
@@ -43,6 +44,7 @@ export default function FleetDetailsPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const vehicleId = params.id as string;
+  const { can } = usePermissions();
 
   // Estados locales de UI
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -51,13 +53,8 @@ export default function FleetDetailsPage() {
   const [isSavingMaintenance, setIsSavingMaintenance] = useState(false);
 
   // Hooks personalizados
-  const {
-    vehicleData,
-    isLoading,
-    errorMessage,
-    setErrorMessage,
-    loadVehicle,
-  } = useVehicleData(vehicleId);
+  const { vehicleData, isLoading, errorMessage, setErrorMessage, loadVehicle } =
+    useVehicleData(vehicleId);
 
   const { currentUserDocumentId, loadCurrentUserProfile } = useCurrentUser();
 
@@ -89,7 +86,7 @@ export default function FleetDetailsPage() {
     handleDeleteStatus,
     handleOpenStatusForm,
     handleCancelStatusForm,
-  } = useVehicleStatuses(vehicleId);
+  } = useVehicleStatuses(vehicleId, vehicleData?.currentMileage);
 
   const {
     documents: vehicleDocumentsV2,
@@ -240,10 +237,13 @@ export default function FleetDetailsPage() {
         const minutes = String(scheduledDate.getMinutes()).padStart(2, "0");
         setMaintenanceScheduledTime(`${hours}:${minutes}`);
 
-        const maintenanceReminderWithFlag = maintenanceReminder as FleetReminder & { isAllDay?: boolean };
-        const isAllDayEvent = typeof maintenanceReminderWithFlag.isAllDay === "boolean"
-          ? maintenanceReminderWithFlag.isAllDay
-          : isDateAllDay(scheduledDate);
+        const maintenanceReminderWithFlag = maintenanceReminder as FleetReminder & {
+          isAllDay?: boolean;
+        };
+        const isAllDayEvent =
+          typeof maintenanceReminderWithFlag.isAllDay === "boolean"
+            ? maintenanceReminderWithFlag.isAllDay
+            : isDateAllDay(scheduledDate);
         setMaintenanceIsAllDay(isAllDayEvent);
 
         setMaintenanceRecurrencePattern(
@@ -263,12 +263,21 @@ export default function FleetDetailsPage() {
     }, 100); // Pequeño delay para asegurar que syncFormWithVehicle termine primero
 
     return () => clearTimeout(timeoutId);
-  }, [isEditing, vehicleReminders, isLoadingReminders, setMaintenanceScheduledDate, setMaintenanceScheduledTime, setMaintenanceIsAllDay, setMaintenanceRecurrencePattern, setMaintenanceRecurrenceEndDate]);
+  }, [
+    isEditing,
+    vehicleReminders,
+    isLoadingReminders,
+    setMaintenanceScheduledDate,
+    setMaintenanceScheduledTime,
+    setMaintenanceIsAllDay,
+    setMaintenanceRecurrencePattern,
+    setMaintenanceRecurrenceEndDate,
+  ]);
 
   // Sincronizar nextMaintenanceDate con recordatorio cuando cambia el vehículo
   useEffect(() => {
     if (!vehicleData?.nextMaintenanceDate || isEditing || isLoadingReminders) return;
-    
+
     const maintenanceReminder = vehicleReminders.find(
       (reminder) =>
         reminder.title.toLowerCase().includes("mantenimiento") ||
@@ -278,22 +287,24 @@ export default function FleetDetailsPage() {
     // Si hay nextMaintenanceDate pero el recordatorio tiene una fecha diferente, actualizar el recordatorio
     if (maintenanceReminder) {
       const vehicleMaintenanceDate = new Date(vehicleData.nextMaintenanceDate);
-      const reminderDate = maintenanceReminder.reminderType === "recurring" 
-        ? new Date(maintenanceReminder.nextTrigger)
-        : new Date(maintenanceReminder.scheduledDate);
-      
+      const reminderDate =
+        maintenanceReminder.reminderType === "recurring"
+          ? new Date(maintenanceReminder.nextTrigger)
+          : new Date(maintenanceReminder.scheduledDate);
+
       // Si las fechas son diferentes (con una tolerancia de 1 minuto), actualizar el recordatorio
       const timeDiff = Math.abs(vehicleMaintenanceDate.getTime() - reminderDate.getTime());
-      if (timeDiff > 60000) { // Más de 1 minuto de diferencia
+      if (timeDiff > 60000) {
+        // Más de 1 minuto de diferencia
         const year = vehicleMaintenanceDate.getFullYear();
         const month = String(vehicleMaintenanceDate.getMonth() + 1).padStart(2, "0");
         const day = String(vehicleMaintenanceDate.getDate()).padStart(2, "0");
         const hours = String(vehicleMaintenanceDate.getHours()).padStart(2, "0");
         const minutes = String(vehicleMaintenanceDate.getMinutes()).padStart(2, "0");
-        
+
         const isAllDay = hours === "00" && minutes === "00";
         const scheduledDateTime = `${year}-${month}-${day}T${hours}:${minutes}:00`;
-        
+
         const updateReminder = async () => {
           try {
             const reminderId = maintenanceReminder.documentId || String(maintenanceReminder.id);
@@ -302,28 +313,34 @@ export default function FleetDetailsPage() {
               nextTrigger: scheduledDateTime,
               isAllDay: isAllDay,
             };
-            
+
             await fetch(`/api/fleet-reminders/${encodeURIComponent(reminderId)}`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ data: updateData }),
             });
-            
+
             await loadVehicleReminders();
           } catch (error) {
             console.error("Error sincronizando recordatorio con fecha de mantenimiento:", error);
           }
         };
-        
+
         updateReminder();
       }
     }
-  }, [vehicleData?.nextMaintenanceDate, vehicleReminders, isEditing, isLoadingReminders, loadVehicleReminders]);
+  }, [
+    vehicleData?.nextMaintenanceDate,
+    vehicleReminders,
+    isEditing,
+    isLoadingReminders,
+    loadVehicleReminders,
+  ]);
 
   // Verificar si se eliminó un recordatorio de mantenimiento y limpiar nextMaintenanceDate si es necesario
   useEffect(() => {
     if (isEditing || isLoadingReminders || isCreatingMaintenanceReminder) return;
-    
+
     const maintenanceReminder = vehicleReminders.find(
       (reminder) =>
         reminder.title.toLowerCase().includes("mantenimiento") ||
@@ -335,8 +352,8 @@ export default function FleetDetailsPage() {
     if (vehicleData?.nextMaintenanceDate && !maintenanceReminder) {
       const clearMaintenanceDate = async () => {
         // Esperar un poco para asegurar que los recordatorios se hayan cargado completamente
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
         // Verificar nuevamente después del delay
         const currentReminders = vehicleReminders;
         const stillNoReminder = !currentReminders.find(
@@ -344,7 +361,7 @@ export default function FleetDetailsPage() {
             reminder.title.toLowerCase().includes("mantenimiento") ||
             reminder.title === "Mantenimiento completo del vehículo"
         );
-        
+
         // Solo limpiar si realmente no hay recordatorio después del delay
         if (stillNoReminder && vehicleData?.nextMaintenanceDate) {
           try {
@@ -363,10 +380,18 @@ export default function FleetDetailsPage() {
           }
         }
       };
-      
+
       clearMaintenanceDate();
     }
-  }, [vehicleReminders, vehicleData?.nextMaintenanceDate, isEditing, isLoadingReminders, isCreatingMaintenanceReminder, vehicleId, loadVehicle]);
+  }, [
+    vehicleReminders,
+    vehicleData?.nextMaintenanceDate,
+    isEditing,
+    isLoadingReminders,
+    isCreatingMaintenanceReminder,
+    vehicleId,
+    loadVehicle,
+  ]);
 
   // Sincronizar mantenimiento con recordatorios
   // DESHABILITADO: La creación automática de recordatorios causa duplicados
@@ -401,10 +426,13 @@ export default function FleetDetailsPage() {
       const minutes = String(scheduledDate.getMinutes()).padStart(2, "0");
       setMaintenanceScheduledTime(`${hours}:${minutes}`);
 
-      const maintenanceReminderWithFlag = maintenanceReminder as FleetReminder & { isAllDay?: boolean };
-      const isAllDayEvent = typeof maintenanceReminderWithFlag.isAllDay === "boolean"
-        ? maintenanceReminderWithFlag.isAllDay
-        : isDateAllDay(scheduledDate);
+      const maintenanceReminderWithFlag = maintenanceReminder as FleetReminder & {
+        isAllDay?: boolean;
+      };
+      const isAllDayEvent =
+        typeof maintenanceReminderWithFlag.isAllDay === "boolean"
+          ? maintenanceReminderWithFlag.isAllDay
+          : isDateAllDay(scheduledDate);
       setMaintenanceIsAllDay(isAllDayEvent);
 
       setMaintenanceRecurrencePattern(
@@ -422,13 +450,30 @@ export default function FleetDetailsPage() {
       }
     }
     // Si no hay recordatorio, NO limpiar los valores - permitir que el usuario los establezca
-  }, [vehicleReminders, isEditing, vehicleData, isLoadingReminders, currentUserDocumentId, selectedResponsables, selectedAssignedDrivers, vehicleId, loadVehicleReminders, isCreatingMaintenanceReminder, isSavingMaintenance, setMaintenanceScheduledDate, setMaintenanceScheduledTime, setMaintenanceIsAllDay, setMaintenanceRecurrencePattern, setMaintenanceRecurrenceEndDate]);
+  }, [
+    vehicleReminders,
+    isEditing,
+    vehicleData,
+    isLoadingReminders,
+    currentUserDocumentId,
+    selectedResponsables,
+    selectedAssignedDrivers,
+    vehicleId,
+    loadVehicleReminders,
+    isCreatingMaintenanceReminder,
+    isSavingMaintenance,
+    setMaintenanceScheduledDate,
+    setMaintenanceScheduledTime,
+    setMaintenanceIsAllDay,
+    setMaintenanceRecurrencePattern,
+    setMaintenanceRecurrenceEndDate,
+  ]);
 
   // Sincronizar usuarios disponibles con selecciones del formulario de edición
   // Solo actualizar cuando NO estamos editando y hay datos disponibles
   useEffect(() => {
     if (isEditing) return; // No actualizar mientras se está editando
-    
+
     if (availableUsers.length > 0 && vehicleData) {
       if (vehicleData.responsables && vehicleData.responsables.length > 0) {
         const responsablesIds = vehicleData.responsables
@@ -438,8 +483,8 @@ export default function FleetDetailsPage() {
             );
             return foundUser?.id ?? resp.id;
           })
-          .filter((id): id is number => typeof id === 'number' && !isNaN(id));
-        
+          .filter((id): id is number => typeof id === "number" && !isNaN(id));
+
         if (responsablesIds.length > 0) {
           setSelectedResponsables(responsablesIds);
         } else {
@@ -448,7 +493,7 @@ export default function FleetDetailsPage() {
       } else {
         setSelectedResponsables([]);
       }
-      
+
       if (vehicleData.assignedDrivers && vehicleData.assignedDrivers.length > 0) {
         const assignedDriversIds = vehicleData.assignedDrivers
           .map((driver) => {
@@ -457,8 +502,8 @@ export default function FleetDetailsPage() {
             );
             return foundUser?.id ?? driver.id;
           })
-          .filter((id): id is number => typeof id === 'number' && !isNaN(id));
-        
+          .filter((id): id is number => typeof id === "number" && !isNaN(id));
+
         if (assignedDriversIds.length > 0) {
           setSelectedAssignedDrivers(assignedDriversIds);
         } else {
@@ -467,7 +512,7 @@ export default function FleetDetailsPage() {
       } else {
         setSelectedAssignedDrivers([]);
       }
-      
+
       if (vehicleData.interestedDrivers && vehicleData.interestedDrivers.length > 0) {
         const interestedDriversIds = vehicleData.interestedDrivers
           .map((driver) => {
@@ -476,8 +521,8 @@ export default function FleetDetailsPage() {
             );
             return foundUser?.id ?? driver.id;
           })
-          .filter((id): id is number => typeof id === 'number' && !isNaN(id));
-        
+          .filter((id): id is number => typeof id === "number" && !isNaN(id));
+
         if (interestedDriversIds.length > 0) {
           setSelectedInterestedDrivers(interestedDriversIds);
         } else {
@@ -486,7 +531,7 @@ export default function FleetDetailsPage() {
       } else {
         setSelectedInterestedDrivers([]);
       }
-      
+
       // Sincronizar currentDrivers (conductores actuales)
       if (vehicleData.currentDrivers && vehicleData.currentDrivers.length > 0) {
         const currentDriversIds = vehicleData.currentDrivers
@@ -496,8 +541,8 @@ export default function FleetDetailsPage() {
             );
             return foundUser?.id ?? driver.id;
           })
-          .filter((id): id is number => typeof id === 'number' && !isNaN(id));
-        
+          .filter((id): id is number => typeof id === "number" && !isNaN(id));
+
         if (currentDriversIds.length > 0) {
           setSelectedCurrentDrivers(currentDriversIds);
         } else {
@@ -507,48 +552,66 @@ export default function FleetDetailsPage() {
         setSelectedCurrentDrivers([]);
       }
     }
-  }, [availableUsers, vehicleData, isEditing, setSelectedResponsables, setSelectedAssignedDrivers, setSelectedInterestedDrivers, setSelectedCurrentDrivers]);
+  }, [
+    availableUsers,
+    vehicleData,
+    isEditing,
+    setSelectedResponsables,
+    setSelectedAssignedDrivers,
+    setSelectedInterestedDrivers,
+    setSelectedCurrentDrivers,
+  ]);
 
   // Inicializar responsables y conductores del recordatorio con los valores del vehículo cuando se abre el formulario
   useEffect(() => {
     if (showReminderForm && availableUsers.length > 0 && vehicleData && !editingReminderId) {
       // Solo inicializar si no estamos editando (editingReminderId es null)
-      const responsablesIds = vehicleData.responsables
-        ?.map((resp) => {
-          const foundUser = availableUsers.find(
-            (u) => u.id === resp.id || u.documentId === resp.documentId
-          );
-          return foundUser?.id ?? resp.id;
-        })
-        .filter((id): id is number => typeof id === 'number' && !isNaN(id)) || [];
-      
-      const assignedDriversIds = vehicleData.assignedDrivers
-        ?.map((driver) => {
-          const foundUser = availableUsers.find(
-            (u) => u.id === driver.id || u.documentId === driver.documentId
-          );
-          return foundUser?.id ?? driver.id;
-        })
-        .filter((id): id is number => typeof id === 'number' && !isNaN(id)) || [];
-      
+      const responsablesIds =
+        vehicleData.responsables
+          ?.map((resp) => {
+            const foundUser = availableUsers.find(
+              (u) => u.id === resp.id || u.documentId === resp.documentId
+            );
+            return foundUser?.id ?? resp.id;
+          })
+          .filter((id): id is number => typeof id === "number" && !isNaN(id)) || [];
+
+      const assignedDriversIds =
+        vehicleData.assignedDrivers
+          ?.map((driver) => {
+            const foundUser = availableUsers.find(
+              (u) => u.id === driver.id || u.documentId === driver.documentId
+            );
+            return foundUser?.id ?? driver.id;
+          })
+          .filter((id): id is number => typeof id === "number" && !isNaN(id)) || [];
+
       if (responsablesIds.length > 0 || assignedDriversIds.length > 0) {
         setReminderSelectedResponsables(responsablesIds);
         setReminderSelectedAssignedDrivers(assignedDriversIds);
       }
     }
-  }, [showReminderForm, availableUsers, vehicleData, editingReminderId, setReminderSelectedResponsables, setReminderSelectedAssignedDrivers]);
-
+  }, [
+    showReminderForm,
+    availableUsers,
+    vehicleData,
+    editingReminderId,
+    setReminderSelectedResponsables,
+    setReminderSelectedAssignedDrivers,
+  ]);
 
   // Activar modo de edición si viene el query parameter
   useEffect(() => {
     const editParam = searchParams.get("edit");
     if (editParam === "true" && !isLoading && vehicleData) {
-      setIsEditing(true);
+      if (can("fleet", "canUpdate")) {
+        setIsEditing(true);
+      }
       const url = new URL(window.location.href);
       url.searchParams.delete("edit");
       window.history.replaceState({}, "", url.toString());
     }
-  }, [searchParams, isLoading, vehicleData, setIsEditing]);
+  }, [searchParams, isLoading, vehicleData, setIsEditing, can]);
 
   // Precio formateado
   const priceLabel = useMemo(() => {
@@ -561,155 +624,170 @@ export default function FleetDetailsPage() {
   }, [vehicleData]);
 
   // Función para sincronizar la fecha de mantenimiento con recordatorios
-  const syncMaintenanceReminder = useCallback(async (
-    maintenanceDate: string,
-    maintenanceTime: string,
-    maintenanceAllDay: boolean,
-    recurrencePattern: RecurrencePattern,
-    recurrenceEndDate?: string
-  ) => {
-    setIsSavingMaintenance(true);
-    try {
-      const maintenanceTitle = "Mantenimiento completo del vehículo";
-      const existingReminder = vehicleReminders.find(
-        (r) => r.title.toLowerCase().includes("mantenimiento") || r.title === maintenanceTitle
-      );
+  const syncMaintenanceReminder = useCallback(
+    async (
+      maintenanceDate: string,
+      maintenanceTime: string,
+      maintenanceAllDay: boolean,
+      recurrencePattern: RecurrencePattern,
+      recurrenceEndDate?: string
+    ) => {
+      setIsSavingMaintenance(true);
+      try {
+        const maintenanceTitle = "Mantenimiento completo del vehículo";
+        const existingReminder = vehicleReminders.find(
+          (r) => r.title.toLowerCase().includes("mantenimiento") || r.title === maintenanceTitle
+        );
 
-      const timeToUse = maintenanceAllDay ? "00:00" : (maintenanceTime || "00:00");
-      const scheduledDateTime = `${maintenanceDate}T${timeToUse}:00`;
+        const timeToUse = maintenanceAllDay ? "00:00" : maintenanceTime || "00:00";
+        const scheduledDateTime = `${maintenanceDate}T${timeToUse}:00`;
 
-      if (existingReminder) {
-        const reminderId = existingReminder.documentId || String(existingReminder.id);
-        const updateData: any = {
-          title: maintenanceTitle,
-          scheduledDate: scheduledDateTime,
-          nextTrigger: scheduledDateTime,
-          isAllDay: maintenanceAllDay,
-          reminderType: "recurring",
-          recurrencePattern: recurrencePattern,
-        };
-        
-        if (recurrenceEndDate) {
-          updateData.recurrenceEndDate = `${recurrenceEndDate}T00:00:00`;
-        }
-        
-        const response = await fetch(`/api/fleet-reminders/${encodeURIComponent(reminderId)}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ data: updateData }),
-        });
+        if (existingReminder) {
+          const reminderId = existingReminder.documentId || String(existingReminder.id);
+          const updateData: any = {
+            title: maintenanceTitle,
+            scheduledDate: scheduledDateTime,
+            nextTrigger: scheduledDateTime,
+            isAllDay: maintenanceAllDay,
+            reminderType: "recurring",
+            recurrencePattern: recurrencePattern,
+          };
 
-        if (response.ok) {
-          const { data: updatedReminder } = await response.json() as { data: FleetReminder };
-          
-          // Emitir evento para sincronización con otros componentes
-          emitReminderUpdated(updatedReminder);
-          
-          // Actualizar también nextMaintenanceDate del vehículo
-          try {
-            await fetch(`/api/fleet/${vehicleId}`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                data: {
-                  nextMaintenanceDate: scheduledDateTime,
-                },
-              }),
-            });
-            await loadVehicle();
-          } catch (error) {
-            console.error("Error actualizando fecha de mantenimiento del vehículo:", error);
+          if (recurrenceEndDate) {
+            updateData.recurrenceEndDate = `${recurrenceEndDate}T00:00:00`;
           }
-          // Esperar a que se recarguen los recordatorios antes de continuar
-          await loadVehicleReminders();
-          // Pequeño delay para asegurar que el estado se actualizó y evitar que el useEffect automático se ejecute
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-      } else {
-        if (!currentUserDocumentId) {
-          console.warn("⚠️ No se puede crear recordatorio: usuario no identificado");
-          return;
-        }
 
-        // Marcar que se está creando para evitar que el useEffect también lo haga
-        setIsCreatingMaintenanceReminder(true);
+          const response = await fetch(`/api/fleet-reminders/${encodeURIComponent(reminderId)}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ data: updateData }),
+          });
 
-        const assignedUserIds = [
-          ...selectedResponsables,
-          ...selectedAssignedDrivers,
-        ].filter((id, index, self) => self.indexOf(id) === index);
+          if (response.ok) {
+            const { data: updatedReminder } = (await response.json()) as { data: FleetReminder };
 
-        const createData: any = {
-          title: maintenanceTitle,
-          description: `Mantenimiento completo programado para el vehículo ${vehicleData?.name || ""}`,
-          reminderType: "recurring" as ReminderType,
-          scheduledDate: scheduledDateTime,
-          isAllDay: maintenanceAllDay,
-          recurrencePattern: recurrencePattern,
-          assignedUserIds: assignedUserIds.length > 0 ? assignedUserIds : undefined,
-          authorDocumentId: currentUserDocumentId,
-        };
-        
-        if (recurrenceEndDate) {
-          createData.recurrenceEndDate = `${recurrenceEndDate}T00:00:00`;
-        }
+            // Emitir evento para sincronización con otros componentes
+            emitReminderUpdated(updatedReminder);
 
-        const response = await fetch(`/api/fleet/${vehicleId}/reminders`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ data: createData }),
-        });
-
-        if (response.ok) {
-          const responseData = await response.json() as { data: FleetReminder };
-          const createdReminder = responseData.data;
-          
-          // Emitir evento para sincronización con otros componentes
-          emitReminderCreated(createdReminder);
-          
-          // Actualizar también nextMaintenanceDate del vehículo
-          try {
-            const maintenanceDate = createdReminder.reminderType === "recurring" 
-              ? createdReminder.nextTrigger 
-              : createdReminder.scheduledDate;
-            await fetch(`/api/fleet/${vehicleId}`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                data: {
-                  nextMaintenanceDate: maintenanceDate,
-                },
-              }),
-            });
-            await loadVehicle();
-          } catch (error) {
-            console.error("Error actualizando fecha de mantenimiento del vehículo:", error);
+            // Actualizar también nextMaintenanceDate del vehículo
+            try {
+              await fetch(`/api/fleet/${vehicleId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  data: {
+                    nextMaintenanceDate: scheduledDateTime,
+                  },
+                }),
+              });
+              await loadVehicle();
+            } catch (error) {
+              console.error("Error actualizando fecha de mantenimiento del vehículo:", error);
+            }
+            // Esperar a que se recarguen los recordatorios antes de continuar
+            await loadVehicleReminders();
+            // Pequeño delay para asegurar que el estado se actualizó y evitar que el useEffect automático se ejecute
+            await new Promise((resolve) => setTimeout(resolve, 500));
           }
-          // Esperar a que se recarguen los recordatorios antes de continuar
-          await loadVehicleReminders();
-          // Pequeño delay para asegurar que el estado se actualizó y evitar que el useEffect automático se ejecute
-          await new Promise(resolve => setTimeout(resolve, 500));
+        } else {
+          if (!currentUserDocumentId) {
+            console.warn("⚠️ No se puede crear recordatorio: usuario no identificado");
+            return;
+          }
+
+          // Marcar que se está creando para evitar que el useEffect también lo haga
+          setIsCreatingMaintenanceReminder(true);
+
+          const assignedUserIds = [...selectedResponsables, ...selectedAssignedDrivers].filter(
+            (id, index, self) => self.indexOf(id) === index
+          );
+
+          const createData: any = {
+            title: maintenanceTitle,
+            description: `Mantenimiento completo programado para el vehículo ${vehicleData?.name || ""}`,
+            reminderType: "recurring" as ReminderType,
+            scheduledDate: scheduledDateTime,
+            isAllDay: maintenanceAllDay,
+            recurrencePattern: recurrencePattern,
+            assignedUserIds: assignedUserIds.length > 0 ? assignedUserIds : undefined,
+            authorDocumentId: currentUserDocumentId,
+          };
+
+          if (recurrenceEndDate) {
+            createData.recurrenceEndDate = `${recurrenceEndDate}T00:00:00`;
+          }
+
+          const response = await fetch(`/api/fleet/${vehicleId}/reminders`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ data: createData }),
+          });
+
+          if (response.ok) {
+            const responseData = (await response.json()) as { data: FleetReminder };
+            const createdReminder = responseData.data;
+
+            // Emitir evento para sincronización con otros componentes
+            emitReminderCreated(createdReminder);
+
+            // Actualizar también nextMaintenanceDate del vehículo
+            try {
+              const maintenanceDate =
+                createdReminder.reminderType === "recurring"
+                  ? createdReminder.nextTrigger
+                  : createdReminder.scheduledDate;
+              await fetch(`/api/fleet/${vehicleId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  data: {
+                    nextMaintenanceDate: maintenanceDate,
+                  },
+                }),
+              });
+              await loadVehicle();
+            } catch (error) {
+              console.error("Error actualizando fecha de mantenimiento del vehículo:", error);
+            }
+            // Esperar a que se recarguen los recordatorios antes de continuar
+            await loadVehicleReminders();
+            // Pequeño delay para asegurar que el estado se actualizó y evitar que el useEffect automático se ejecute
+            await new Promise((resolve) => setTimeout(resolve, 500));
+          }
         }
+      } catch (error) {
+        console.error("Error sincronizando recordatorio de mantenimiento:", error);
+      } finally {
+        setIsSavingMaintenance(false);
+        // Limpiar el flag de creación después de un delay adicional
+        setTimeout(() => {
+          setIsCreatingMaintenanceReminder(false);
+        }, 1000);
       }
-    } catch (error) {
-      console.error("Error sincronizando recordatorio de mantenimiento:", error);
-    } finally {
-      setIsSavingMaintenance(false);
-      // Limpiar el flag de creación después de un delay adicional
-      setTimeout(() => {
-        setIsCreatingMaintenanceReminder(false);
-      }, 1000);
-    }
-  }, [vehicleReminders, currentUserDocumentId, selectedResponsables, selectedAssignedDrivers, vehicleData, vehicleId, loadVehicle, loadVehicleReminders]);
+    },
+    [
+      vehicleReminders,
+      currentUserDocumentId,
+      selectedResponsables,
+      selectedAssignedDrivers,
+      vehicleData,
+      vehicleId,
+      loadVehicle,
+      loadVehicleReminders,
+    ]
+  );
 
   // Handlers
   const handleSaveNote = () => saveNote(currentUserDocumentId, loadCurrentUserProfile);
   const handleSaveStatus = () => saveStatus(currentUserDocumentId);
 
   const handleSaveReminder = () => saveReminder(currentUserDocumentId, loadVehicle);
-  const handleDeleteReminder = useCallback((reminderId: number | string) => {
-    return deleteReminder(reminderId, loadVehicle);
-  }, [deleteReminder, loadVehicle]);
+  const handleDeleteReminder = useCallback(
+    (reminderId: number | string) => {
+      return deleteReminder(reminderId, loadVehicle);
+    },
+    [deleteReminder, loadVehicle]
+  );
   const handleCancelEdit = () => cancelEdit(vehicleData);
 
   const handleSave = () => {
@@ -752,7 +830,7 @@ export default function FleetDetailsPage() {
   // Handler para crear cita de servicio desde la flota
   const handleCreateServiceAppointment = useCallback(() => {
     if (!vehicleData) return;
-    
+
     // Construir URL con query params para pre-llenar el formulario de citas
     // Usamos el ID numérico (id) para que coincida con el valor del select
     const params = new URLSearchParams();
@@ -761,23 +839,14 @@ export default function FleetDetailsPage() {
     params.set("vehicleName", vehicleData.name);
     params.set("type", "mantenimiento");
     params.set("fromFleet", "true");
-    
+
     router.push(`/calendar?${params.toString()}`);
-    
+
     toast.success("Redirigiendo al calendario para agendar servicio...");
   }, [router, vehicleData]);
 
-  // Botón de volver
-  const backButton = (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => router.back()}
-      className="h-10 w-10 flex items-center justify-center rounded-full"
-    >
-      <ArrowLeft className="h-5 w-5" />
-    </Button>
-  );
+  // Botón de volver (vive en el menú/header, con atajo de teclado).
+  const backButton = <BackButton fallbackHref="/fleet" />;
 
   // Estados de carga y error
   if (isLoading) {
@@ -791,13 +860,13 @@ export default function FleetDetailsPage() {
   if (errorMessage || !vehicleData) {
     return (
       <AdminLayout title="Vehículo no disponible" showFilterAction leftActions={backButton}>
-        <section className={`flex flex-col items-center justify-center ${spacing.gap.base} min-h-[400px] text-center`}>
-          <p className={typography.body.large}>{errorMessage ?? "El vehículo solicitado no existe."}</p>
-          <Button
-            onClick={() => router.push("/fleet")}
-            size="lg"
-            className="mt-4 w-full max-w-xs"
-          >
+        <section
+          className={`flex flex-col items-center justify-center ${spacing.gap.base} min-h-[400px] text-center`}
+        >
+          <p className={typography.body.large}>
+            {errorMessage ?? "El vehículo solicitado no existe."}
+          </p>
+          <Button onClick={() => router.push("/fleet")} size="lg" className="mt-4 w-full max-w-xs">
             Volver a Flota
           </Button>
         </section>
@@ -864,10 +933,7 @@ export default function FleetDetailsPage() {
             onCancel={handleCancelEdit}
           />
         ) : (
-          <VehicleInfoCard
-            vehicleData={vehicleData}
-            priceLabel={priceLabel}
-          />
+          <VehicleInfoCard vehicleData={vehicleData} priceLabel={priceLabel} />
         )}
 
         {/* Financiamiento */}
@@ -980,7 +1046,9 @@ export default function FleetDetailsPage() {
           onReminderScheduledDateChange={setReminderScheduledDate}
           onReminderScheduledTimeChange={setReminderScheduledTime}
           onReminderIsAllDayChange={setIsAllDay}
-          onReminderRecurrencePatternChange={(value: RecurrencePattern) => setReminderRecurrencePattern(value)}
+          onReminderRecurrencePatternChange={(value: RecurrencePattern) =>
+            setReminderRecurrencePattern(value)
+          }
           onReminderRecurrenceEndDateChange={setReminderRecurrenceEndDate}
           onSelectedResponsablesChange={setReminderSelectedResponsables}
           onSelectedAssignedDriversChange={setReminderSelectedAssignedDrivers}
@@ -988,8 +1056,12 @@ export default function FleetDetailsPage() {
           onSaveReminder={() => saveReminder(currentUserDocumentId, loadVehicle)}
           onEditReminder={handleEditReminder}
           onDeleteReminder={handleDeleteReminder}
-          onToggleReminderActive={(id, isActive) => handleToggleReminderActive(id, isActive, loadVehicle)}
-          onToggleReminderCompleted={(id, isCompleted) => handleToggleReminderCompleted(id, isCompleted, loadVehicle)}
+          onToggleReminderActive={(id, isActive) =>
+            handleToggleReminderActive(id, isActive, loadVehicle)
+          }
+          onToggleReminderCompleted={(id, isCompleted) =>
+            handleToggleReminderCompleted(id, isCompleted, loadVehicle)
+          }
           vehicleId={vehicleId}
         />
       </section>

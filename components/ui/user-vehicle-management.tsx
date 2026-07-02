@@ -2,19 +2,39 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components_shadcn/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components_shadcn/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components_shadcn/ui/card";
 import { Input } from "@/components_shadcn/ui/input";
 import { Label } from "@/components_shadcn/ui/label";
 import { Badge } from "@/components_shadcn/ui/badge";
 import { Alert, AlertDescription } from "@/components_shadcn/ui/alert";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components_shadcn/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components_shadcn/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components_shadcn/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components_shadcn/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components_shadcn/ui/tabs";
 import { Plus, Car, History, FolderPlus, X, Loader2, Calendar, TrendingUp } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { typography } from "@/lib/design-system";
 import Image from "next/image";
 import { strapiImages } from "@/lib/strapi-images";
+import { Can } from "@/components/auth/can";
 
 interface Vehicle {
   id: number;
@@ -47,31 +67,30 @@ interface DriverHistory {
 
 interface UserVehicleManagementProps {
   userId: string | number;
-  userRole: string;
 }
 
-export function UserVehicleManagement({ userId, userRole }: UserVehicleManagementProps) {
+export function UserVehicleManagement({ userId }: UserVehicleManagementProps) {
   const [activeTab, setActiveTab] = useState("history");
   const [loading, setLoading] = useState(false);
-  
+
   // Data states
   const [myVehicles, setMyVehicles] = useState<Vehicle[]>([]);
   const [driverHistory, setDriverHistory] = useState<DriverHistory[]>([]);
   const [registeredVehicles, setRegisteredVehicles] = useState<Vehicle[]>([]);
   const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([]);
-  
+
   // Dialog states
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
-  
+
   // Form states
   const [assignForm, setAssignForm] = useState({
     startDate: new Date().toISOString().split("T")[0],
     mileageStart: "",
     notes: "",
   });
-  
+
   const [registerForm, setRegisterForm] = useState({
     name: "",
     vin: "",
@@ -93,9 +112,9 @@ export function UserVehicleManagement({ userId, userRole }: UserVehicleManagemen
       // Load user profile with all relations
       const response = await fetch(`/api/user-profiles/${userId}`);
       if (!response.ok) throw new Error("Error cargando datos");
-      
+
       const { data } = await response.json();
-      
+
       setMyVehicles(data.assignedVehicles || []);
       setDriverHistory(data.driverHistories || []);
       setRegisteredVehicles(data.registeredVehicles || []);
@@ -111,10 +130,10 @@ export function UserVehicleManagement({ userId, userRole }: UserVehicleManagemen
     try {
       const response = await fetch("/api/fleet?limit=100");
       if (!response.ok) throw new Error("Error cargando vehículos");
-      
+
       const { data } = await response.json();
       // Filter out vehicles already assigned to this user
-      const assignedIds = new Set(myVehicles.map(v => v.id));
+      const assignedIds = new Set(myVehicles.map((v) => v.id));
       const available = (data || []).filter((v: Vehicle) => !assignedIds.has(v.id));
       setAvailableVehicles(available);
     } catch (err) {
@@ -124,7 +143,7 @@ export function UserVehicleManagement({ userId, userRole }: UserVehicleManagemen
 
   const handleAssignVehicle = async () => {
     if (!selectedVehicle) return;
-    
+
     setLoading(true);
     try {
       const response = await fetch("/api/driver-history", {
@@ -205,20 +224,23 @@ export function UserVehicleManagement({ userId, userRole }: UserVehicleManagemen
 
   const handleEndAssignment = async (historyEntry: DriverHistory) => {
     if (!confirm(`¿Confirmas que ya no eres conductor de ${historyEntry.vehicle.name}?`)) return;
-    
+
     setLoading(true);
     try {
-      const response = await fetch(`/api/driver-history/${historyEntry.documentId || historyEntry.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          data: {
-            status: "completed",
-            endDate: new Date().toISOString().split("T")[0],
-            mileageEnd: historyEntry.vehicle.currentMileage,
-          },
-        }),
-      });
+      const response = await fetch(
+        `/api/driver-history/${historyEntry.documentId || historyEntry.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            data: {
+              status: "completed",
+              endDate: new Date().toISOString().split("T")[0],
+              mileageEnd: historyEntry.vehicle.currentMileage,
+            },
+          }),
+        }
+      );
 
       if (!response.ok) throw new Error("Error finalizando asignación");
 
@@ -245,21 +267,21 @@ export function UserVehicleManagement({ userId, userRole }: UserVehicleManagemen
               <Car className="h-5 w-5" />
               Mis Vehículos
             </CardTitle>
-            <CardDescription>
-              Gestiona los vehículos que has registrado o conducido
-            </CardDescription>
+            <CardDescription>Gestiona los vehículos que has registrado o conducido</CardDescription>
           </div>
           <div className="flex gap-2">
-            {(userRole === "driver" || userRole === "admin") && (
+            <Can module="fleet" action="canCreate">
               <Button variant="outline" size="sm" onClick={openAssignDialog}>
                 <Plus className="h-4 w-4 mr-2" />
                 Ser Conductor
               </Button>
-            )}
-            <Button variant="outline" size="sm" onClick={() => setShowRegisterDialog(true)}>
-              <FolderPlus className="h-4 w-4 mr-2" />
-              Registrar Vehículo
-            </Button>
+            </Can>
+            <Can module="fleet" action="canCreate">
+              <Button variant="outline" size="sm" onClick={() => setShowRegisterDialog(true)}>
+                <FolderPlus className="h-4 w-4 mr-2" />
+                Registrar Vehículo
+              </Button>
+            </Can>
           </div>
         </div>
       </CardHeader>
@@ -285,7 +307,8 @@ export function UserVehicleManagement({ userId, userRole }: UserVehicleManagemen
             {driverHistory.length === 0 ? (
               <Alert>
                 <AlertDescription>
-                  No tienes historial de conducción. Asignate como conductor de un vehículo para comenzar.
+                  No tienes historial de conducción. Asignate como conductor de un vehículo para
+                  comenzar.
                 </AlertDescription>
               </Alert>
             ) : (
@@ -312,17 +335,20 @@ export function UserVehicleManagement({ userId, userRole }: UserVehicleManagemen
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{entry.vehicle?.name}</span>
-                        <Badge 
+                        <Badge
                           className={
-                            entry.status === "active" 
-                              ? "bg-green-100 text-green-800" 
+                            entry.status === "active"
+                              ? "bg-green-100 text-green-800"
                               : entry.status === "completed"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-yellow-100 text-yellow-800"
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-yellow-100 text-yellow-800"
                           }
                         >
-                          {entry.status === "active" ? "Conductor Actual" : 
-                           entry.status === "completed" ? "Conductor Anterior" : "Suspendido"}
+                          {entry.status === "active"
+                            ? "Conductor Actual"
+                            : entry.status === "completed"
+                              ? "Conductor Anterior"
+                              : "Suspendido"}
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground">
@@ -343,9 +369,7 @@ export function UserVehicleManagement({ userId, userRole }: UserVehicleManagemen
                         )}
                       </div>
                       {entry.notes && (
-                        <p className="text-xs text-muted-foreground mt-1 italic">
-                          {entry.notes}
-                        </p>
+                        <p className="text-xs text-muted-foreground mt-1 italic">{entry.notes}</p>
                       )}
                     </div>
                     {entry.status === "active" && (
@@ -368,9 +392,7 @@ export function UserVehicleManagement({ userId, userRole }: UserVehicleManagemen
           <TabsContent value="current" className="space-y-4 mt-4">
             {myVehicles.length === 0 ? (
               <Alert>
-                <AlertDescription>
-                  No tienes vehículos asignados actualmente.
-                </AlertDescription>
+                <AlertDescription>No tienes vehículos asignados actualmente.</AlertDescription>
               </Alert>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
@@ -412,9 +434,7 @@ export function UserVehicleManagement({ userId, userRole }: UserVehicleManagemen
           <TabsContent value="registered" className="space-y-4 mt-4">
             {registeredVehicles.length === 0 ? (
               <Alert>
-                <AlertDescription>
-                  No has registrado ningún vehículo aún.
-                </AlertDescription>
+                <AlertDescription>No has registrado ningún vehículo aún.</AlertDescription>
               </Alert>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
@@ -459,11 +479,9 @@ export function UserVehicleManagement({ userId, userRole }: UserVehicleManagemen
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Asignarme como Conductor</DialogTitle>
-            <DialogDescription>
-              Selecciona un vehículo para conducir.
-            </DialogDescription>
+            <DialogDescription>Selecciona un vehículo para conducir.</DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className="max-h-64 overflow-y-auto space-y-2 border rounded-lg p-2">
               {availableVehicles.length === 0 ? (
@@ -498,7 +516,7 @@ export function UserVehicleManagement({ userId, userRole }: UserVehicleManagemen
             {selectedVehicle && (
               <div className="space-y-3 border rounded-lg p-4 bg-muted/30">
                 <p className="text-sm font-medium">Vehículo seleccionado: {selectedVehicle.name}</p>
-                
+
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label>Fecha de Inicio</Label>
@@ -514,7 +532,9 @@ export function UserVehicleManagement({ userId, userRole }: UserVehicleManagemen
                       type="number"
                       placeholder={selectedVehicle.currentMileage?.toString() || "0"}
                       value={assignForm.mileageStart}
-                      onChange={(e) => setAssignForm({ ...assignForm, mileageStart: e.target.value })}
+                      onChange={(e) =>
+                        setAssignForm({ ...assignForm, mileageStart: e.target.value })
+                      }
                     />
                   </div>
                 </div>
@@ -535,10 +555,7 @@ export function UserVehicleManagement({ userId, userRole }: UserVehicleManagemen
             <Button variant="outline" onClick={() => setShowAssignDialog(false)}>
               Cancelar
             </Button>
-            <Button 
-              onClick={handleAssignVehicle}
-              disabled={!selectedVehicle || loading}
-            >
+            <Button onClick={handleAssignVehicle} disabled={!selectedVehicle || loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -561,7 +578,7 @@ export function UserVehicleManagement({ userId, userRole }: UserVehicleManagemen
               Ingresa los datos del vehículo que deseas registrar.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Nombre *</Label>
@@ -586,7 +603,9 @@ export function UserVehicleManagement({ userId, userRole }: UserVehicleManagemen
                 <Input
                   type="number"
                   value={registerForm.year}
-                  onChange={(e) => setRegisterForm({ ...registerForm, year: parseInt(e.target.value) })}
+                  onChange={(e) =>
+                    setRegisterForm({ ...registerForm, year: parseInt(e.target.value) })
+                  }
                 />
               </div>
             </div>
@@ -652,12 +671,12 @@ export function UserVehicleManagement({ userId, userRole }: UserVehicleManagemen
             <Button variant="outline" onClick={() => setShowRegisterDialog(false)}>
               Cancelar
             </Button>
-            <Button 
+            <Button
               onClick={handleRegisterVehicle}
               disabled={
-                !registerForm.name || 
-                !registerForm.vin || 
-                !registerForm.brand || 
+                !registerForm.name ||
+                !registerForm.vin ||
+                !registerForm.brand ||
                 !registerForm.model ||
                 !registerForm.price ||
                 loading

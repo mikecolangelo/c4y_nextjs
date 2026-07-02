@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
-import { requireAdmin } from "@/lib/admin-guard";
+import { requireModulePermission } from "@/lib/module-guard";
 
 function generateSlug(name: string): string {
   return name
@@ -24,7 +24,7 @@ interface RouteContext {
 export async function PUT(request: Request, context: RouteContext) {
   try {
     try {
-      await requireAdmin();
+      await requireModulePermission("fleet", "canUpdate");
     } catch {
       return NextResponse.json(
         { error: "Acceso restringido: Se requieren permisos de administrador" },
@@ -77,7 +77,7 @@ export async function PUT(request: Request, context: RouteContext) {
 export async function DELETE(_: Request, context: RouteContext) {
   try {
     try {
-      await requireAdmin();
+      await requireModulePermission("fleet", "canDelete");
     } catch {
       return NextResponse.json(
         { error: "Acceso restringido: Se requieren permisos de administrador" },

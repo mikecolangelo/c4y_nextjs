@@ -1,15 +1,27 @@
 "use client";
 
 import { Button } from "@/components_shadcn/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components_shadcn/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components_shadcn/ui/dialog";
 import { Input } from "@/components_shadcn/ui/input";
 import { Label } from "@/components_shadcn/ui/label";
 import { Separator } from "@/components_shadcn/ui/separator";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components_shadcn/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components_shadcn/ui/select";
 import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
 import { Plus, Filter, CircleDot, Zap, Wrench } from "lucide-react";
 import { spacing, typography } from "@/lib/design-system";
-import { cn } from "@/lib/utils";
 import type { Dispatch, SetStateAction } from "react";
 import type { InventoryIcon } from "@/validations/types";
 
@@ -49,7 +61,7 @@ const iconOptions: { value: InventoryIcon; label: string; icon: React.ReactNode 
 export function AddInventoryItemButton({ onClick }: { onClick: () => void }) {
   return (
     <Button
-      className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-primary text-white shadow-lg transition-transform hover:scale-105 z-50"
+      className="fixed bottom-6 right-6 z-50 size-14 rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105"
       size="icon"
       onClick={onClick}
       aria-label="Agregar nuevo item al inventario"
@@ -93,7 +105,9 @@ export function CreateInventoryItemDialog({
                     <Input
                       id="code"
                       value={formData.code}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, code: e.target.value.toUpperCase() }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, code: e.target.value.toUpperCase() }))
+                      }
                       placeholder="Ej: FLTR-001"
                       className="rounded-lg"
                     />
@@ -106,7 +120,9 @@ export function CreateInventoryItemDialog({
                     <Input
                       id="description"
                       value={formData.description}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, description: e.target.value }))
+                      }
                       placeholder="Ej: Filtro de aceite motor 1.6L"
                       className="rounded-lg"
                     />
@@ -121,7 +137,9 @@ export function CreateInventoryItemDialog({
                         id="stock"
                         type="number"
                         value={formData.stock}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, stock: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, stock: e.target.value }))
+                        }
                         placeholder="Ej: 50"
                         className="rounded-lg"
                         min={0}
@@ -156,7 +174,9 @@ export function CreateInventoryItemDialog({
                         id="minStock"
                         type="number"
                         value={formData.minStock}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, minStock: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, minStock: e.target.value }))
+                        }
                         placeholder="Ej: 10"
                         className="rounded-lg"
                         min={0}
@@ -171,7 +191,9 @@ export function CreateInventoryItemDialog({
                         id="maxStock"
                         type="number"
                         value={formData.maxStock}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, maxStock: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, maxStock: e.target.value }))
+                        }
                         placeholder="Ej: 100"
                         className="rounded-lg"
                         min={0}
@@ -193,7 +215,9 @@ export function CreateInventoryItemDialog({
                         id="unitCost"
                         type="number"
                         value={formData.unitCost}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, unitCost: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, unitCost: e.target.value }))
+                        }
                         placeholder="Ej: 25.50"
                         className="rounded-lg"
                         min={0}
@@ -209,7 +233,9 @@ export function CreateInventoryItemDialog({
                         id="salePrice"
                         type="number"
                         value={formData.salePrice}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, salePrice: e.target.value }))}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, salePrice: e.target.value }))
+                        }
                         placeholder="Ej: 45.00"
                         className="rounded-lg"
                         min={0}
@@ -231,7 +257,9 @@ export function CreateInventoryItemDialog({
                     <Input
                       id="assignedTo"
                       value={formData.assignedTo}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, assignedTo: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, assignedTo: e.target.value }))
+                      }
                       placeholder="Ej: Taller Mecánico, Almacén Central"
                       className="rounded-lg"
                     />
@@ -244,7 +272,9 @@ export function CreateInventoryItemDialog({
                     <Input
                       id="location"
                       value={formData.location}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, location: e.target.value }))
+                      }
                       placeholder="Ej: Almacén A - Estante 3"
                       className="rounded-lg"
                     />
@@ -257,7 +287,9 @@ export function CreateInventoryItemDialog({
                     <Input
                       id="supplier"
                       value={formData.supplier}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, supplier: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, supplier: e.target.value }))
+                      }
                       placeholder="Ej: Repuestos ABC, Distribuidora XYZ"
                       className="rounded-lg"
                     />
@@ -274,7 +306,9 @@ export function CreateInventoryItemDialog({
                     </Label>
                     <Select
                       value={formData.icon}
-                      onValueChange={(value) => setFormData((prev) => ({ ...prev, icon: value as InventoryIcon }))}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({ ...prev, icon: value as InventoryIcon }))
+                      }
                     >
                       <SelectTrigger className="rounded-lg">
                         <SelectValue placeholder="Seleccionar icono" />
@@ -311,11 +345,7 @@ export function CreateInventoryItemDialog({
           <Button
             onClick={onConfirm}
             disabled={isCreating || !isFormValid}
-            className={cn(
-              "font-semibold shadow-md hover:shadow-lg transition-all duration-200",
-              !isCreating && isFormValid && "bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/95 !opacity-100",
-              (isCreating || !isFormValid) && "!opacity-50 cursor-not-allowed"
-            )}
+            className="font-semibold"
           >
             {isCreating ? "Creando..." : "Crear Pieza"}
           </Button>

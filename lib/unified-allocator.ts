@@ -1,21 +1,17 @@
 /**
  * Unified FIFO Debt Allocator
- * 
+ *
  * Unifica cuotas (billing-records) y penalidades (penalty-debts) en una sola cola
  * ordenada por dueDate ASC, con desempate: penalidad antes que cuota.
- * 
+ *
  * Aplica pagos (adelantos) en cascada hasta agotar el monto o las deudas.
  * Rastrea cada aplicación en payment-application (ledger de auditoría).
  */
 
 import qs from "qs";
 import { STRAPI_BASE_URL, STRAPI_API_TOKEN } from "./config";
-import {
-  applyAdvanceAmountToQuota,
-  generateReceiptNumber,
-  getStrapiNumericId,
-  checkAndUpdateParentIfPaid,
-} from "./billing";
+import { getCurrentUserJwt } from "./auth";
+import { applyAdvanceAmountToQuota, checkAndUpdateParentIfPaid } from "./billing";
 
 // ============================================================================
 // TIPOS
@@ -55,14 +51,12 @@ export interface AllocationResult {
 /**
  * Obtener penalidades abiertas asociadas a cuotas específicas.
  * Status: pending | partially_paid
- * 
+ *
  * FIX: Strapi v5 no puebla la relación `financing` en penalty-debt correctamente
  *      desde la API REST. En su lugar, buscamos por `quotaRecord.documentId`
  *      usando la lista de cuotas abiertas del financiamiento.
  */
-export async function fetchOpenPenaltyDebts(
-  quotaDocumentIds: string[]
-): Promise<UnifiedDebt[]> {
+export async function fetchOpenPenaltyDebts(quotaDocumentIds: string[]): Promise<UnifiedDebt[]> {
   if (!quotaDocumentIds || quotaDocumentIds.length === 0) {
     return [];
   }
@@ -112,7 +106,13 @@ export async function fetchOpenPenaltyDebts(
       documentId: item.documentId,
       numericId: item.id,
       dueDate: attrs.dueDate || item.dueDate,
-      amountPending: parseFloat(attrs.amountPending || item.amountPending || attrs.amountOriginal || item.amountOriginal || 0),
+      amountPending: parseFloat(
+        attrs.amountPending ||
+          item.amountPending ||
+          attrs.amountOriginal ||
+          item.amountOriginal ||
+          0
+      ),
       status: attrs.status || item.status,
     };
   });
@@ -124,9 +124,7 @@ export async function fetchOpenPenaltyDebts(
  * Excluye cubiertas / pagadas completas.
  * Calcula balance real considerando abonos hijos.
  */
-export async function fetchOpenQuotas(
-  financingDocumentId: string
-): Promise<UnifiedDebt[]> {
+export async function fetchOpenQuotas(financingDocumentId: string): Promise<UnifiedDebt[]> {
   const query = qs.stringify(
     {
       filters: {
@@ -170,37 +168,36 @@ export async function fetchOpenQuotas(
   const json = await res.json();
   const items = json.data || [];
 
-  return items.map((item: any) => {
-    const attrs = item.attributes || item;
-    const children = attrs.childRecords?.data || attrs.childRecords || [];
-    const childrenTotal = children.reduce((sum: number, c: any) => {
-      const ca = c.attributes || c;
-      return sum + (parseFloat(ca.amount || 0) > 0 ? parseFloat(ca.amount || 0) : 0);
-    }, 0);
-    const originalAmount = parseFloat(attrs.amount || 0);
-    const balance = Math.max(0, originalAmount - childrenTotal);
+  return items
+    .map((item: any) => {
+      const attrs = item.attributes || item;
+      const children = attrs.childRecords?.data || attrs.childRecords || [];
+      const childrenTotal = children.reduce((sum: number, c: any) => {
+        const ca = c.attributes || c;
+        return sum + (parseFloat(ca.amount || 0) > 0 ? parseFloat(ca.amount || 0) : 0);
+      }, 0);
+      const originalAmount = parseFloat(attrs.amount || 0);
+      const balance = Math.max(0, originalAmount - childrenTotal);
 
-    return {
-      kind: "quota" as const,
-      documentId: item.documentId,
-      numericId: item.id,
-      dueDate: attrs.dueDate,
-      amountPending: balance,
-      originalAmount,
-      quotaNumber: attrs.quotaNumber,
-      status: attrs.status,
-    };
-  }).filter((d: UnifiedDebt) => d.amountPending > 0);
+      return {
+        kind: "quota" as const,
+        documentId: item.documentId,
+        numericId: item.id,
+        dueDate: attrs.dueDate,
+        amountPending: balance,
+        originalAmount,
+        quotaNumber: attrs.quotaNumber,
+        status: attrs.status,
+      };
+    })
+    .filter((d: UnifiedDebt) => d.amountPending > 0);
 }
 
 /**
  * Unificar y ordenar cola de deudas.
  * Orden: dueDate ASC, desempate: penalidad antes que cuota.
  */
-export function buildDebtQueue(
-  penalties: UnifiedDebt[],
-  quotas: UnifiedDebt[]
-): UnifiedDebt[] {
+export function buildDebtQueue(penalties: UnifiedDebt[], quotas: UnifiedDebt[]): UnifiedDebt[] {
   const all = [...penalties, ...quotas];
   all.sort((a, b) => {
     if (a.dueDate !== b.dueDate) return a.dueDate.localeCompare(b.dueDate);
@@ -220,10 +217,7 @@ export function buildDebtQueue(
 /**
  * Construye plan de asignación FIFO unificado (sin side-effects).
  */
-export function buildAllocationPlan(
-  paymentAmount: number,
-  debts: UnifiedDebt[]
-): AllocationResult {
+export function buildAllocationPlan(paymentAmount: number, debts: UnifiedDebt[]): AllocationResult {
   let left = parseFloat(paymentAmount.toFixed(2));
   const steps: AllocationStep[] = [];
 
@@ -290,10 +284,11 @@ async function createPaymentApplication(opts: {
     body.data.quotaRecord = opts.quotaNumericId;
   }
 
+  const jwt = await getCurrentUserJwt();
   const res = await fetch(`${STRAPI_BASE_URL}/api/payment-applications`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      Authorization: `Bearer ${jwt || STRAPI_API_TOKEN}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
@@ -320,23 +315,21 @@ export async function applyAllocationToPenalty(
     const newPending = parseFloat((penalty.amountPending - amountToApply).toFixed(2));
     const newStatus = newPending <= 0.01 ? "paid" : "partially_paid";
 
-    const updateRes = await fetch(
-      `${STRAPI_BASE_URL}/api/penalty-debts/${penalty.documentId}`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
+    const jwt = await getCurrentUserJwt();
+    const updateRes = await fetch(`${STRAPI_BASE_URL}/api/penalty-debts/${penalty.documentId}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${jwt || STRAPI_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        data: {
+          amountPending: newPending,
+          status: newStatus,
         },
-        body: JSON.stringify({
-          data: {
-            amountPending: newPending,
-            status: newStatus,
-          },
-        }),
-        cache: "no-store",
-      }
-    );
+      }),
+      cache: "no-store",
+    });
 
     if (!updateRes.ok) {
       console.error(
@@ -397,9 +390,7 @@ export async function applyAllocationToQuota(
     );
 
     if (!applied) {
-      console.error(
-        `[applyAllocationToQuota] Error aplicando a cuota ${quota.documentId}`
-      );
+      console.error(`[applyAllocationToQuota] Error aplicando a cuota ${quota.documentId}`);
       return false;
     }
 
@@ -435,24 +426,22 @@ export async function finalizePaymentRecord(
     const newAmount = parseFloat(leftover.toFixed(2));
     const newStatus = newAmount <= 0.01 ? "pagado" : "adelanto";
 
-    const res = await fetch(
-      `${STRAPI_BASE_URL}/api/billing-records/${paymentDocumentId}`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
+    const jwt = await getCurrentUserJwt();
+    const res = await fetch(`${STRAPI_BASE_URL}/api/billing-records/${paymentDocumentId}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${jwt || STRAPI_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        data: {
+          amount: newAmount,
+          status: newStatus,
+          comments: `Asignación unificada finalizada. Remanente: $${newAmount}`,
         },
-        body: JSON.stringify({
-          data: {
-            amount: newAmount,
-            status: newStatus,
-            comments: `Asignación unificada finalizada. Remanente: $${newAmount}`,
-          },
-        }),
-        cache: "no-store",
-      }
-    );
+      }),
+      cache: "no-store",
+    });
 
     if (!res.ok) {
       console.error(
@@ -475,7 +464,7 @@ export async function finalizePaymentRecord(
 
 /**
  * Flujo completo de asignación unificada FIFO.
- * 
+ *
  * 1. Carga deudas abiertas (penalidades + cuotas).
  * 2. Plan de asignación.
  * 3. Ejecución paso a paso con ledger.
@@ -493,9 +482,13 @@ export async function unifiedAllocatePayment(
   // PASO 0: Generar/actualizar penalidades acumuladas antes de cargar deudas.
   // Esto garantiza que toda mora calculada hasta este momento esté
   // registrada como penalty-debt y participe en la cola FIFO unificada.
-  console.log(`[unifiedAllocatePayment] Step 0: Accruing penalties for financing ${financingDocumentId}...`);
+  console.log(
+    `[unifiedAllocatePayment] Step 0: Accruing penalties for financing ${financingDocumentId}...`
+  );
   const penaltiesAccrued = await accruePenaltiesForFinancing(financingDocumentId, 10);
-  console.log(`[unifiedAllocatePayment] Step 0 complete: ${penaltiesAccrued} penalty debt(s) accrued/updated`);
+  console.log(
+    `[unifiedAllocatePayment] Step 0 complete: ${penaltiesAccrued} penalty debt(s) accrued/updated`
+  );
 
   // FIX: Fetch quotas FIRST to get their documentIds, then fetch penalties
   //      by quotaRecord.documentId because Strapi v5 doesn't populate
@@ -509,7 +502,10 @@ export async function unifiedAllocatePayment(
     `[unifiedAllocatePayment] Open debts: ${debts.length} (penalties=${penalties.length}, quotas=${quotas.length})`
   );
   console.log(
-    debts.map((d) => `  [${d.kind}] ${d.documentId} #${d.quotaNumber || ""} due=${d.dueDate} pending=$${d.amountPending}`)
+    debts.map(
+      (d) =>
+        `  [${d.kind}] ${d.documentId} #${d.quotaNumber || ""} due=${d.dueDate} pending=$${d.amountPending}`
+    )
   );
 
   const plan = buildAllocationPlan(paymentRecord.amount, debts);
@@ -520,28 +516,19 @@ export async function unifiedAllocatePayment(
 
   // Ejecutar pasos
   for (const step of plan.steps) {
-    const debt = debts.find(
-      (d) => d.documentId === step.targetDocumentId
-    );
+    const debt = debts.find((d) => d.documentId === step.targetDocumentId);
     if (!debt) continue;
 
     if (debt.kind === "penalty") {
       await applyAllocationToPenalty(paymentRecord, debt, step.amountApplied);
     } else {
-      await applyAllocationToQuota(
-        paymentRecord,
-        debt,
-        step.amountApplied,
-        financingNumericId
-      );
+      await applyAllocationToQuota(paymentRecord, debt, step.amountApplied, financingNumericId);
       // After applying payment to a quota, check if the parent is now fully paid
       await checkAndUpdateParentIfPaid(debt.documentId);
     }
 
     // Reducir monto disponible del pago raíz para pasos subsiguientes
-    paymentRecord.amount = parseFloat(
-      (paymentRecord.amount - step.amountApplied).toFixed(2)
-    );
+    paymentRecord.amount = parseFloat((paymentRecord.amount - step.amountApplied).toFixed(2));
   }
 
   await finalizePaymentRecord(paymentRecord.documentId, plan.leftover);
@@ -557,7 +544,7 @@ export async function unifiedAllocatePayment(
  * Genera o actualiza penalidades acumuladas para un financiamiento.
  * Por cada cuota raíz vencida con saldo pendiente, crea/actualiza un
  * penalty-debt con 10% diario sobre el saldo pendiente.
- * 
+ *
  * @returns número de penalidades generadas/actualizadas
  */
 export async function accruePenaltiesForFinancing(
@@ -577,12 +564,18 @@ export async function accruePenaltiesForFinancing(
         financing: { documentId: { $eq: financingDocumentId } },
         status: { $in: ["pendiente", "retrasado", "abonado"] },
         parentRecord: { $null: true },
-        $or: [
-          { status: { $in: ["retrasado", "abonado"] } },
-          { dueDate: { $lte: today } },
-        ],
+        $or: [{ status: { $in: ["retrasado", "abonado"] } }, { dueDate: { $lte: today } }],
       },
-      fields: ["id", "documentId", "amount", "dueDate", "status", "quotaNumber", "daysLate", "lateFeeAmount"],
+      fields: [
+        "id",
+        "documentId",
+        "amount",
+        "dueDate",
+        "status",
+        "quotaNumber",
+        "daysLate",
+        "lateFeeAmount",
+      ],
       populate: {
         childRecords: {
           fields: ["id", "documentId", "amount"],
@@ -610,9 +603,13 @@ export async function accruePenaltiesForFinancing(
 
   const json = await res.json();
   const quotas = json.data || [];
-  console.log(`[accruePenalties] Found ${quotas.length} overdue quota(s) with balance > 0 for financing ${financingDocumentId}`);
+  console.log(
+    `[accruePenalties] Found ${quotas.length} overdue quota(s) with balance > 0 for financing ${financingDocumentId}`
+  );
   if (quotas.length === 0) {
-    console.log("[accruePenalties] No overdue quotas found. Possible reasons: all quotas are future-dated, fully paid, or query mismatch.");
+    console.log(
+      "[accruePenalties] No overdue quotas found. Possible reasons: all quotas are future-dated, fully paid, or query mismatch."
+    );
   }
   let count = 0;
 
@@ -640,7 +637,9 @@ export async function accruePenaltiesForFinancing(
     }
 
     if (daysLate <= 0) {
-      console.log(`[accruePenalties] Quota #${attrs.quotaNumber} due=${attrs.dueDate} is NOT late (daysLate=0), skipping`);
+      console.log(
+        `[accruePenalties] Quota #${attrs.quotaNumber} due=${attrs.dueDate} is NOT late (daysLate=0), skipping`
+      );
       continue;
     }
 
@@ -650,7 +649,9 @@ export async function accruePenaltiesForFinancing(
       (pendingBalance * (lateFeePercentage / 100) * daysLate).toFixed(2)
     );
 
-    console.log(`[accruePenalties] Quota #${attrs.quotaNumber} due=${attrs.dueDate} pendingBalance=$${pendingBalance} daysLate=${daysLate} penaltyAmount=$${penaltyAmount}`);
+    console.log(
+      `[accruePenalties] Quota #${attrs.quotaNumber} due=${attrs.dueDate} pendingBalance=$${pendingBalance} daysLate=${daysLate} penaltyAmount=$${penaltyAmount}`
+    );
 
     // HOTFIX: Buscar CUALQUIER penalty existente para esta cuota (incluido pagado)
     // para evitar recreación después de que se pague completamente.
@@ -665,16 +666,13 @@ export async function accruePenaltiesForFinancing(
       { encodeValuesOnly: true }
     );
 
-    const existingRes = await fetch(
-      `${STRAPI_BASE_URL}/api/penalty-debts?${existingQuery}`,
-      {
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        cache: "no-store",
-      }
-    );
+    const existingRes = await fetch(`${STRAPI_BASE_URL}/api/penalty-debts?${existingQuery}`, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+    });
 
     let existingPenalty: any = null;
     if (existingRes.ok) {
@@ -692,8 +690,9 @@ export async function accruePenaltiesForFinancing(
       const alreadyPaid = Math.max(0, parseFloat((oldOriginal - oldPending).toFixed(2)));
 
       // Calculate new pending preserving alreadyPaid
-      let newPending = Math.max(0, parseFloat((penaltyAmount - alreadyPaid).toFixed(2)));
-      let newStatus = newPending <= 0 ? "paid" : (newPending < penaltyAmount ? "partially_paid" : "pending");
+      const newPending = Math.max(0, parseFloat((penaltyAmount - alreadyPaid).toFixed(2)));
+      const newStatus =
+        newPending <= 0 ? "paid" : newPending < penaltyAmount ? "partially_paid" : "pending";
 
       // Idempotency guard: skip update if nothing meaningful changed
       const oldDays = parseInt(epAttrs.daysAccrued || existingPenalty.daysAccrued || 0);
@@ -709,12 +708,13 @@ export async function accruePenaltiesForFinancing(
         continue;
       }
 
+      const jwt = await getCurrentUserJwt();
       const updateRes = await fetch(
         `${STRAPI_BASE_URL}/api/penalty-debts/${existingPenalty.documentId}`,
         {
           method: "PUT",
           headers: {
-            Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+            Authorization: `Bearer ${jwt || STRAPI_API_TOKEN}`,
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
@@ -735,10 +735,7 @@ export async function accruePenaltiesForFinancing(
         );
         count++;
       } else {
-        console.error(
-          `[accruePenalties] Error updating penalty:`,
-          await updateRes.text()
-        );
+        console.error(`[accruePenalties] Error updating penalty:`, await updateRes.text());
       }
     } else {
       // Crear nuevo penalty
@@ -773,10 +770,7 @@ export async function accruePenaltiesForFinancing(
         );
         count++;
       } else {
-        console.error(
-          `[accruePenalties] Error creating penalty:`,
-          await createRes.text()
-        );
+        console.error(`[accruePenalties] Error creating penalty:`, await createRes.text());
       }
     }
   }

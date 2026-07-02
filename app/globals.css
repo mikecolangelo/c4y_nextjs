@@ -116,38 +116,38 @@
   * {
     @apply border-border outline-ring/50;
   }
-  
+
   /* Scrollbar personalizado que se adapta al tema claro/oscuro */
   /* Aplicado solo a elementos con overflow scroll/auto explicito */
   html {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
   }
-  
+
   /* Webkit scrollbar (Chrome, Safari, Edge) - solo elementos scrollables */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
-  
+
   ::-webkit-scrollbar-track {
     background: transparent;
   }
-  
+
   ::-webkit-scrollbar-thumb {
     background: hsl(var(--muted-foreground) / 0.3);
     border-radius: 4px;
     min-height: 40px;
   }
-  
+
   ::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.5);
   }
-  
+
   ::-webkit-scrollbar-corner {
     background: transparent;
   }
-  
+
   /* Firefox - asegurar que funcione en todos los tamaños */
   @-moz-document url-prefix() {
     * {
@@ -155,15 +155,17 @@
       scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
     }
   }
-  
+
   html {
     @apply min-h-screen;
   }
   body {
     @apply min-h-screen bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
   }
-  
+
   /* Scroll suave para ScrollArea */
   [data-radix-scroll-area-viewport] {
     scroll-behavior: smooth;
@@ -171,7 +173,7 @@
     overscroll-behavior: contain;
     scroll-padding: 0;
   }
-  
+
   /* Mejorar la fluidez del scroll */
   [data-radix-scroll-area-viewport] * {
     will-change: scroll-position;
@@ -255,89 +257,89 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
-  
+
   /* Scrollbar con tema adaptativo para elementos específicos */
   .scrollbar-themed {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
     overflow: auto;
   }
-  
+
   .scrollbar-themed::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
-  
+
   .scrollbar-themed::-webkit-scrollbar-track {
     background: transparent;
   }
-  
+
   .scrollbar-themed::-webkit-scrollbar-thumb {
     background: hsl(var(--muted-foreground) / 0.3);
     border-radius: 4px;
     min-height: 40px;
   }
-  
+
   .scrollbar-themed::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.5);
   }
-  
+
   /* Scrollbar más visible (para áreas con mucho scroll) */
   .scrollbar-visible {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted-foreground) / 0.5) transparent;
     overflow: auto;
   }
-  
+
   .scrollbar-visible::-webkit-scrollbar {
     width: 10px;
     height: 10px;
   }
-  
+
   .scrollbar-visible::-webkit-scrollbar-thumb {
     background: hsl(var(--muted-foreground) / 0.5);
     border-radius: 5px;
     min-height: 40px;
   }
-  
+
   .scrollbar-visible::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.7);
   }
-  
+
   /* Scrollbar para Cards con overflow - mantiene diseño en todas las resoluciones */
   .card-scrollable {
     overflow: auto;
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted-foreground) / 0.25) transparent;
   }
-  
+
   .card-scrollable::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
-  
+
   .card-scrollable::-webkit-scrollbar-thumb {
     background: hsl(var(--muted-foreground) / 0.25);
     border-radius: 3px;
   }
-  
+
   .card-scrollable::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.45);
   }
-  
+
   /* Scrollbar consistente en todas las resoluciones - fix para pantallas grandes */
   @media screen and (min-width: 1024px) {
     ::-webkit-scrollbar {
       width: 8px;
       height: 8px;
     }
-    
+
     [data-radix-scroll-area-viewport]::-webkit-scrollbar {
       width: 8px;
       height: 8px;
     }
   }
-  
+
   /* Asegurar que overflow funcione correctamente en Cards */
   [data-slot="card"] .overflow-auto,
   [data-slot="card"] [class*="overflow-y-auto"],
@@ -345,14 +347,14 @@
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
   }
-  
+
   [data-slot="card"] .overflow-auto::-webkit-scrollbar,
   [data-slot="card"] [class*="overflow-y-auto"]::-webkit-scrollbar,
   [data-slot="card"] [class*="overflow-x-auto"]::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
-  
+
   [data-slot="card"] .overflow-auto::-webkit-scrollbar-thumb,
   [data-slot="card"] [class*="overflow-y-auto"]::-webkit-scrollbar-thumb,
   [data-slot="card"] [class*="overflow-x-auto"]::-webkit-scrollbar-thumb {
@@ -366,7 +368,7 @@
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
   }
-  
+
   /* Momentum scrolling mejorado para iOS */
   @supports (-webkit-overflow-scrolling: touch) {
     [data-radix-scroll-area-viewport] {
@@ -468,7 +470,7 @@
   .squircle {
     /* Fallback para navegadores que no soportan mask-image */
     border-radius: 1.5rem;
-    
+
     /* Squircle usando mask-image con SVG - Compatible con Chrome, Firefox, Safari, Edge */
     -webkit-mask-image: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0,20 C0,9 9,0 20,0 L80,0 C91,0 100,9 100,20 L100,80 C100,91 91,100 80,100 L20,100 C9,100 0,91 0,80 Z' fill='black'/%3E%3C/svg%3E");
     mask-image: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0,20 C0,9 9,0 20,0 L80,0 C91,0 100,9 100,20 L100,80 C100,91 91,100 80,100 L20,100 C9,100 0,91 0,80 Z' fill='black'/%3E%3C/svg%3E");
@@ -484,7 +486,7 @@
   .squircle-dialog {
     /* Squircle simulado con border-radius que preserva el borde */
     border-radius: 2rem 2rem 1.75rem 1.75rem;
-    
+
     /* Para navegadores modernos, usar valores más suaves tipo squircle */
     @supports (border-radius: 2rem) {
       border-radius: 2.5rem 2.5rem 2rem 2rem;
@@ -503,24 +505,34 @@
 
   /* Capa de opacidad solo en la parte inferior del diálogo */
   .dialog-layout-container::before {
-    content: '';
+    content: "";
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
     height: 50%;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.15) 40%, transparent 100%);
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.3) 0%,
+      rgba(0, 0, 0, 0.15) 40%,
+      transparent 100%
+    );
     pointer-events: none;
     z-index: 50;
   }
 
   .dark .dialog-layout-container::before {
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.3) 40%, transparent 100%);
+    background: linear-gradient(
+      to top,
+      rgba(0, 0, 0, 0.5) 0%,
+      rgba(0, 0, 0, 0.3) 40%,
+      transparent 100%
+    );
   }
 
   /* Efecto de difuminado adicional justo debajo del diálogo */
   .dialog-layout-container::after {
-    content: '';
+    content: "";
     position: absolute;
     bottom: calc(50% - 150px);
     left: 50%;
@@ -599,7 +611,9 @@
     background: var(--card) !important;
     backdrop-filter: none !important;
     opacity: 1 !important;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
     touch-action: pan-x pan-y !important;
     cursor: grab !important;
     user-select: none !important;
@@ -688,7 +702,7 @@
   /* =======================================================================
      FULLCALENDAR CUSTOM STYLES
      ======================================================================= */
-  
+
   .fc {
     --fc-border-color: hsl(var(--border));
     --fc-button-text-color: hsl(var(--primary-foreground));
@@ -758,7 +772,9 @@
     font-size: 0.75rem;
     padding: 0.125rem 0.25rem;
     cursor: pointer;
-    transition: transform 0.1s, box-shadow 0.1s;
+    transition:
+      transform 0.1s,
+      box-shadow 0.1s;
   }
 
   .fc .fc-event:hover {
@@ -813,7 +829,7 @@
       --fc-neutral-bg-color: hsl(var(--muted));
       --fc-today-bg-color: hsl(var(--accent) / 0.2);
     }
-    
+
     .fc .fc-day-other .fc-daygrid-day-top {
       opacity: 0.5;
     }
@@ -825,11 +841,11 @@
       flex-direction: column;
       gap: 0.75rem;
     }
-    
+
     .fc .fc-toolbar-title {
       font-size: 1rem;
     }
-    
+
     .fc .fc-button {
       padding: 0.25rem 0.5rem;
       font-size: 0.75rem;
@@ -839,21 +855,21 @@
   /* =======================================================================
      COMPACT CALENDAR STYLES - Calendario de notificaciones compacto
      ======================================================================= */
-  
+
   /* Quitar bordes del calendario */
   .compact-calendar .fc {
     --fc-border-color: transparent;
   }
-  
+
   .compact-calendar .fc-theme-standard td,
   .compact-calendar .fc-theme-standard th {
     border: none !important;
   }
-  
+
   .compact-calendar .fc-theme-standard .fc-scrollgrid {
     border: none !important;
   }
-  
+
   /* Encabezados de días (S M T W T F S) */
   .compact-calendar .fc-col-header-cell {
     padding: 0.25rem 0 !important;
@@ -864,7 +880,7 @@
     background: transparent !important;
     border: none !important;
   }
-  
+
   /* Celdas de días */
   .compact-calendar .fc-daygrid-day {
     border: none !important;
@@ -872,13 +888,13 @@
     transition: all 0.2s ease;
     overflow: visible !important;
   }
-  
+
   /* Efecto hover sutil en las celdas */
   .compact-calendar .fc-daygrid-day .fc-daygrid-day-frame {
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     padding: 2px !important;
   }
-  
+
   .compact-calendar .fc-daygrid-day:hover .fc-daygrid-day-frame {
     border-radius: calc(var(--radius) - 2px);
     transform: scale(1.05);
@@ -886,20 +902,20 @@
     z-index: 10;
     position: relative;
   }
-  
+
   /* Días coloreados - hover más intenso */
   .compact-calendar .fc-daygrid-day:has(.bg-red-500\/20):hover .fc-daygrid-day-frame {
     background-color: rgba(239, 68, 68, 0.35) !important;
   }
-  
+
   .compact-calendar .fc-daygrid-day:has(.bg-primary\/20):hover .fc-daygrid-day-frame {
     background-color: hsl(var(--primary) / 0.35) !important;
   }
-  
+
   .compact-calendar .fc-daygrid-day:has(.bg-green-500\/15):hover .fc-daygrid-day-frame {
     background-color: rgba(34, 197, 94, 0.3) !important;
   }
-  
+
   /* Números de días alineados */
   .compact-calendar .fc-daygrid-day-top {
     display: flex !important;
@@ -907,7 +923,7 @@
     align-items: flex-start !important;
     padding-top: 0.25rem;
   }
-  
+
   .compact-calendar .fc-daygrid-day-number {
     font-size: 0.875rem !important;
     font-weight: 500 !important;
@@ -916,89 +932,89 @@
     margin: 0 !important;
     line-height: 1;
   }
-  
+
   /* Día actual */
   .compact-calendar .fc-daygrid-day.fc-day-today {
     background-color: transparent !important;
   }
-  
+
   .compact-calendar .fc-day-today .fc-daygrid-day-number {
     color: hsl(var(--primary)) !important;
     font-weight: 700 !important;
   }
-  
+
   /* Ocultar días de otros meses */
   .compact-calendar .fc-day-other {
     visibility: hidden !important;
   }
-  
+
   .compact-calendar .fc-day-other .fc-daygrid-day-top {
     display: none !important;
   }
-  
+
   /* Ajustar fila del calendario */
   .compact-calendar .fc-daygrid-body tr {
     height: auto !important;
   }
-  
+
   .compact-calendar .fc-daygrid-day-frame {
     min-height: auto !important;
     padding: 0.125rem;
   }
-  
+
   /* Eventos más compactos */
   .compact-calendar .fc-daygrid-event {
     border-radius: calc(var(--radius) - 4px);
     margin: 0 1px;
   }
-  
+
   .compact-calendar .fc-event {
     font-size: 0.65rem !important;
     line-height: 1.2;
   }
-  
+
   /* Título del mes */
   .compact-calendar .fc-toolbar-title {
     font-size: 1rem !important;
     font-weight: 600 !important;
     text-align: center;
   }
-  
+
   /* Toolbar sin bordes */
   .compact-calendar .fc-header-toolbar {
     margin-bottom: 0.5rem !important;
   }
-  
+
   /* Ajustar altura del calendario */
   .compact-calendar .fc-view-harness {
     background: transparent !important;
     height: 100% !important;
   }
-  
+
   /* Calendario cuadrado - distribución uniforme */
   .compact-calendar .fc-daygrid-body {
     width: 100% !important;
     height: 100% !important;
   }
-  
+
   .compact-calendar .fc-daygrid-body table {
     height: 100% !important;
   }
-  
+
   .compact-calendar .fc-scrollgrid {
     height: 100% !important;
   }
-  
+
   .compact-calendar .fc-daygrid-body tbody tr {
     height: auto !important;
     min-height: 36px !important;
   }
-  
+
   .compact-calendar .fc-daygrid-day {
     height: auto !important;
     min-height: 36px !important;
   }
-  
+
   .compact-calendar .fc-daygrid-day-frame {
     height: auto !important;
     min-height: 36px !important;
@@ -1008,7 +1024,7 @@
     align-items: center !important;
     padding: 0.125rem !important;
   }
-  
+
   .compact-calendar .fc-daygrid-day-top {
     flex: 0 0 auto !important;
     display: flex !important;
@@ -1017,7 +1033,7 @@
     padding: 0.125rem 0 !important;
     min-height: 20px !important;
   }
-  
+
   .compact-calendar .fc-daygrid-day-events {
     width: 100% !important;
     min-height: 0 !important;
@@ -1025,51 +1041,51 @@
     margin-top: 0.125rem !important;
     overflow: hidden !important;
   }
-  
+
   .compact-calendar .fc-daygrid-event-harness {
     margin: 1px 0 !important;
   }
-  
+
   /* Ajustes para el calendario de notificaciones - evitar celdas alargadas */
   .fc-daygrid-body tbody tr {
     height: auto !important;
   }
-  
+
   .fc-daygrid-day {
     height: auto !important;
   }
-  
+
   .fc-daygrid-day-frame {
     min-height: 40px !important;
   }
-  
+
   .fc-daygrid-day-events {
     max-height: 60px !important;
     overflow: hidden !important;
   }
-  
+
   /* Limitar altura de eventos individuales */
   .fc-daygrid-event {
     max-height: 18px !important;
     overflow: hidden !important;
   }
-  
+
   /* Estilos para celdas del calendario de notificaciones */
   .calendar-day-cell {
     height: auto !important;
   }
-  
+
   .calendar-day-cell .fc-daygrid-day-frame {
     min-height: 32px !important;
     height: auto !important;
   }
-  
+
   .calendar-day-cell .fc-daygrid-day-top {
     min-height: 20px !important;
     background: transparent !important;
     padding: 0 !important;
   }
-  
+
   /* Eliminar cualquier recuadro/fondo en las celdas del calendario de notificaciones */
   .calendar-day-cell,
   .calendar-day-cell .fc-daygrid-day-frame,
@@ -1085,7 +1101,7 @@
   /* ========================================================================
      REACT DAY PICKER v9 OVERRIDES - Normalizar estilos del calendario
      ======================================================================== */
-  
+
   /* Días de la semana: forzar mayúsculas, centrar y limpiar */
   .rdp-weekday {
     text-transform: uppercase !important;
@@ -1102,7 +1118,7 @@
     border: none !important;
     background: transparent !important;
   }
-  
+
   /* Botones de día: asegurar que sean circulares y sin bordes extra */
   .rdp-day_button {
     border-radius: 9999px !important;
@@ -1116,46 +1132,48 @@
     border: none !important;
     background: transparent !important;
     color: hsl(var(--foreground)) !important;
-    transition: background-color 0.2s, color 0.2s !important;
+    transition:
+      background-color 0.2s,
+      color 0.2s !important;
   }
-  
+
   .rdp-day_button:hover:not([disabled]) {
     background-color: hsl(var(--accent)) !important;
     color: hsl(var(--accent-foreground)) !important;
   }
-  
+
   /* Día seleccionado */
   .rdp-day_button[data-selected="true"],
   .rdp-selected .rdp-day_button {
     background-color: hsl(var(--primary)) !important;
     color: hsl(var(--primary-foreground)) !important;
   }
-  
+
   .rdp-day_button[data-selected="true"]:hover,
   .rdp-selected .rdp-day_button:hover {
     background-color: hsl(var(--primary) / 0.9) !important;
   }
-  
+
   /* Día de hoy */
   .rdp-day_button[data-today="true"] {
     background-color: hsl(var(--accent)) !important;
     color: hsl(var(--accent-foreground)) !important;
     font-weight: 600 !important;
   }
-  
+
   /* Día fuera del mes */
   .rdp-day_button[data-outside="true"] {
     color: hsl(var(--muted-foreground)) !important;
     opacity: 0.5 !important;
   }
-  
+
   /* Día deshabilitado */
   .rdp-day_button[disabled] {
     color: hsl(var(--muted-foreground)) !important;
     opacity: 0.4 !important;
     cursor: not-allowed !important;
   }
-  
+
   /* Dropdowns de mes/año: wrapper limpio */
   .rdp-dropdown_root {
     display: inline-flex !important;
@@ -1168,14 +1186,16 @@
     color: hsl(var(--foreground)) !important;
     background: transparent !important;
     border: 1px solid transparent !important;
-    transition: background-color 0.2s, border-color 0.2s !important;
+    transition:
+      background-color 0.2s,
+      border-color 0.2s !important;
   }
-  
+
   .rdp-dropdown_root:hover {
     background-color: hsl(var(--muted)) !important;
     border-color: hsl(var(--border)) !important;
   }
-  
+
   /* Select invisible encima del texto */
   .rdp-dropdown {
     position: absolute !important;
@@ -1189,21 +1209,21 @@
     border: none !important;
     background: transparent !important;
   }
-  
+
   /* Título del mes */
   .rdp-caption_label {
     font-weight: 500 !important;
     font-size: 0.875rem !important;
     color: hsl(var(--foreground)) !important;
   }
-  
+
   /* Tabla del calendario */
   .rdp-month_grid {
     border-collapse: separate !important;
     border-spacing: 0.125rem !important;
     width: 100% !important;
   }
-  
+
   /* Fila de encabezados */
   .rdp-head_row {
     display: flex !important;
@@ -1212,7 +1232,7 @@
     border: none !important;
     background: transparent !important;
   }
-  
+
   /* Filas de semanas */
   .rdp-week {
     display: flex !important;
@@ -1221,7 +1241,7 @@
     border: none !important;
     background: transparent !important;
   }
-  
+
   /* Celdas del calendario */
   .rdp-cell {
     width: 2.5rem !important;
@@ -1232,7 +1252,7 @@
     border: none !important;
     background: transparent !important;
   }
-  
+
   /* Navegación */
   .rdp-nav_button {
     border-radius: 9999px !important;
@@ -1245,16 +1265,49 @@
     background: transparent !important;
     color: hsl(var(--foreground)) !important;
     opacity: 0.6 !important;
-    transition: opacity 0.2s, background-color 0.2s !important;
+    transition:
+      opacity 0.2s,
+      background-color 0.2s !important;
   }
-  
+
   .rdp-nav_button:hover {
     opacity: 1 !important;
     background-color: hsl(var(--muted)) !important;
   }
-  
+
   /* Chevron de navegación */
   .rdp-chevron {
     fill: hsl(var(--foreground)) !important;
+  }
+}
+
+/*
+ * Smooth light/dark theme transition.
+ *
+ * The `theme-transition` class is added to <html> by the ThemeProvider just
+ * before toggling the `.dark` class, and removed after the transition
+ * duration. Because the transition rules only apply WHILE this class is
+ * present, the very first paint (theme applied before hydration) is NOT
+ * animated, which avoids the classic "flash on initial load".
+ *
+ * Only color-related properties are transitioned (never `all`) so layout,
+ * transform and other component transitions are left untouched.
+ */
+.theme-transition,
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+  transition-property: background-color, color, border-color, fill, stroke, box-shadow;
+  transition-duration: 250ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Respect users who prefer reduced motion: no theme transition for them. */
+@media (prefers-reduced-motion: reduce) {
+  .theme-transition,
+  .theme-transition *,
+  .theme-transition *::before,
+  .theme-transition *::after {
+    transition: none !important;
   }
 }

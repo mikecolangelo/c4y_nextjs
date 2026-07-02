@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import qs from "qs";
 import { STRAPI_BASE_URL, STRAPI_API_TOKEN } from "@/lib/config";
+import { requireModulePermission } from "@/lib/module-guard";
 
 /**
  * GET /api/penalties?financing={financingDocumentId}
@@ -12,6 +13,14 @@ import { STRAPI_BASE_URL, STRAPI_API_TOKEN } from "@/lib/config";
  */
 export async function GET(request: Request) {
   try {
+    try {
+      await requireModulePermission("billing", "canRead");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { searchParams } = new URL(request.url);
     const financingDocumentId = searchParams.get("financing");
 
@@ -35,16 +44,13 @@ export async function GET(request: Request) {
       { encodeValuesOnly: true }
     );
 
-    const quotasRes = await fetch(
-      `${STRAPI_BASE_URL}/api/billing-records?${quotasQuery}`,
-      {
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        cache: "no-store",
-      }
-    );
+    const quotasRes = await fetch(`${STRAPI_BASE_URL}/api/billing-records?${quotasQuery}`, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+    });
 
     if (!quotasRes.ok) {
       const text = await quotasRes.text();
@@ -77,24 +83,18 @@ export async function GET(request: Request) {
       { encodeValuesOnly: true }
     );
 
-    const penaltyRes = await fetch(
-      `${STRAPI_BASE_URL}/api/penalty-debts?${penaltyQuery}`,
-      {
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        cache: "no-store",
-      }
-    );
+    const penaltyRes = await fetch(`${STRAPI_BASE_URL}/api/penalty-debts?${penaltyQuery}`, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+    });
 
     if (!penaltyRes.ok) {
       const text = await penaltyRes.text();
       console.error("[Penalties API] Error fetching penalties:", text);
-      return NextResponse.json(
-        { error: "Error consultando penalidades." },
-        { status: 502 }
-      );
+      return NextResponse.json({ error: "Error consultando penalidades." }, { status: 502 });
     }
 
     const penaltyJson = await penaltyRes.json();

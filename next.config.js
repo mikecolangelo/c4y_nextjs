@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  distDir: '.next-prod-deploy',
+  distDir: ".next-prod-deploy",
   output: "standalone",
 
   // Deshabilitar todo lo que consume RAM innecesariamente
@@ -11,6 +11,13 @@ const nextConfig = {
   productionBrowserSourceMaps: false,
   swcMinify: true,
   compress: false, // evita compresión gzip durante build (ahorra RAM/CPU)
+
+  // Strip console.* from production bundles (keep error/warn) so logs never
+  // ship to the client and add no runtime cost. Comments are removed by the
+  // SWC minifier (swcMinify). In development everything is preserved.
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production" ? { exclude: ["error", "warn"] } : false,
+  },
 
   // Límites para evitar que el build se cuelgue
   staticPageGenerationTimeout: 60,
@@ -26,17 +33,15 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: '/_next/static/:path*',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-        ],
+        source: "/_next/static/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
       },
       {
-        source: '/:path*',
+        source: "/:path*",
         headers: [
-          { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate, proxy-revalidate' },
-          { key: 'Pragma', value: 'no-cache' },
-          { key: 'Expires', value: '0' },
+          { key: "Cache-Control", value: "no-store, no-cache, must-revalidate, proxy-revalidate" },
+          { key: "Pragma", value: "no-cache" },
+          { key: "Expires", value: "0" },
         ],
       },
     ];
@@ -54,7 +59,7 @@ const nextConfig = {
       // Reducir el número de workers de terser/minificación
       if (config.optimization && config.optimization.minimizer) {
         config.optimization.minimizer.forEach((plugin) => {
-          if (plugin.constructor.name === 'TerserPlugin') {
+          if (plugin.constructor.name === "TerserPlugin") {
             plugin.options.parallel = 1;
           }
         });

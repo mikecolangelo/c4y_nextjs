@@ -12,10 +12,7 @@ export async function GET() {
     if (!jwt) {
       cookieStore.delete("jwt");
       cookieStore.delete("admin-theme");
-      return NextResponse.json(
-        { error: "No autenticado" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
     // 1. Obtener usuario nativo con JWT de sesion
@@ -59,19 +56,16 @@ export async function GET() {
     // 2. Buscar user-profile por email usando JWT del usuario (NO token estatico)
     const profileQuery = qs.stringify({
       filters: { email: { $eq: email } },
-      fields: ["documentId", "role", "displayName", "email"],
+      fields: ["documentId", "role", "displayName", "email", "themePreference"],
     });
 
-    const profileResponse = await fetch(
-      `${STRAPI_BASE_URL}/api/user-profiles?${profileQuery}`,
-      {
-        headers: {
-          Authorization: `Bearer ${jwt}`,
-          "Content-Type": "application/json",
-        },
-        cache: "no-store",
-      }
-    );
+    const profileResponse = await fetch(`${STRAPI_BASE_URL}/api/user-profiles?${profileQuery}`, {
+      headers: {
+        Authorization: `Bearer ${jwt}`,
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+    });
 
     if (!profileResponse.ok) {
       const errorText = await profileResponse.text();
@@ -108,6 +102,7 @@ export async function GET() {
         role: profile.role,
         displayName: profile.displayName,
         email: profile.email,
+        themePreference: profile.themePreference ?? null,
       },
     });
   } catch (error) {

@@ -5,9 +5,8 @@ import {
   type BillingRecordCreatePayload,
 } from "@/lib/billing";
 import { fetchFinancingByIdFromStrapi } from "@/lib/financing";
-import {
-  unifiedAllocatePayment,
-} from "@/lib/unified-allocator";
+import { unifiedAllocatePayment } from "@/lib/unified-allocator";
+import { requireModulePermission } from "@/lib/module-guard";
 
 /**
  * POST /api/billing/unified
@@ -28,6 +27,14 @@ import {
  */
 export async function POST(request: Request) {
   try {
+    try {
+      await requireModulePermission("billing", "canCreate");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const body = await request.json();
     const { data } = body as {
       data?: {
@@ -42,10 +49,7 @@ export async function POST(request: Request) {
     };
 
     if (!data) {
-      return NextResponse.json(
-        { error: "Los datos del pago son requeridos." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Los datos del pago son requeridos." }, { status: 400 });
     }
 
     if (!data.financingDocumentId) {
@@ -64,17 +68,11 @@ export async function POST(request: Request) {
 
     const financing = await fetchFinancingByIdFromStrapi(data.financingDocumentId);
     if (!financing) {
-      return NextResponse.json(
-        { error: "Financiamiento no encontrado." },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Financiamiento no encontrado." }, { status: 404 });
     }
 
     if (financing.status === "completado" || financing.status === "inactivo") {
-      return NextResponse.json(
-        { error: "El financiamiento no está activo." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "El financiamiento no está activo." }, { status: 400 });
     }
 
     const dueDate = data.dueDate || new Date().toISOString().split("T")[0];
@@ -93,7 +91,9 @@ export async function POST(request: Request) {
       parentRecord: null,
     };
 
-    console.log(`[API Billing Unified] Creando pago raíz de $${data.amount} para financing ${data.financingDocumentId}`);
+    console.log(
+      `[API Billing Unified] Creando pago raíz de $${data.amount} para financing ${data.financingDocumentId}`
+    );
 
     const rootRecord = await createBillingRecordInStrapi(payload, financing);
 

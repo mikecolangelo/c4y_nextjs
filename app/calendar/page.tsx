@@ -12,16 +12,7 @@ import {
   setDate,
   format,
 } from "date-fns";
-import { es } from "date-fns/locale";
-import {
-  Banknote,
-  Car,
-  Wrench,
-  Bell,
-  MoreVertical,
-  Plus,
-  Loader2,
-} from "lucide-react";
+import { Banknote, Car, Wrench, Bell, MoreVertical, Plus, Loader2 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { Button } from "@/components_shadcn/ui/button";
 import { Badge } from "@/components_shadcn/ui/badge";
@@ -39,6 +30,7 @@ import { useAppointments, AppointmentFilterType } from "./hooks/use-appointments
 import { AppointmentCalendarGrid } from "./components/appointment-calendar-grid";
 import { ActivityFeed } from "./components/activity-feed";
 import { AppointmentDialog, CreatePayload } from "./components/appointment-dialog";
+import { Can } from "@/components/auth/can";
 import type { AppointmentV2, AppointmentType } from "@/validations/types";
 
 const filterButtons: { label: string; value: AppointmentFilterType }[] = [
@@ -146,8 +138,18 @@ export default function CalendarPage() {
       const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 });
       const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 0 });
       list = activeList.filter((a) => {
-        const y = a.year, m = a.month, d = a.day;
-        if (y == null || m == null || d == null || Number.isNaN(y) || Number.isNaN(m) || Number.isNaN(d)) return false;
+        const y = a.year,
+          m = a.month,
+          d = a.day;
+        if (
+          y == null ||
+          m == null ||
+          d == null ||
+          Number.isNaN(y) ||
+          Number.isNaN(m) ||
+          Number.isNaN(d)
+        )
+          return false;
         const aptDate = new Date(y, m - 1, d);
         return !Number.isNaN(aptDate.getTime()) && aptDate >= weekStart && aptDate <= weekEnd;
       });
@@ -217,8 +219,17 @@ export default function CalendarPage() {
       contactEmail: apt.contactEmail,
       clientName: apt.clientName,
       scheduledDate: (() => {
-        const y = apt.year, m = apt.month, d = apt.day;
-        if (y != null && m != null && d != null && !Number.isNaN(y) && !Number.isNaN(m) && !Number.isNaN(d)) {
+        const y = apt.year,
+          m = apt.month,
+          d = apt.day;
+        if (
+          y != null &&
+          m != null &&
+          d != null &&
+          !Number.isNaN(y) &&
+          !Number.isNaN(m) &&
+          !Number.isNaN(d)
+        ) {
           const date = new Date(y, m - 1, d);
           if (!Number.isNaN(date.getTime())) return format(date, "yyyy-MM-dd");
         }
@@ -242,8 +253,8 @@ export default function CalendarPage() {
         // Necesitamos el id de la cita en edición. Como el dialog no lo tiene,
         // debemos guardar el documentId de la cita en edición en un estado separado.
         // Para simplificar, no implementamos edición desde el diálogo general en la página principal
-        // (la edición principal ocurre en la página de detalle). 
-        // Sin embargo, el menú contextual de cada card puede editar. 
+        // (la edición principal ocurre en la página de detalle).
+        // Sin embargo, el menú contextual de cada card puede editar.
         // Agreguemos un estado editingDocumentId.
       }
       setDialogOpen(false);
@@ -291,10 +302,7 @@ export default function CalendarPage() {
     }
   };
 
-  const listTitle =
-    viewType === "monthly"
-      ? `Citas del ${selectedDay}`
-      : `Citas de la semana`;
+  const listTitle = viewType === "monthly" ? `Citas del ${selectedDay}` : `Citas de la semana`;
 
   return (
     <AdminLayout title="Calendario" showFilterAction onFilterActionClick={scrollToFilters}>
@@ -428,7 +436,9 @@ export default function CalendarPage() {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   if (apt.vehicle?.documentId) {
-                                    router.push(`/fleet/details/${apt.vehicle.documentId}?tab=reminders`);
+                                    router.push(
+                                      `/fleet/details/${apt.vehicle.documentId}?tab=reminders`
+                                    );
                                   }
                                 }}
                               >
@@ -444,23 +454,27 @@ export default function CalendarPage() {
                                 >
                                   Ver detalle
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleMenuEdit(apt);
-                                  }}
-                                >
-                                  Editar
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="text-destructive focus:text-destructive"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDelete(apt.documentId);
-                                  }}
-                                >
-                                  Eliminar
-                                </DropdownMenuItem>
+                                <Can module="calendar" action="canUpdate">
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMenuEdit(apt);
+                                    }}
+                                  >
+                                    Editar
+                                  </DropdownMenuItem>
+                                </Can>
+                                <Can module="calendar" action="canDelete">
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDelete(apt.documentId);
+                                    }}
+                                  >
+                                    Eliminar
+                                  </DropdownMenuItem>
+                                </Can>
                               </>
                             )}
                           </DropdownMenuContent>
@@ -481,13 +495,15 @@ export default function CalendarPage() {
       </div>
 
       {/* Floating action button */}
-      <Button
-        size="icon"
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg"
-        onClick={openCreateDialog}
-      >
-        <Plus className="h-6 w-6" />
-      </Button>
+      <Can module="calendar" action="canCreate">
+        <Button
+          size="icon"
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg"
+          onClick={openCreateDialog}
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
+      </Can>
 
       <AppointmentDialog
         isOpen={dialogOpen}

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
-import { requireAdmin } from "@/lib/admin-guard";
+import { requireModulePermission } from "@/lib/module-guard";
 
 // Default document types - used as fallback
 const defaultDocumentTypes = [
@@ -82,7 +82,7 @@ const defaultDocumentTypes = [
 export async function GET(request: Request) {
   try {
     try {
-      await requireAdmin();
+      await requireModulePermission("fleet", "canRead");
     } catch {
       return NextResponse.json(
         { error: "Acceso restringido: Se requieren permisos de administrador" },
@@ -90,17 +90,14 @@ export async function GET(request: Request) {
       );
     }
     // Try to get from Strapi using the admin API with proper token
-    const response = await fetch(
-      `${STRAPI_BASE_URL}/api/fleet-document-types?sort[0]=order:asc`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-        },
-        cache: "no-store",
-      }
-    );
+    const response = await fetch(`${STRAPI_BASE_URL}/api/fleet-document-types?sort[0]=order:asc`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      },
+      cache: "no-store",
+    });
 
     if (response.ok) {
       const result = await response.json();
@@ -110,13 +107,15 @@ export async function GET(request: Request) {
         return NextResponse.json(result);
       }
     }
-    
-    console.warn("⚠️ Strapi no devolvió tipos de documento. Usando valores por defecto. Status:", response.status);
-    
+
+    console.warn(
+      "⚠️ Strapi no devolvió tipos de documento. Usando valores por defecto. Status:",
+      response.status
+    );
+
     // Fallback to default document types - these are for UI only
     // The actual saving will not include documentType since Strapi doesn't have this content type
     return NextResponse.json({ data: defaultDocumentTypes });
-    
   } catch (error) {
     console.error("❌ Error fetching fleet document types from Strapi:", error);
     // Fallback to default types on error
@@ -128,7 +127,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     try {
-      await requireAdmin();
+      await requireModulePermission("fleet", "canCreate");
     } catch {
       return NextResponse.json(
         { error: "Acceso restringido: Se requieren permisos de administrador" },
@@ -153,18 +152,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const response = await fetch(
-      `${STRAPI_BASE_URL}/api/fleet-document-types`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-        },
-        body: JSON.stringify({ data }),
-        cache: "no-store",
-      }
-    );
+    const response = await fetch(`${STRAPI_BASE_URL}/api/fleet-document-types`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      },
+      body: JSON.stringify({ data }),
+      cache: "no-store",
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -187,7 +183,9 @@ export async function POST(request: Request) {
         );
       }
 
-      throw new Error(errorData.error?.message || `Error ${response.status}: ${response.statusText}`);
+      throw new Error(
+        errorData.error?.message || `Error ${response.status}: ${response.statusText}`
+      );
     }
 
     const result = await response.json();
@@ -195,9 +193,6 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Error creating fleet document type:", error);
     const errorMessage = error instanceof Error ? error.message : "Error desconocido";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

@@ -1,13 +1,19 @@
 import { NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
-import {
-  fetchInventoryItemsFromStrapi,
-  createInventoryItemInStrapi,
-} from "@/lib/inventory";
+import { fetchInventoryItemsFromStrapi, createInventoryItemInStrapi } from "@/lib/inventory";
+import { requireModulePermission } from "@/lib/module-guard";
 import type { InventoryItemCreatePayload } from "@/validations/types";
 
 export async function GET() {
   try {
+    try {
+      await requireModulePermission("stock", "canRead");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const items = await fetchInventoryItemsFromStrapi();
     return NextResponse.json({ data: items });
   } catch (error) {
@@ -21,38 +27,34 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    try {
+      await requireModulePermission("stock", "canCreate");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const body = (await request.json()) as { data?: InventoryItemCreatePayload };
 
     if (!body?.data) {
-      return NextResponse.json(
-        { error: "Los datos del item son requeridos." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Los datos del item son requeridos." }, { status: 400 });
     }
 
     const { data } = body;
 
     // Validar campos requeridos
     if (!data.code) {
-      return NextResponse.json(
-        { error: "El código del item es requerido." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "El código del item es requerido." }, { status: 400 });
     }
 
     if (!data.description) {
-      return NextResponse.json(
-        { error: "La descripción del item es requerida." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "La descripción del item es requerida." }, { status: 400 });
     }
 
     // Validar stock
     if (data.stock === undefined || data.stock === null) {
-      return NextResponse.json(
-        { error: "El stock del item es requerido." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "El stock del item es requerido." }, { status: 400 });
     }
 
     if (typeof data.stock !== "number" || data.stock < 0) {
@@ -97,10 +99,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ data: item }, { status: 201 });
   } catch (error) {
     console.error("Error creating inventory item:", error);
-    const errorMessage = error instanceof Error ? error.message : "No se pudo crear el item de inventario.";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    const errorMessage =
+      error instanceof Error ? error.message : "No se pudo crear el item de inventario.";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

@@ -30,7 +30,6 @@ import { Calendar as CalendarComponent } from "@/components_shadcn/ui/calendar";
 import { Input } from "@/components_shadcn/ui/input";
 import { Label } from "@/components_shadcn/ui/label";
 import { Textarea } from "@/components_shadcn/ui/textarea";
-import { Separator } from "@/components_shadcn/ui/separator";
 import {
   Select,
   SelectContent,
@@ -38,11 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components_shadcn/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components_shadcn/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components_shadcn/ui/popover";
 import {
   Command,
   CommandEmpty,
@@ -54,14 +49,12 @@ import {
 import { Avatar, AvatarFallback } from "@/components_shadcn/ui/avatar";
 import { Badge } from "@/components_shadcn/ui/badge";
 import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
-import { spacing, typography } from "@/lib/design-system";
+import { typography } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
-import {
-  FinancingCalculator,
-  QuickUserCreate,
-  type CreatedUser,
-} from "@/components/ui/billing";
+import { getInitials } from "@/lib/format";
+import { FinancingCalculator, QuickUserCreate, type CreatedUser } from "@/components/ui/billing";
 import type { PaymentFrequency } from "@/lib/financing";
+import { Can } from "@/components/auth/can";
 
 // Tipos
 interface VehicleOption {
@@ -130,7 +123,7 @@ export function CreateFinancingDialog({
   // Estados de UI
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Vehículos
   const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
@@ -153,14 +146,22 @@ export function CreateFinancingDialog({
           const data = await response.json();
           // Mapear y filtrar vehículos sin financiamiento activo
           const mappedVehicles: VehicleOption[] = (data.data || []).map(
-            (v: { id: string; documentId: string; name: string; placa?: string; brand?: string; financing?: { status?: string } }) => ({
+            (v: {
+              id: string;
+              documentId: string;
+              name: string;
+              placa?: string;
+              brand?: string;
+              financing?: { status?: string };
+            }) => ({
               id: v.id,
               documentId: v.documentId,
               name: v.name,
               placa: v.placa,
               brand: v.brand,
               // Solo considerar activo si el financiamiento está en estado "activo" o "en_mora"
-              hasActiveFinancing: v.financing && 
+              hasActiveFinancing:
+                v.financing &&
                 (v.financing.status === "activo" || v.financing.status === "en_mora"),
             })
           );
@@ -187,7 +188,13 @@ export function CreateFinancingDialog({
         if (response.ok) {
           const data = await response.json();
           const mappedClients: ClientOption[] = (data.data || []).map(
-            (u: { id: string; documentId: string; displayName?: string; email?: string; cedula?: string }) => ({
+            (u: {
+              id: string;
+              documentId: string;
+              displayName?: string;
+              email?: string;
+              cedula?: string;
+            }) => ({
               id: u.id,
               documentId: u.documentId,
               displayName: u.displayName || "Sin nombre",
@@ -303,7 +310,7 @@ export function CreateFinancingDialog({
       cedula: user.cedula,
     };
     setClients((prev) => [newClient, ...prev]);
-    
+
     // Seleccionar automáticamente
     setFormData((prev) => ({
       ...prev,
@@ -323,7 +330,7 @@ export function CreateFinancingDialog({
     try {
       // Convertir períodos a meses para el backend
       const financingMonths = periodsToMonths(formData.financingPeriods, formData.paymentFrequency);
-      
+
       const payload = {
         data: {
           totalAmount: formData.totalAmount,
@@ -359,15 +366,6 @@ export function CreateFinancingDialog({
     }
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl h-[90vh] p-0 !flex !flex-col overflow-hidden">
@@ -391,53 +389,77 @@ export function CreateFinancingDialog({
 
               {/* Contenido en una sola columna */}
               <div className="space-y-6">
-                  {/* Selección de Vehículo */}
-                  <div className="rounded-xl border bg-card p-5 space-y-4">
-                    <h3 className="text-base font-semibold flex items-center gap-2">
-                      <div className="p-2 rounded-lg bg-primary/10">
-                        <Car className="h-4 w-4 text-primary" />
-                      </div>
-                      Vehículo
-                    </h3>
+                {/* Selección de Vehículo */}
+                <div className="rounded-xl border bg-card p-5 space-y-4">
+                  <h3 className="text-base font-semibold flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <Car className="h-4 w-4 text-primary" />
+                    </div>
+                    Vehículo
+                  </h3>
 
-                      <Popover open={vehicleSearchOpen} onOpenChange={setVehicleSearchOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              "w-full justify-between h-14 rounded-lg",
-                              !formData.vehicleName && "text-muted-foreground"
-                            )}
-                          >
-                            {formData.vehicleName ? (
-                              <div className="flex items-center gap-3">
-                                <Car className="h-5 w-5 text-primary" />
-                                <span>{formData.vehicleName}</span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <Search className="h-4 w-4" />
-                                <span>Buscar vehículo...</span>
-                              </div>
-                            )}
-                            {isLoadingVehicles && (
-                              <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                            )}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[400px] p-0" align="start">
-                          <Command>
-                            <CommandInput placeholder="Buscar por nombre o placa..." />
-                            <CommandList>
-                              <CommandEmpty>No se encontraron vehículos disponibles.</CommandEmpty>
-                              <CommandGroup heading="Vehículos Disponibles">
-                                {availableVehicles.map((vehicle) => (
+                  <Popover open={vehicleSearchOpen} onOpenChange={setVehicleSearchOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          "w-full justify-between h-14 rounded-lg",
+                          !formData.vehicleName && "text-muted-foreground"
+                        )}
+                      >
+                        {formData.vehicleName ? (
+                          <div className="flex items-center gap-3">
+                            <Car className="h-5 w-5 text-primary" />
+                            <span>{formData.vehicleName}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <Search className="h-4 w-4" />
+                            <span>Buscar vehículo...</span>
+                          </div>
+                        )}
+                        {isLoadingVehicles && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[400px] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Buscar por nombre o placa..." />
+                        <CommandList>
+                          <CommandEmpty>No se encontraron vehículos disponibles.</CommandEmpty>
+                          <CommandGroup heading="Vehículos Disponibles">
+                            {availableVehicles.map((vehicle) => (
+                              <CommandItem
+                                key={vehicle.documentId}
+                                value={`${vehicle.name} ${vehicle.placa || ""}`}
+                                onSelect={() => handleSelectVehicle(vehicle)}
+                                className="cursor-pointer"
+                              >
+                                <div className="flex items-center gap-3 w-full">
+                                  <Car className="h-5 w-5 text-muted-foreground" />
+                                  <div className="flex flex-col flex-1">
+                                    <span className={typography.body.large}>{vehicle.name}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {vehicle.brand || "Sin marca"} •{" "}
+                                      {vehicle.placa || "Sin placa"}
+                                    </span>
+                                  </div>
+                                  <Badge variant="outline" className="text-xs text-green-600">
+                                    Disponible
+                                  </Badge>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                          {vehicles.filter((v) => v.hasActiveFinancing).length > 0 && (
+                            <CommandGroup heading="Vehículos con Financiamiento">
+                              {vehicles
+                                .filter((v) => v.hasActiveFinancing)
+                                .map((vehicle) => (
                                   <CommandItem
                                     key={vehicle.documentId}
-                                    value={`${vehicle.name} ${vehicle.placa || ""}`}
-                                    onSelect={() => handleSelectVehicle(vehicle)}
-                                    className="cursor-pointer"
+                                    disabled
+                                    className="opacity-50"
                                   >
                                     <div className="flex items-center gap-3 w-full">
                                       <Car className="h-5 w-5 text-muted-foreground" />
@@ -446,357 +468,337 @@ export function CreateFinancingDialog({
                                           {vehicle.name}
                                         </span>
                                         <span className="text-xs text-muted-foreground">
-                                          {vehicle.brand || "Sin marca"} • {vehicle.placa || "Sin placa"}
+                                          {vehicle.placa || "Sin placa"}
                                         </span>
                                       </div>
-                                      <Badge variant="outline" className="text-xs text-green-600">
-                                        Disponible
+                                      <Badge variant="secondary" className="text-xs">
+                                        Con financiamiento
                                       </Badge>
                                     </div>
                                   </CommandItem>
                                 ))}
-                              </CommandGroup>
-                              {vehicles.filter((v) => v.hasActiveFinancing).length > 0 && (
-                                <CommandGroup heading="Vehículos con Financiamiento">
-                                  {vehicles
-                                    .filter((v) => v.hasActiveFinancing)
-                                    .map((vehicle) => (
-                                      <CommandItem
-                                        key={vehicle.documentId}
-                                        disabled
-                                        className="opacity-50"
-                                      >
-                                        <div className="flex items-center gap-3 w-full">
-                                          <Car className="h-5 w-5 text-muted-foreground" />
-                                          <div className="flex flex-col flex-1">
-                                            <span className={typography.body.large}>
-                                              {vehicle.name}
-                                            </span>
-                                            <span className="text-xs text-muted-foreground">
-                                              {vehicle.placa || "Sin placa"}
-                                            </span>
-                                          </div>
-                                          <Badge variant="secondary" className="text-xs">
-                                            Con financiamiento
-                                          </Badge>
-                                        </div>
-                                      </CommandItem>
-                                    ))}
-                                </CommandGroup>
-                              )}
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                  </div>
+                            </CommandGroup>
+                          )}
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
 
-                  {/* Selección de Cliente */}
-                  <div className="rounded-xl border bg-card p-5 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-base font-semibold flex items-center gap-2">
-                        <div className="p-2 rounded-lg bg-blue-500/10">
-                          <User className="h-4 w-4 text-blue-500" />
-                        </div>
-                        Cliente
-                      </h3>
-                      <QuickUserCreate
-                          onUserCreated={handleUserCreated}
-                          trigger={
-                            <Button variant="ghost" size="sm" className="gap-1 h-8">
-                              <UserPlus className="h-4 w-4" />
-                              Crear nuevo
-                            </Button>
-                          }
-                        />
-                      </div>
-
-                      <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              "w-full justify-between h-14 rounded-lg",
-                              !formData.clientName && "text-muted-foreground"
-                            )}
-                          >
-                            {formData.clientName ? (
-                              <div className="flex items-center gap-3">
-                                <Avatar className="h-8 w-8">
-                                  <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                                    {getInitials(formData.clientName)}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <span>{formData.clientName}</span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <Search className="h-4 w-4" />
-                                <span>Buscar cliente...</span>
-                              </div>
-                            )}
-                            {isLoadingClients && (
-                              <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                            )}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[400px] p-0" align="start">
-                          <Command>
-                            <CommandInput placeholder="Buscar por nombre, email o cédula..." />
-                            <CommandList>
-                              <CommandEmpty>No se encontraron clientes.</CommandEmpty>
-                              <CommandGroup heading="Contactos del Sistema">
-                                {clients.map((client) => (
-                                  <CommandItem
-                                    key={client.documentId}
-                                    value={`${client.displayName} ${client.email || ""} ${client.cedula || ""}`}
-                                    onSelect={() => handleSelectClient(client)}
-                                    className="cursor-pointer"
-                                  >
-                                    <div className="flex items-center gap-3 w-full">
-                                      <Avatar className="h-8 w-8">
-                                        <AvatarFallback className="bg-muted text-xs">
-                                          {getInitials(client.displayName)}
-                                        </AvatarFallback>
-                                      </Avatar>
-                                      <div className="flex flex-col">
-                                        <span className={typography.body.large}>
-                                          {client.displayName}
-                                        </span>
-                                        <span className="text-xs text-muted-foreground">
-                                          {client.cedula || client.email || "Sin contacto"}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                  </div>
-
-                  {/* Parámetros de Financiamiento */}
-                  <div className="rounded-xl border bg-card p-5 space-y-4">
-                    <h3 className="text-base font-semibold flex items-center gap-2">
-                      <div className="p-2 rounded-lg bg-green-500/10">
-                        <Banknote className="h-4 w-4 text-green-500" />
-                      </div>
-                      Parámetros de Financiamiento
-                    </h3>
-
-                    {/* Monto Total */}
-                    <div className="flex flex-col gap-2">
-                      <Label htmlFor="totalAmount" className={typography.label}>
-                        Monto Total *
-                      </Label>
-                      <div className="relative">
-                        <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="totalAmount"
-                          type="number"
-                          min={0}
-                          step={100}
-                          value={formData.totalAmount || ""}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              totalAmount: parseFloat(e.target.value) || 0,
-                            }))
-                          }
-                          placeholder="49500"
-                          className="rounded-lg pl-10 h-12"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Frecuencia y Duración en la misma fila */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="flex flex-col gap-2">
-                        <Label htmlFor="paymentFrequency" className={typography.label}>
-                          Frecuencia de Pago *
-                        </Label>
-                        <Select
-                          value={formData.paymentFrequency}
-                          onValueChange={(v) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              paymentFrequency: v as PaymentFrequency,
-                            }))
-                          }
-                        >
-                          <SelectTrigger className="rounded-lg h-12">
-                            <SelectValue placeholder="Seleccionar" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {frequencyOptions.map((opt) => (
-                              <SelectItem key={opt.value} value={opt.value}>
-                                {opt.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="flex flex-col gap-2">
-                        <Label htmlFor="financingDuration" className={typography.label}>
-                          {formData.paymentFrequency === "semanal" 
-                            ? "Semanas de Financiamiento *"
-                            : formData.paymentFrequency === "quincenal"
-                            ? "Quincenas de Financiamiento *"
-                            : "Meses de Financiamiento *"}
-                        </Label>
-                        <Input
-                          id="financingDuration"
-                          type="number"
-                          min={1}
-                          max={formData.paymentFrequency === "semanal" ? 520 : formData.paymentFrequency === "quincenal" ? 240 : 120}
-                          step={1}
-                          value={formData.financingPeriods || ""}
-                          onChange={(e) => {
-                            const value = parseInt(e.target.value) || 0;
-                            setFormData((prev) => ({
-                              ...prev,
-                              financingPeriods: value,
-                            }));
-                          }}
-                          placeholder={formData.paymentFrequency === "semanal" ? "220" : formData.paymentFrequency === "quincenal" ? "108" : "54"}
-                          className="rounded-lg h-12"
-                        />
-                      </div>
-                    </div>
-
-                      <div className="flex flex-col gap-2">
-                        <Label className={typography.label}>Fecha de Inicio *</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full justify-start text-left font-normal h-10 pl-3 rounded-lg",
-                                !formData.startDate && "text-muted-foreground"
-                              )}
-                            >
-                              <Calendar className="mr-2 h-4 w-4" />
-                              {formData.startDate
-                                ? format(
-                                    new Date(`${formData.startDate}T00:00:00`),
-                                    "d 'de' MMMM, yyyy",
-                                    { locale: es }
-                                  )
-                                : "Selecciona una fecha"}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0 z-[200]" align="start">
-                            <CalendarComponent
-                              mode="single"
-                              selected={
-                                formData.startDate
-                                  ? new Date(`${formData.startDate}T00:00:00`)
-                                  : undefined
-                              }
-                              onSelect={(date) => {
-                                if (date) {
-                                  const y = date.getFullYear();
-                                  const m = String(date.getMonth() + 1).padStart(2, "0");
-                                  const d = String(date.getDate()).padStart(2, "0");
-                                  setFormData((prev) => ({
-                                    ...prev,
-                                    startDate: `${y}-${m}-${d}`,
-                                  }));
-                                }
-                              }}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                  </div>
-
-                  {/* Notas */}
-                  <div className="rounded-xl border bg-card p-5 space-y-4">
-                    <h3 className="text-base font-semibold flex items-center gap-2">
-                      <div className="p-2 rounded-lg bg-amber-500/10">
-                        <FileText className="h-4 w-4 text-amber-500" />
-                      </div>
-                      Notas (opcional)
-                    </h3>
-                    <Textarea
-                      value={formData.notes}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, notes: e.target.value }))
-                      }
-                      placeholder="Notas adicionales sobre el financiamiento..."
-                      rows={3}
-                      className="rounded-lg resize-none"
-                    />
-                  </div>
-
-                  {/* Información de Facturación Automática */}
-                  <div className="rounded-xl border bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-5 space-y-4">
+                {/* Selección de Cliente */}
+                <div className="rounded-xl border bg-card p-5 space-y-4">
+                  <div className="flex items-center justify-between">
                     <h3 className="text-base font-semibold flex items-center gap-2">
                       <div className="p-2 rounded-lg bg-blue-500/10">
-                        <Bell className="h-4 w-4 text-blue-500" />
+                        <User className="h-4 w-4 text-blue-500" />
                       </div>
-                      Ciclo de Facturación Automática
+                      Cliente
                     </h3>
+                    <Can module="users" action="canCreate">
+                      <QuickUserCreate
+                        onUserCreated={handleUserCreated}
+                        trigger={
+                          <Button variant="ghost" size="sm" className="gap-1 h-8">
+                            <UserPlus className="h-4 w-4" />
+                            Crear nuevo
+                          </Button>
+                        }
+                      />
+                    </Can>
+                  </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      {/* Día de facturación */}
-                      <div className="flex items-start gap-3 p-3 bg-white/50 dark:bg-white/5 rounded-lg">
-                        <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30">
-                          <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">Facturación</p>
-                          <p className="text-xs text-muted-foreground">
-                            Todos los martes
-                          </p>
-                        </div>
-                      </div>
+                  <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          "w-full justify-between h-14 rounded-lg",
+                          !formData.clientName && "text-muted-foreground"
+                        )}
+                      >
+                        {formData.clientName ? (
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                                {getInitials(formData.clientName)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span>{formData.clientName}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <Search className="h-4 w-4" />
+                            <span>Buscar cliente...</span>
+                          </div>
+                        )}
+                        {isLoadingClients && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[400px] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Buscar por nombre, email o cédula..." />
+                        <CommandList>
+                          <CommandEmpty>No se encontraron clientes.</CommandEmpty>
+                          <CommandGroup heading="Contactos del Sistema">
+                            {clients.map((client) => (
+                              <CommandItem
+                                key={client.documentId}
+                                value={`${client.displayName} ${client.email || ""} ${client.cedula || ""}`}
+                                onSelect={() => handleSelectClient(client)}
+                                className="cursor-pointer"
+                              >
+                                <div className="flex items-center gap-3 w-full">
+                                  <Avatar className="h-8 w-8">
+                                    <AvatarFallback className="bg-muted text-xs">
+                                      {getInitials(client.displayName)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex flex-col">
+                                    <span className={typography.body.large}>
+                                      {client.displayName}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {client.cedula || client.email || "Sin contacto"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
 
-                      {/* Fecha límite */}
-                      <div className="flex items-start gap-3 p-3 bg-white/50 dark:bg-white/5 rounded-lg">
-                        <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900/30">
-                          <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">Límite de Pago</p>
-                          <p className="text-xs text-muted-foreground">
-                            Jueves de cada semana
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Penalidad */}
-                      <div className="flex items-start gap-3 p-3 bg-white/50 dark:bg-white/5 rounded-lg">
-                        <div className="p-2 rounded-full bg-red-100 dark:bg-red-900/30">
-                          <Percent className="h-4 w-4 text-red-600 dark:text-red-400" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">Penalidad por Mora</p>
-                          <p className="text-xs text-muted-foreground">
-                            10% sobre la cuota
-                          </p>
-                        </div>
-                      </div>
+                {/* Parámetros de Financiamiento */}
+                <div className="rounded-xl border bg-card p-5 space-y-4">
+                  <h3 className="text-base font-semibold flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-green-500/10">
+                      <Banknote className="h-4 w-4 text-green-500" />
                     </div>
+                    Parámetros de Financiamiento
+                  </h3>
 
-                    <div className="p-3 bg-white/70 dark:bg-white/5 rounded-lg border border-blue-200 dark:border-blue-800">
-                      <p className="text-sm text-blue-800 dark:text-blue-300">
-                        <strong>Nota:</strong> Las facturas se generan automáticamente cada martes. 
-                        El cliente tiene hasta el jueves para realizar el pago. Si el pago no se 
-                        recibe antes del viernes, se aplicará una penalidad del 10% sobre el monto 
-                        de la cuota y la factura pasará a estado vencido.
-                      </p>
+                  {/* Monto Total */}
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="totalAmount" className={typography.label}>
+                      Monto Total *
+                    </Label>
+                    <div className="relative">
+                      <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="totalAmount"
+                        type="number"
+                        min={0}
+                        step={100}
+                        value={formData.totalAmount || ""}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            totalAmount: parseFloat(e.target.value) || 0,
+                          }))
+                        }
+                        placeholder="49500"
+                        className="rounded-lg pl-10 h-12"
+                      />
                     </div>
                   </div>
+
+                  {/* Frecuencia y Duración en la misma fila */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="paymentFrequency" className={typography.label}>
+                        Frecuencia de Pago *
+                      </Label>
+                      <Select
+                        value={formData.paymentFrequency}
+                        onValueChange={(v) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            paymentFrequency: v as PaymentFrequency,
+                          }))
+                        }
+                      >
+                        <SelectTrigger className="rounded-lg h-12">
+                          <SelectValue placeholder="Seleccionar" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {frequencyOptions.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="financingDuration" className={typography.label}>
+                        {formData.paymentFrequency === "semanal"
+                          ? "Semanas de Financiamiento *"
+                          : formData.paymentFrequency === "quincenal"
+                            ? "Quincenas de Financiamiento *"
+                            : "Meses de Financiamiento *"}
+                      </Label>
+                      <Input
+                        id="financingDuration"
+                        type="number"
+                        min={1}
+                        max={
+                          formData.paymentFrequency === "semanal"
+                            ? 520
+                            : formData.paymentFrequency === "quincenal"
+                              ? 240
+                              : 120
+                        }
+                        step={1}
+                        value={formData.financingPeriods || ""}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 0;
+                          setFormData((prev) => ({
+                            ...prev,
+                            financingPeriods: value,
+                          }));
+                        }}
+                        placeholder={
+                          formData.paymentFrequency === "semanal"
+                            ? "220"
+                            : formData.paymentFrequency === "quincenal"
+                              ? "108"
+                              : "54"
+                        }
+                        className="rounded-lg h-12"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <Label className={typography.label}>Fecha de Inicio *</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal h-10 pl-3 rounded-lg",
+                            !formData.startDate && "text-muted-foreground"
+                          )}
+                        >
+                          <Calendar className="mr-2 h-4 w-4" />
+                          {formData.startDate
+                            ? format(
+                                new Date(`${formData.startDate}T00:00:00`),
+                                "d 'de' MMMM, yyyy",
+                                { locale: es }
+                              )
+                            : "Selecciona una fecha"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0 z-[200]" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={
+                            formData.startDate
+                              ? new Date(`${formData.startDate}T00:00:00`)
+                              : undefined
+                          }
+                          onSelect={(date) => {
+                            if (date) {
+                              const y = date.getFullYear();
+                              const m = String(date.getMonth() + 1).padStart(2, "0");
+                              const d = String(date.getDate()).padStart(2, "0");
+                              setFormData((prev) => ({
+                                ...prev,
+                                startDate: `${y}-${m}-${d}`,
+                              }));
+                            }
+                          }}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+
+                {/* Notas */}
+                <div className="rounded-xl border bg-card p-5 space-y-4">
+                  <h3 className="text-base font-semibold flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-amber-500/10">
+                      <FileText className="h-4 w-4 text-amber-500" />
+                    </div>
+                    Notas (opcional)
+                  </h3>
+                  <Textarea
+                    value={formData.notes}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
+                    placeholder="Notas adicionales sobre el financiamiento..."
+                    rows={3}
+                    className="rounded-lg resize-none"
+                  />
+                </div>
+
+                {/* Información de Facturación Automática */}
+                <div className="rounded-xl border bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 p-5 space-y-4">
+                  <h3 className="text-base font-semibold flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-blue-500/10">
+                      <Bell className="h-4 w-4 text-blue-500" />
+                    </div>
+                    Ciclo de Facturación Automática
+                  </h3>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {/* Día de facturación */}
+                    <div className="flex items-start gap-3 p-3 bg-white/50 dark:bg-white/5 rounded-lg">
+                      <div className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30">
+                        <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Facturación</p>
+                        <p className="text-xs text-muted-foreground">Todos los martes</p>
+                      </div>
+                    </div>
+
+                    {/* Fecha límite */}
+                    <div className="flex items-start gap-3 p-3 bg-white/50 dark:bg-white/5 rounded-lg">
+                      <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900/30">
+                        <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Límite de Pago</p>
+                        <p className="text-xs text-muted-foreground">Jueves de cada semana</p>
+                      </div>
+                    </div>
+
+                    {/* Penalidad */}
+                    <div className="flex items-start gap-3 p-3 bg-white/50 dark:bg-white/5 rounded-lg">
+                      <div className="p-2 rounded-full bg-red-100 dark:bg-red-900/30">
+                        <Percent className="h-4 w-4 text-red-600 dark:text-red-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Penalidad por Mora</p>
+                        <p className="text-xs text-muted-foreground">10% sobre la cuota</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-white/70 dark:bg-white/5 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <p className="text-sm text-blue-800 dark:text-blue-300">
+                      <strong>Nota:</strong> Las facturas se generan automáticamente cada martes. El
+                      cliente tiene hasta el jueves para realizar el pago. Si el pago no se recibe
+                      antes del viernes, se aplicará una penalidad del 10% sobre el monto de la
+                      cuota y la factura pasará a estado vencido.
+                    </p>
+                  </div>
+                </div>
 
                 {/* Calculadora */}
                 <FinancingCalculator
                   totalAmount={formData.totalAmount}
-                  financingMonths={periodsToMonths(formData.financingPeriods, formData.paymentFrequency)}
+                  financingMonths={periodsToMonths(
+                    formData.financingPeriods,
+                    formData.paymentFrequency
+                  )}
                   paymentFrequency={formData.paymentFrequency}
                   startDate={formData.startDate}
                   totalQuotas={formData.financingPeriods}
@@ -815,11 +817,7 @@ export function CreateFinancingDialog({
         </ScrollAreaPrimitive.Root>
 
         <DialogFooter className="px-6 py-4 border-t shrink-0">
-          <Button
-            variant="outline"
-            onClick={() => handleOpenChange(false)}
-            disabled={isCreating}
-          >
+          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isCreating}>
             Cancelar
           </Button>
           <Button

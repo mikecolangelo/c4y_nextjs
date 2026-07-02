@@ -1,17 +1,23 @@
 import { NextResponse } from "next/server";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
+import { requireModulePermission } from "@/lib/module-guard";
 
 // GET - Listar documentos de un vehículo (filtrado por vehicleDocumentId)
 export async function GET(request: Request) {
   try {
+    try {
+      await requireModulePermission("fleet", "canRead");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { searchParams } = new URL(request.url);
     const vehicleDocumentId = searchParams.get("vehicleDocumentId");
 
     if (!vehicleDocumentId) {
-      return NextResponse.json(
-        { error: "vehicleDocumentId es requerido" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "vehicleDocumentId es requerido" }, { status: 400 });
     }
 
     const strapiUrl = `${STRAPI_BASE_URL}/api/vehicle-documents?vehicleDocumentId=${encodeURIComponent(
@@ -43,6 +49,14 @@ export async function GET(request: Request) {
 // POST - Crear un nuevo documento vehicular
 export async function POST(request: Request) {
   try {
+    try {
+      await requireModulePermission("fleet", "canCreate");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const body = await request.json();
     const { data } = body;
 

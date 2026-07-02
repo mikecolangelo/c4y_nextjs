@@ -10,7 +10,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   XCircle,
-  ArrowLeft,
   Loader2,
   FileWarning,
   Table2,
@@ -18,8 +17,16 @@ import {
   History,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { BackButton } from "@/components/admin/back-button";
 import { Button } from "@/components_shadcn/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components_shadcn/ui/card";
+import { Can } from "@/components/auth/can";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components_shadcn/ui/card";
 import { Progress } from "@/components_shadcn/ui/progress";
 import { Badge } from "@/components_shadcn/ui/badge";
 import {
@@ -30,11 +37,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components_shadcn/ui/table";
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/components_shadcn/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components_shadcn/ui/alert";
 import {
   parseWeeklyCollectionFile,
   validateHeaders,
@@ -97,39 +100,36 @@ export default function BillingImportPage() {
     toast.success("Plantilla descargada");
   }, []);
 
-  const processFile = useCallback(
-    async (file: File) => {
-      try {
-        setFileName(file.name);
-        const buffer = await file.arrayBuffer();
-        const { mappedHeaders, rows } = parseWeeklyCollectionFile(buffer, file.name);
+  const processFile = useCallback(async (file: File) => {
+    try {
+      setFileName(file.name);
+      const buffer = await file.arrayBuffer();
+      const { mappedHeaders, rows } = parseWeeklyCollectionFile(buffer, file.name);
 
-        const headerCheck = validateHeaders(mappedHeaders);
-        setHeaderValidation(headerCheck);
+      const headerCheck = validateHeaders(mappedHeaders);
+      setHeaderValidation(headerCheck);
 
-        if (!headerCheck.valid) {
-          setPhase("error");
-          toast.error(`Faltan columnas obligatorias: ${headerCheck.missing.join(", ")}`);
-          return;
-        }
-
-        // Validate each row and attach errors
-        const validatedRows = rows.map((row) => {
-          const errors = validateRow(row);
-          return { ...row, _errors: errors };
-        });
-
-        setParsedRows(validatedRows);
-        setPhase("preview");
-        toast.success(`Archivo analizado: ${validatedRows.length} registros detectados`);
-      } catch (err) {
-        console.error(err);
+      if (!headerCheck.valid) {
         setPhase("error");
-        toast.error(err instanceof Error ? err.message : "Error al leer el archivo");
+        toast.error(`Faltan columnas obligatorias: ${headerCheck.missing.join(", ")}`);
+        return;
       }
-    },
-    []
-  );
+
+      // Validate each row and attach errors
+      const validatedRows = rows.map((row) => {
+        const errors = validateRow(row);
+        return { ...row, _errors: errors };
+      });
+
+      setParsedRows(validatedRows);
+      setPhase("preview");
+      toast.success(`Archivo analizado: ${validatedRows.length} registros detectados`);
+    } catch (err) {
+      console.error(err);
+      setPhase("error");
+      toast.error(err instanceof Error ? err.message : "Error al leer el archivo");
+    }
+  }, []);
 
   const handleFileInput = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -214,7 +214,7 @@ export default function BillingImportPage() {
           batch.forEach((row, idx) => {
             errors++;
             allDetails.push({
-              index: (row._rowIndex ?? i + idx + 1),
+              index: row._rowIndex ?? i + idx + 1,
               receiptNumber: row.receiptNumber || null,
               status: "error" as const,
               message: data?.error || `Error HTTP ${res.status}`,
@@ -241,7 +241,9 @@ export default function BillingImportPage() {
         details: allDetails,
       });
       setPhase("success");
-      toast.success(`Importacion completada: ${created} creados, ${duplicated} duplicados, ${errors} errores`);
+      toast.success(
+        `Importacion completada: ${created} creados, ${duplicated} duplicados, ${errors} errores`
+      );
     } catch (err) {
       console.error(err);
       setPhase("error");
@@ -268,14 +270,14 @@ export default function BillingImportPage() {
   const errorCount = parsedRows.filter((r) => (r._errors?.length ?? 0) > 0).length;
 
   return (
-    <AdminLayout title="Importacion Masiva de Cobranza">
+    <AdminLayout
+      title="Importacion Masiva de Cobranza"
+      leftActions={<BackButton fallbackHref="/billing" />}
+    >
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => router.push("/billing")}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
             <div>
               <h1 className="text-2xl font-bold tracking-tight">Importacion Masiva de Cobranza</h1>
               <p className="text-muted-foreground">
@@ -322,9 +324,7 @@ export default function BillingImportPage() {
                   onChange={handleFileInput}
                 />
                 <Upload className="mx-auto h-10 w-10 text-muted-foreground mb-4" />
-                <p className="text-lg font-medium">
-                  Arrastra aqui tu archivo Excel o CSV
-                </p>
+                <p className="text-lg font-medium">Arrastra aqui tu archivo Excel o CSV</p>
                 <p className="text-sm text-muted-foreground mt-1">
                   Tambien puedes hacer clic para seleccionar el archivo
                 </p>
@@ -343,8 +343,8 @@ export default function BillingImportPage() {
             <AlertTitle>Error: Faltan columnas obligatorias</AlertTitle>
             <AlertDescription>
               No se encontraron las siguientes columnas requeridas:{" "}
-              <strong>{headerValidation.missing.join(", ")}</strong>. Por favor descarga la plantilla
-              y verifica los encabezados.
+              <strong>{headerValidation.missing.join(", ")}</strong>. Por favor descarga la
+              plantilla y verifica los encabezados.
             </AlertDescription>
           </Alert>
         )}
@@ -357,24 +357,24 @@ export default function BillingImportPage() {
                 <FileSpreadsheet className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                 <span className="font-medium">{fileName}</span>
                 <Badge variant="secondary">{parsedRows.length} registros</Badge>
-                {errorCount > 0 && (
-                  <Badge variant="destructive">{errorCount} con errores</Badge>
-                )}
+                {errorCount > 0 && <Badge variant="destructive">{errorCount} con errores</Badge>}
               </div>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={resetState} className="gap-1">
                   <Trash2 className="h-3.5 w-3.5" />
                   Limpiar
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={handleUpload}
-                  disabled={errorCount > 0}
-                  className="gap-1"
-                >
-                  <Upload className="h-3.5 w-3.5" />
-                  Importar Registros
-                </Button>
+                <Can module="billing" action="canCreate">
+                  <Button
+                    size="sm"
+                    onClick={handleUpload}
+                    disabled={errorCount > 0}
+                    className="gap-1"
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    Importar Registros
+                  </Button>
+                </Can>
               </div>
             </div>
 
@@ -444,7 +444,9 @@ export default function BillingImportPage() {
                             {row.amountPaid != null ? `$${row.amountPaid.toFixed(2)}` : "—"}
                           </TableCell>
                           <TableCell className="text-right">
-                            {row.remainingBalance != null ? `$${row.remainingBalance.toFixed(2)}` : "—"}
+                            {row.remainingBalance != null
+                              ? `$${row.remainingBalance.toFixed(2)}`
+                              : "—"}
                           </TableCell>
                           <TableCell>
                             {row.verifiedInBank ? (
@@ -453,7 +455,9 @@ export default function BillingImportPage() {
                               <XCircle className="h-4 w-4 text-muted-foreground" />
                             )}
                           </TableCell>
-                          <TableCell className="text-xs">{row.clientIdentification || "—"}</TableCell>
+                          <TableCell className="text-xs">
+                            {row.clientIdentification || "—"}
+                          </TableCell>
                           <TableCell>
                             {hasErrors ? (
                               <div className="flex items-center gap-1 text-red-600 dark:text-red-400 text-xs">
@@ -515,9 +519,7 @@ export default function BillingImportPage() {
               <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
               <div>
                 <p className="font-medium">{progressLabel}</p>
-                <p className="text-sm text-muted-foreground">
-                  Por favor no cierres esta ventana
-                </p>
+                <p className="text-sm text-muted-foreground">Por favor no cierres esta ventana</p>
               </div>
               <Progress value={progress} className="w-full max-w-md mx-auto" />
               <p className="text-xs text-muted-foreground">{progress}% completado</p>
@@ -545,15 +547,25 @@ export default function BillingImportPage() {
                     <p className="text-xs text-muted-foreground uppercase">Total Procesados</p>
                   </div>
                   <div className="bg-emerald-100 rounded-lg border border-emerald-200 p-4 text-center dark:bg-emerald-900/50 dark:border-emerald-800">
-                    <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">{result.summary.created}</p>
-                    <p className="text-xs text-emerald-600 dark:text-emerald-400 uppercase">Creados exitosamente</p>
+                    <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">
+                      {result.summary.created}
+                    </p>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 uppercase">
+                      Creados exitosamente
+                    </p>
                   </div>
                   <div className="bg-amber-100 rounded-lg border border-amber-200 p-4 text-center dark:bg-amber-900/50 dark:border-amber-800">
-                    <p className="text-2xl font-bold text-amber-700 dark:text-amber-400">{result.summary.duplicated}</p>
-                    <p className="text-xs text-amber-600 dark:text-amber-400 uppercase">Duplicados omitidos</p>
+                    <p className="text-2xl font-bold text-amber-700 dark:text-amber-400">
+                      {result.summary.duplicated}
+                    </p>
+                    <p className="text-xs text-amber-600 dark:text-amber-400 uppercase">
+                      Duplicados omitidos
+                    </p>
                   </div>
                   <div className="bg-red-100 rounded-lg border border-red-200 p-4 text-center dark:bg-red-900/50 dark:border-red-800">
-                    <p className="text-2xl font-bold text-red-700 dark:text-red-400">{result.summary.errors}</p>
+                    <p className="text-2xl font-bold text-red-700 dark:text-red-400">
+                      {result.summary.errors}
+                    </p>
                     <p className="text-xs text-red-600 dark:text-red-400 uppercase">Errores</p>
                   </div>
                 </div>
@@ -569,7 +581,12 @@ export default function BillingImportPage() {
                       {result.summary.errors + result.summary.duplicated} filas requieren atencion
                     </CardDescription>
                   </div>
-                  <Button variant="outline" size="sm" onClick={handleDownloadErrorLog} className="gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadErrorLog}
+                    className="gap-1"
+                  >
                     <Download className="h-3.5 w-3.5" />
                     Descargar Log
                   </Button>
@@ -593,7 +610,10 @@ export default function BillingImportPage() {
                             <TableCell className="font-medium">{d.receiptNumber || "—"}</TableCell>
                             <TableCell>
                               {d.status === "duplicate" ? (
-                                <Badge variant="secondary" className="bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400">
+                                <Badge
+                                  variant="secondary"
+                                  className="bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400"
+                                >
                                   Duplicado
                                 </Badge>
                               ) : (

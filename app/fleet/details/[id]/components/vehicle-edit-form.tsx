@@ -9,12 +9,19 @@ import { Input } from "@/components_shadcn/ui/input";
 import { Label } from "@/components_shadcn/ui/label";
 import { Checkbox } from "@/components_shadcn/ui/checkbox";
 import { ImagePlus, Upload, Calendar } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components_shadcn/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components_shadcn/ui/select";
 import { MultiSelectCombobox } from "@/components_shadcn/ui/multi-select-combobox";
 import { Calendar as CalendarComponent } from "@/components_shadcn/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components_shadcn/ui/popover";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { Can } from "@/components/auth/can";
 
 // Función helper para formatear fechas de forma segura
 const formatDateSafe = (dateString: string, fallback: string = "Fecha inválida"): string => {
@@ -30,7 +37,11 @@ const formatDateSafe = (dateString: string, fallback: string = "Fecha inválida"
 import { spacing, typography } from "@/lib/design-system";
 import { strapiImages } from "@/lib/strapi-images";
 import { cn } from "@/lib/utils";
-import type { FleetVehicleCard, FleetVehicleCondition, RecurrencePattern } from "@/validations/types";
+import type {
+  FleetVehicleCard,
+  FleetVehicleCondition,
+  RecurrencePattern,
+} from "@/validations/types";
 
 interface FormData {
   name: string;
@@ -135,12 +146,14 @@ export function VehicleEditForm({
   const displayImageAlt = formData.imageAlt || vehicleData.imageAlt || vehicleData.name;
 
   return (
-    <Card 
+    <Card
       className="shadow-sm backdrop-blur-sm border rounded-lg"
-      style={{
-        backgroundColor: 'color-mix(in oklch, var(--background) 50%, transparent)',
-        borderColor: 'color-mix(in oklch, var(--border) 85%, transparent)',
-      } as React.CSSProperties}
+      style={
+        {
+          backgroundColor: "color-mix(in oklch, var(--background) 50%, transparent)",
+          borderColor: "color-mix(in oklch, var(--border) 85%, transparent)",
+        } as React.CSSProperties
+      }
     >
       <CardHeader className="px-6 pt-6 pb-4">
         <CardTitle className={typography.h4}>Información del Vehículo</CardTitle>
@@ -151,9 +164,15 @@ export function VehicleEditForm({
           <div className={`flex flex-col ${spacing.gap.small}`}>
             <div className="relative flex h-96 w-full items-center justify-center overflow-hidden rounded-lg border border-dashed border-muted-foreground/30 bg-muted/40">
               {displayImageUrl ? (
-                <img src={displayImageUrl} alt={displayImageAlt} className="h-full w-full object-cover" />
+                <img
+                  src={displayImageUrl}
+                  alt={displayImageAlt}
+                  className="h-full w-full object-cover"
+                />
               ) : (
-                <div className={`flex flex-col items-center justify-center text-muted-foreground ${spacing.gap.small}`}>
+                <div
+                  className={`flex flex-col items-center justify-center text-muted-foreground ${spacing.gap.small}`}
+                >
                   <ImagePlus className="h-8 w-8" />
                   <p className={typography.body.small}>Aún no has seleccionado una imagen</p>
                 </div>
@@ -250,18 +269,21 @@ export function VehicleEditForm({
               placeholder="35000"
               min={vehicleData.currentMileage ?? 0}
               className={
-                formData.currentMileage && vehicleData.currentMileage !== undefined && 
-                Number(formData.currentMileage) < vehicleData.currentMileage 
-                  ? "border-destructive focus-visible:ring-destructive" 
+                formData.currentMileage &&
+                vehicleData.currentMileage !== undefined &&
+                Number(formData.currentMileage) < vehicleData.currentMileage
+                  ? "border-destructive focus-visible:ring-destructive"
                   : ""
               }
             />
-            {formData.currentMileage && vehicleData.currentMileage !== undefined && 
-             Number(formData.currentMileage) < vehicleData.currentMileage && (
-              <p className="text-xs text-destructive">
-                El nuevo kilometraje debe ser mayor o igual al actual ({vehicleData.currentMileage.toLocaleString()} km)
-              </p>
-            )}
+            {formData.currentMileage &&
+              vehicleData.currentMileage !== undefined &&
+              Number(formData.currentMileage) < vehicleData.currentMileage && (
+                <p className="text-xs text-destructive">
+                  El nuevo kilometraje debe ser mayor o igual al actual (
+                  {vehicleData.currentMileage.toLocaleString()} km)
+                </p>
+              )}
           </div>
         </div>
         <div className={`grid gap-4 md:grid-cols-2`}>
@@ -346,7 +368,9 @@ export function VehicleEditForm({
             <Input
               id="placa"
               value={formData.placa}
-              onChange={(e) => onFormDataChange({ ...formData, placa: e.target.value.toUpperCase() })}
+              onChange={(e) =>
+                onFormDataChange({ ...formData, placa: e.target.value.toUpperCase() })
+              }
               placeholder="Ej: ABC-123"
               maxLength={20}
             />
@@ -356,20 +380,24 @@ export function VehicleEditForm({
             <Input
               id="billingInitials"
               value={formData.billingInitials}
-              onChange={(e) => onFormDataChange({ ...formData, billingInitials: e.target.value.toUpperCase() })}
-              placeholder={`Ej: ${formData.brand?.charAt(0)?.toUpperCase() || 'F'}${formData.model?.charAt(0)?.toUpperCase() || 'M'}`}
+              onChange={(e) =>
+                onFormDataChange({ ...formData, billingInitials: e.target.value.toUpperCase() })
+              }
+              placeholder={`Ej: ${formData.brand?.charAt(0)?.toUpperCase() || "F"}${formData.model?.charAt(0)?.toUpperCase() || "M"}`}
               maxLength={10}
             />
             <p className="text-xs text-muted-foreground">
-              Se calcula automáticamente si se deja vacío (ej: {formData.brand?.charAt(0)?.toUpperCase() || 'F'}{formData.model?.charAt(0)?.toUpperCase() || 'M'})
+              Se calcula automáticamente si se deja vacío (ej:{" "}
+              {formData.brand?.charAt(0)?.toUpperCase() || "F"}
+              {formData.model?.charAt(0)?.toUpperCase() || "M"})
             </p>
           </div>
         </div>
-        
+
         {/* Fecha y Hora Programada de Mantenimiento */}
         <div className={`flex flex-col ${spacing.gap.base}`}>
           <h3 className={typography.h4}>Mantenimiento Recurrente</h3>
-          
+
           <div className={`flex flex-col ${spacing.gap.small}`}>
             <Label>Fecha y Hora Programada</Label>
             <div className="flex flex-col gap-2">
@@ -394,7 +422,11 @@ export function VehicleEditForm({
                   <PopoverContent className="w-auto p-0" align="start">
                     <CalendarComponent
                       mode="single"
-                      selected={maintenanceScheduledDate ? new Date(maintenanceScheduledDate + "T00:00:00") : undefined}
+                      selected={
+                        maintenanceScheduledDate
+                          ? new Date(maintenanceScheduledDate + "T00:00:00")
+                          : undefined
+                      }
                       onSelect={(date) => {
                         if (date) {
                           const year = date.getFullYear();
@@ -423,32 +455,39 @@ export function VehicleEditForm({
                     onChange={(e) => {
                       const value = e.target.value;
                       if (value === "" || (parseInt(value, 10) >= 1 && parseInt(value, 10) <= 12)) {
-                        const currentMinutes = maintenanceScheduledTime ? maintenanceScheduledTime.split(":")[1] || "00" : "00";
-                        const currentHour24 = maintenanceScheduledTime ? parseInt(maintenanceScheduledTime.split(":")[0], 10) : 0;
+                        const currentMinutes = maintenanceScheduledTime
+                          ? maintenanceScheduledTime.split(":")[1] || "00"
+                          : "00";
+                        const currentHour24 = maintenanceScheduledTime
+                          ? parseInt(maintenanceScheduledTime.split(":")[0], 10)
+                          : 0;
                         const isPM = currentHour24 >= 12;
-                        
+
                         if (value === "") {
                           onMaintenanceScheduledTimeChange(`00:${currentMinutes}`);
                         } else {
                           const hour12 = parseInt(value, 10);
-                          const hour24 = hour12 === 12 ? (isPM ? 12 : 0) : (isPM ? hour12 + 12 : hour12);
+                          const hour24 =
+                            hour12 === 12 ? (isPM ? 12 : 0) : isPM ? hour12 + 12 : hour12;
                           const newTime = `${String(hour24).padStart(2, "0")}:${currentMinutes}`;
-                          
+
                           // Validar si la fecha es hoy y la hora es menor a 30 minutos después de ahora
-                          if (maintenanceScheduledDate === new Date().toISOString().split('T')[0]) {
+                          if (maintenanceScheduledDate === new Date().toISOString().split("T")[0]) {
                             const now = new Date();
                             const minTime = new Date(now.getTime() + 30 * 60000); // 30 minutos después
-                            const selectedDateTime = new Date(`${maintenanceScheduledDate}T${newTime}`);
-                            
+                            const selectedDateTime = new Date(
+                              `${maintenanceScheduledDate}T${newTime}`
+                            );
+
                             if (selectedDateTime < minTime) {
                               // Ajustar a la hora mínima permitida
-                              const minHours = String(minTime.getHours()).padStart(2, '0');
-                              const minMinutes = String(minTime.getMinutes()).padStart(2, '0');
+                              const minHours = String(minTime.getHours()).padStart(2, "0");
+                              const minMinutes = String(minTime.getMinutes()).padStart(2, "0");
                               onMaintenanceScheduledTimeChange(`${minHours}:${minMinutes}`);
                               return;
                             }
                           }
-                          
+
                           onMaintenanceScheduledTimeChange(newTime);
                         }
                         if (!maintenanceScheduledTime) {
@@ -465,29 +504,36 @@ export function VehicleEditForm({
                     type="number"
                     min="0"
                     max="59"
-                    value={maintenanceScheduledTime ? maintenanceScheduledTime.split(":")[1] || "00" : ""}
+                    value={
+                      maintenanceScheduledTime ? maintenanceScheduledTime.split(":")[1] || "00" : ""
+                    }
                     onChange={(e) => {
                       const value = e.target.value;
                       if (value === "" || (parseInt(value, 10) >= 0 && parseInt(value, 10) <= 59)) {
-                        const currentHours = maintenanceScheduledTime ? maintenanceScheduledTime.split(":")[0] || "00" : "00";
-                        const minutes = value === "" ? "00" : String(parseInt(value, 10)).padStart(2, "0");
+                        const currentHours = maintenanceScheduledTime
+                          ? maintenanceScheduledTime.split(":")[0] || "00"
+                          : "00";
+                        const minutes =
+                          value === "" ? "00" : String(parseInt(value, 10)).padStart(2, "0");
                         const newTime = `${currentHours}:${minutes}`;
-                        
+
                         // Validar si la fecha es hoy y la hora es menor a 30 minutos después de ahora
-                        if (maintenanceScheduledDate === new Date().toISOString().split('T')[0]) {
+                        if (maintenanceScheduledDate === new Date().toISOString().split("T")[0]) {
                           const now = new Date();
                           const minTime = new Date(now.getTime() + 30 * 60000); // 30 minutos después
-                          const selectedDateTime = new Date(`${maintenanceScheduledDate}T${newTime}`);
-                          
+                          const selectedDateTime = new Date(
+                            `${maintenanceScheduledDate}T${newTime}`
+                          );
+
                           if (selectedDateTime < minTime) {
                             // Ajustar a la hora mínima permitida
-                            const minHours = String(minTime.getHours()).padStart(2, '0');
-                            const minMinutes = String(minTime.getMinutes()).padStart(2, '0');
+                            const minHours = String(minTime.getHours()).padStart(2, "0");
+                            const minMinutes = String(minTime.getMinutes()).padStart(2, "0");
                             onMaintenanceScheduledTimeChange(`${minHours}:${minMinutes}`);
                             return;
                           }
                         }
-                        
+
                         onMaintenanceScheduledTimeChange(newTime);
                         if (!maintenanceScheduledTime) {
                           onMaintenanceIsAllDayChange(false);
@@ -510,30 +556,30 @@ export function VehicleEditForm({
                       const [hours, minutes] = currentTime.split(":");
                       const hour24 = parseInt(hours, 10);
                       let newHour24 = hour24;
-                      
+
                       if (value === "PM" && hour24 < 12) {
                         newHour24 = hour24 + 12;
                       } else if (value === "AM" && hour24 >= 12) {
                         newHour24 = hour24 - 12;
                       }
-                      
+
                       const newTime = `${String(newHour24).padStart(2, "0")}:${minutes}`;
-                      
+
                       // Validar si la fecha es hoy y la hora es menor a 30 minutos después de ahora
-                      if (maintenanceScheduledDate === new Date().toISOString().split('T')[0]) {
+                      if (maintenanceScheduledDate === new Date().toISOString().split("T")[0]) {
                         const now = new Date();
                         const minTime = new Date(now.getTime() + 30 * 60000); // 30 minutos después
                         const selectedDateTime = new Date(`${maintenanceScheduledDate}T${newTime}`);
-                        
+
                         if (selectedDateTime < minTime) {
                           // Ajustar a la hora mínima permitida
-                          const minHours = String(minTime.getHours()).padStart(2, '0');
-                          const minMinutes = String(minTime.getMinutes()).padStart(2, '0');
+                          const minHours = String(minTime.getHours()).padStart(2, "0");
+                          const minMinutes = String(minTime.getMinutes()).padStart(2, "0");
                           onMaintenanceScheduledTimeChange(`${minHours}:${minMinutes}`);
                           return;
                         }
                       }
-                      
+
                       onMaintenanceScheduledTimeChange(newTime);
                       if (!maintenanceScheduledTime) {
                         onMaintenanceIsAllDayChange(false);
@@ -577,17 +623,22 @@ export function VehicleEditForm({
           <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${spacing.gap.small}`}>
             <div className={`flex flex-col ${spacing.gap.small}`}>
               <Label htmlFor="maintenance-recurrence-pattern">Patrón de Recurrencia</Label>
-              <Select value={maintenanceRecurrencePattern} onValueChange={(value: RecurrencePattern) => onMaintenanceRecurrencePatternChange(value)}>
+              <Select
+                value={maintenanceRecurrencePattern}
+                onValueChange={(value: RecurrencePattern) =>
+                  onMaintenanceRecurrencePatternChange(value)
+                }
+              >
                 <SelectTrigger id="maintenance-recurrence-pattern">
                   <SelectValue placeholder="Selecciona el patrón" />
                 </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="daily">Diario</SelectItem>
-                    <SelectItem value="weekly">Semanal</SelectItem>
-                    <SelectItem value="biweekly">Bisemanal</SelectItem>
-                    <SelectItem value="monthly">Mensual</SelectItem>
-                    <SelectItem value="yearly">Anual</SelectItem>
-                  </SelectContent>
+                <SelectContent>
+                  <SelectItem value="daily">Diario</SelectItem>
+                  <SelectItem value="weekly">Semanal</SelectItem>
+                  <SelectItem value="biweekly">Bisemanal</SelectItem>
+                  <SelectItem value="monthly">Mensual</SelectItem>
+                  <SelectItem value="yearly">Anual</SelectItem>
+                </SelectContent>
               </Select>
             </div>
 
@@ -614,7 +665,11 @@ export function VehicleEditForm({
                 <PopoverContent className="w-auto p-0" align="start">
                   <CalendarComponent
                     mode="single"
-                    selected={maintenanceRecurrenceEndDate ? new Date(maintenanceRecurrenceEndDate + "T00:00:00") : undefined}
+                    selected={
+                      maintenanceRecurrenceEndDate
+                        ? new Date(maintenanceRecurrenceEndDate + "T00:00:00")
+                        : undefined
+                    }
                     onSelect={(date) => {
                       if (date) {
                         const year = date.getFullYear();
@@ -632,7 +687,7 @@ export function VehicleEditForm({
             </div>
           </div>
         </div>
-        
+
         {/* Configuración de Mantenimiento por Kilometraje */}
         <div className={`flex flex-col ${spacing.gap.base}`}>
           <h3 className={typography.h4}>Mantenimiento por Kilometraje</h3>
@@ -643,7 +698,9 @@ export function VehicleEditForm({
                 id="maintenanceMileageInterval"
                 type="number"
                 value={formData.maintenanceMileageInterval}
-                onChange={(e) => onFormDataChange({ ...formData, maintenanceMileageInterval: e.target.value })}
+                onChange={(e) =>
+                  onFormDataChange({ ...formData, maintenanceMileageInterval: e.target.value })
+                }
                 placeholder="Ej: 5000"
                 min={1}
               />
@@ -657,7 +714,9 @@ export function VehicleEditForm({
                 id="lastMaintenanceMileage"
                 type="number"
                 value={formData.lastMaintenanceMileage}
-                onChange={(e) => onFormDataChange({ ...formData, lastMaintenanceMileage: e.target.value })}
+                onChange={(e) =>
+                  onFormDataChange({ ...formData, lastMaintenanceMileage: e.target.value })
+                }
                 placeholder="Ej: 45000"
                 min={0}
               />
@@ -667,20 +726,25 @@ export function VehicleEditForm({
             </div>
           </div>
         </div>
-        
+
         {/* Mostrar responsables y conductores actuales */}
-        {(vehicleData.responsables && vehicleData.responsables.length > 0) || (vehicleData.assignedDrivers && vehicleData.assignedDrivers.length > 0) || (vehicleData.interestedDrivers && vehicleData.interestedDrivers.length > 0) || ((vehicleData as any).currentDrivers && (vehicleData as any).currentDrivers.length > 0) ? (
+        {(vehicleData.responsables && vehicleData.responsables.length > 0) ||
+        (vehicleData.assignedDrivers && vehicleData.assignedDrivers.length > 0) ||
+        (vehicleData.interestedDrivers && vehicleData.interestedDrivers.length > 0) ||
+        ((vehicleData as any).currentDrivers && (vehicleData as any).currentDrivers.length > 0) ? (
           <div className={`flex flex-col ${spacing.gap.small} p-4 bg-muted/50 rounded-lg border`}>
             <p className={`${typography.body.small} font-semibold text-muted-foreground mb-2`}>
               Asignaciones actuales:
             </p>
             {vehicleData.responsables && vehicleData.responsables.length > 0 && (
               <div className={`flex flex-col ${spacing.gap.small}`}>
-                <p className={`${typography.body.small} text-muted-foreground`}>Responsables actuales:</p>
+                <p className={`${typography.body.small} text-muted-foreground`}>
+                  Responsables actuales:
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {vehicleData.responsables.map((resp) => (
-                    <div 
-                      key={resp.id} 
+                    <div
+                      key={resp.id}
                       className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -691,7 +755,12 @@ export function VehicleEditForm({
                         <div className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full ring-2 ring-background">
                           <Image
                             src={strapiImages.getURL(resp.avatar.url)}
-                            alt={resp.avatar.alternativeText || resp.displayName || resp.email || `Avatar de ${resp.id}`}
+                            alt={
+                              resp.avatar.alternativeText ||
+                              resp.displayName ||
+                              resp.email ||
+                              `Avatar de ${resp.id}`
+                            }
                             fill
                             className="object-cover"
                             sizes="24px"
@@ -700,7 +769,9 @@ export function VehicleEditForm({
                       ) : (
                         <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted ring-2 ring-background overflow-hidden">
                           <span className="text-xs font-medium text-muted-foreground">
-                            {(resp.displayName || resp.email || `U${resp.id}`).charAt(0).toUpperCase()}
+                            {(resp.displayName || resp.email || `U${resp.id}`)
+                              .charAt(0)
+                              .toUpperCase()}
                           </span>
                         </div>
                       )}
@@ -714,11 +785,13 @@ export function VehicleEditForm({
             )}
             {vehicleData.assignedDrivers && vehicleData.assignedDrivers.length > 0 && (
               <div className={`flex flex-col ${spacing.gap.small}`}>
-                <p className={`${typography.body.small} text-muted-foreground`}>Conductores anteriores:</p>
+                <p className={`${typography.body.small} text-muted-foreground`}>
+                  Conductores anteriores:
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {vehicleData.assignedDrivers.map((driver) => (
-                    <div 
-                      key={driver.id} 
+                    <div
+                      key={driver.id}
                       className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -729,7 +802,12 @@ export function VehicleEditForm({
                         <div className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full ring-2 ring-background">
                           <Image
                             src={strapiImages.getURL(driver.avatar.url)}
-                            alt={driver.avatar.alternativeText || driver.displayName || driver.email || `Avatar de ${driver.id}`}
+                            alt={
+                              driver.avatar.alternativeText ||
+                              driver.displayName ||
+                              driver.email ||
+                              `Avatar de ${driver.id}`
+                            }
                             fill
                             className="object-cover"
                             sizes="24px"
@@ -738,7 +816,9 @@ export function VehicleEditForm({
                       ) : (
                         <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted ring-2 ring-background overflow-hidden">
                           <span className="text-xs font-medium text-muted-foreground">
-                            {(driver.displayName || driver.email || `U${driver.id}`).charAt(0).toUpperCase()}
+                            {(driver.displayName || driver.email || `U${driver.id}`)
+                              .charAt(0)
+                              .toUpperCase()}
                           </span>
                         </div>
                       )}
@@ -752,11 +832,13 @@ export function VehicleEditForm({
             )}
             {vehicleData.interestedDrivers && vehicleData.interestedDrivers.length > 0 && (
               <div className={`flex flex-col ${spacing.gap.small}`}>
-                <p className={`${typography.body.small} text-muted-foreground`}>Conductores interesados actualmente:</p>
+                <p className={`${typography.body.small} text-muted-foreground`}>
+                  Conductores interesados actualmente:
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {vehicleData.interestedDrivers.map((driver) => (
-                    <div 
-                      key={driver.id} 
+                    <div
+                      key={driver.id}
                       className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -767,7 +849,12 @@ export function VehicleEditForm({
                         <div className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full ring-2 ring-background">
                           <Image
                             src={strapiImages.getURL(driver.avatar.url)}
-                            alt={driver.avatar.alternativeText || driver.displayName || driver.email || `Avatar de ${driver.id}`}
+                            alt={
+                              driver.avatar.alternativeText ||
+                              driver.displayName ||
+                              driver.email ||
+                              `Avatar de ${driver.id}`
+                            }
                             fill
                             className="object-cover"
                             sizes="24px"
@@ -776,7 +863,9 @@ export function VehicleEditForm({
                       ) : (
                         <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted ring-2 ring-background overflow-hidden">
                           <span className="text-xs font-medium text-muted-foreground">
-                            {(driver.displayName || driver.email || `U${driver.id}`).charAt(0).toUpperCase()}
+                            {(driver.displayName || driver.email || `U${driver.id}`)
+                              .charAt(0)
+                              .toUpperCase()}
                           </span>
                         </div>
                       )}
@@ -788,47 +877,57 @@ export function VehicleEditForm({
                 </div>
               </div>
             )}
-            {(vehicleData as any).currentDrivers && (vehicleData as any).currentDrivers.length > 0 && (
-              <div className={`flex flex-col ${spacing.gap.small}`}>
-                <p className={`${typography.body.small} text-muted-foreground`}>Conductores actuales:</p>
-                <div className="flex flex-wrap gap-2">
-                  {(vehicleData as any).currentDrivers.map((driver: any) => (
-                    <div 
-                      key={driver.id} 
-                      className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        router.push(`/users/details/${driver.documentId || driver.id}`);
-                      }}
-                    >
-                      {driver.avatar?.url ? (
-                        <div className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full ring-2 ring-background">
-                          <Image
-                            src={strapiImages.getURL(driver.avatar.url)}
-                            alt={driver.avatar.alternativeText || driver.displayName || driver.email || `Avatar de ${driver.id}`}
-                            fill
-                            className="object-cover"
-                            sizes="24px"
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted ring-2 ring-background overflow-hidden">
-                          <span className="text-xs font-medium text-muted-foreground">
-                            {(driver.displayName || driver.email || `U${driver.id}`).charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                      )}
-                      <span className="text-sm">
-                        {driver.displayName || driver.email || `Usuario ${driver.id}`}
-                      </span>
-                    </div>
-                  ))}
+            {(vehicleData as any).currentDrivers &&
+              (vehicleData as any).currentDrivers.length > 0 && (
+                <div className={`flex flex-col ${spacing.gap.small}`}>
+                  <p className={`${typography.body.small} text-muted-foreground`}>
+                    Conductores actuales:
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {(vehicleData as any).currentDrivers.map((driver: any) => (
+                      <div
+                        key={driver.id}
+                        className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/users/details/${driver.documentId || driver.id}`);
+                        }}
+                      >
+                        {driver.avatar?.url ? (
+                          <div className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full ring-2 ring-background">
+                            <Image
+                              src={strapiImages.getURL(driver.avatar.url)}
+                              alt={
+                                driver.avatar.alternativeText ||
+                                driver.displayName ||
+                                driver.email ||
+                                `Avatar de ${driver.id}`
+                              }
+                              fill
+                              className="object-cover"
+                              sizes="24px"
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted ring-2 ring-background overflow-hidden">
+                            <span className="text-xs font-medium text-muted-foreground">
+                              {(driver.displayName || driver.email || `U${driver.id}`)
+                                .charAt(0)
+                                .toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                        <span className="text-sm">
+                          {driver.displayName || driver.email || `Usuario ${driver.id}`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
           </div>
         ) : null}
-        
+
         <div className={`grid gap-4 md:grid-cols-2`}>
           <div className={`flex flex-col ${spacing.gap.small}`}>
             <Label>Responsable(s) del Auto</Label>
@@ -843,7 +942,9 @@ export function VehicleEditForm({
                 }))}
               selectedValues={selectedResponsables}
               onSelectionChange={(values) => {
-                const numericValues = values.map((v) => typeof v === 'number' ? v : Number(v)).filter((id) => !isNaN(id));
+                const numericValues = values
+                  .map((v) => (typeof v === "number" ? v : Number(v)))
+                  .filter((id) => !isNaN(id));
                 onSelectedResponsablesChange(numericValues);
               }}
               placeholder="Selecciona responsables..."
@@ -863,7 +964,9 @@ export function VehicleEditForm({
                 }))}
               selectedValues={selectedAssignedDrivers}
               onSelectionChange={(values) => {
-                const numericValues = values.map((v) => typeof v === 'number' ? v : Number(v)).filter((id) => !isNaN(id));
+                const numericValues = values
+                  .map((v) => (typeof v === "number" ? v : Number(v)))
+                  .filter((id) => !isNaN(id));
                 onSelectedAssignedDriversChange(numericValues);
               }}
               placeholder="Selecciona conductores..."
@@ -881,7 +984,9 @@ export function VehicleEditForm({
               }))}
               selectedValues={selectedInterestedDrivers}
               onSelectionChange={(values) => {
-                const numericValues = values.map((v) => typeof v === 'number' ? v : Number(v)).filter((id) => !isNaN(id));
+                const numericValues = values
+                  .map((v) => (typeof v === "number" ? v : Number(v)))
+                  .filter((id) => !isNaN(id));
                 onSelectedInterestedDriversChange(numericValues);
               }}
               placeholder="Selecciona conductores interesados..."
@@ -901,7 +1006,9 @@ export function VehicleEditForm({
                 }))}
               selectedValues={selectedCurrentDrivers}
               onSelectionChange={(values) => {
-                const numericValues = values.map((v) => typeof v === 'number' ? v : Number(v)).filter((id) => !isNaN(id));
+                const numericValues = values
+                  .map((v) => (typeof v === "number" ? v : Number(v)))
+                  .filter((id) => !isNaN(id));
                 onSelectedCurrentDriversChange(numericValues);
               }}
               placeholder="Selecciona conductores actuales..."
@@ -910,9 +1017,17 @@ export function VehicleEditForm({
           </div>
         </div>
         <div className={`flex flex-col md:flex-row ${spacing.gap.small} mt-4`}>
-          <Button variant="default" size="lg" className="flex-1 min-h-[44px]" onClick={onSave} disabled={isSaving}>
-            {isSaving ? "Guardando..." : "Guardar Cambios"}
-          </Button>
+          <Can module="fleet" action="canUpdate">
+            <Button
+              variant="default"
+              size="lg"
+              className="flex-1 min-h-[44px]"
+              onClick={onSave}
+              disabled={isSaving}
+            >
+              {isSaving ? "Guardando..." : "Guardar Cambios"}
+            </Button>
+          </Can>
           <Button
             variant="outline"
             size="lg"
@@ -927,4 +1042,3 @@ export function VehicleEditForm({
     </Card>
   );
 }
-

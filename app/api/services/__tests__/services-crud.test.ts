@@ -17,7 +17,7 @@ import {
   createServiceInStrapi,
   updateServiceInStrapi,
   deleteServiceInStrapi,
-} from "@/lib/services";
+} from "@/features/services";
 
 describe("Services CRUD - Strapi Integration", () => {
   beforeEach(() => {
@@ -327,9 +327,9 @@ describe("Services CRUD - Strapi Integration", () => {
         json: async () => ({ data: [] }),
       });
 
-      await expect(
-        updateServiceInStrapi(999, { name: "Test" })
-      ).rejects.toThrow("No pudimos encontrar el servicio");
+      await expect(updateServiceInStrapi(999, { name: "Test" })).rejects.toThrow(
+        "No pudimos encontrar el servicio"
+      );
     });
   });
 
@@ -341,9 +341,7 @@ describe("Services CRUD - Strapi Integration", () => {
         json: async () => ({ data: null }),
       });
 
-      await expect(
-        deleteServiceInStrapi("service-to-delete")
-      ).resolves.not.toThrow();
+      await expect(deleteServiceInStrapi("service-to-delete")).resolves.not.toThrow();
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
       expect(mockFetch).toHaveBeenCalledWith(
@@ -388,9 +386,7 @@ describe("Services CRUD - Strapi Integration", () => {
         json: async () => ({ data: [] }),
       });
 
-      await expect(deleteServiceInStrapi(999)).rejects.toThrow(
-        "No pudimos encontrar el servicio"
-      );
+      await expect(deleteServiceInStrapi(999)).rejects.toThrow("No pudimos encontrar el servicio");
     });
 
     it("debe lanzar error cuando la eliminación falla", async () => {

@@ -8,6 +8,7 @@ import Image from "next/image";
 import { Card } from "@/components_shadcn/ui/card";
 import { Button } from "@/components_shadcn/ui/button";
 import { typography, spacing } from "@/lib/design-system";
+import { Can } from "@/components/auth/can";
 import type { DocumentItemProps } from "./types";
 
 function formatFileSize(bytes?: number) {
@@ -28,7 +29,7 @@ export function DocumentItem({ document, onDelete, onEdit }: DocumentItemProps) 
   const date = new Date(document.createdAt);
   const formattedDate = format(date, "d 'de' MMMM, yyyy 'a las' HH:mm", { locale: es });
   const authorName = document.author?.displayName || document.author?.email || "Usuario";
-  
+
   // El tipo de documento ahora es un objeto con name
   const documentTypeName = document.documentType?.name || "Documento";
 
@@ -54,25 +55,29 @@ export function DocumentItem({ document, onDelete, onEdit }: DocumentItemProps) 
       {(onDelete || onEdit) && (
         <div className="absolute top-2 right-2 z-10 flex gap-1">
           {onEdit && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-foreground"
-              onClick={handleEdit}
-            >
-              <Pencil className="h-3.5 w-3.5" />
-            </Button>
+            <Can module="fleet" action="canUpdate">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                onClick={handleEdit}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+            </Can>
           )}
           {onDelete && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-destructive hover:text-destructive"
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
+            <Can module="fleet" action="canDelete">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-destructive hover:text-destructive"
+                onClick={handleDelete}
+                disabled={isDeleting}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </Can>
           )}
         </div>
       )}
@@ -83,15 +88,15 @@ export function DocumentItem({ document, onDelete, onEdit }: DocumentItemProps) 
             <FileText className="h-4 w-4 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className={`${typography.body.small} font-semibold`}>
-              {documentTypeName}
-            </p>
+            <p className={`${typography.body.small} font-semibold`}>{documentTypeName}</p>
             {document.otherDescription && (
               <p className={`${typography.body.small} text-foreground mt-1.5 italic`}>
                 {document.otherDescription}
               </p>
             )}
-            <p className={`${typography.body.small} text-muted-foreground ${document.otherDescription ? "mt-1.5" : "mt-1"}`}>
+            <p
+              className={`${typography.body.small} text-muted-foreground ${document.otherDescription ? "mt-1.5" : "mt-1"}`}
+            >
               Subido por {authorName} el {formattedDate}
             </p>
           </div>

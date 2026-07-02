@@ -1,7 +1,17 @@
 import { NextResponse } from "next/server";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
+import { requireModulePermission } from "@/lib/module-guard";
 
 export async function GET() {
+  try {
+    await requireModulePermission("settings", "canRead");
+  } catch {
+    return NextResponse.json(
+      { error: "Acceso restringido: Se requieren permisos de administrador" },
+      { status: 403 }
+    );
+  }
+
   const results: {
     config: {
       baseUrlConfigured: boolean;
@@ -50,7 +60,7 @@ export async function GET() {
       },
       cache: "no-store",
     });
-    
+
     results.tests.appointmentsEndpoint = {
       status: healthCheck.status,
       statusText: healthCheck.statusText,
@@ -76,7 +86,7 @@ export async function GET() {
     const publicCheck = await fetch(`${STRAPI_BASE_URL}/api/users-permissions/roles`, {
       cache: "no-store",
     });
-    
+
     results.tests.publicEndpoint = {
       status: publicCheck.status,
       statusText: publicCheck.statusText,
@@ -91,14 +101,17 @@ export async function GET() {
 
   // Test 3: Probar con Content-Type header
   try {
-    const withContentType = await fetch(`${STRAPI_BASE_URL}/api/appointments?pagination[pageSize]=1`, {
-      headers: {
-        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-      cache: "no-store",
-    });
-    
+    const withContentType = await fetch(
+      `${STRAPI_BASE_URL}/api/appointments?pagination[pageSize]=1`,
+      {
+        headers: {
+          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+      }
+    );
+
     results.tests.withContentType = {
       status: withContentType.status,
       statusText: withContentType.statusText,

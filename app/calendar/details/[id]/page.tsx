@@ -24,6 +24,8 @@ import {
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { BackButton } from "@/components/admin/back-button";
+import { Can } from "@/components/auth/can";
 import { Button } from "@/components_shadcn/ui/button";
 import { Input } from "@/components_shadcn/ui/input";
 import { Label } from "@/components_shadcn/ui/label";
@@ -43,7 +45,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components_shadcn/ui/dropdown-menu";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components_shadcn/ui/card";
-import { Separator } from "@/components_shadcn/ui/separator";
 import { typography } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
@@ -307,7 +308,7 @@ export default function AppointmentDetailsPage() {
 
   if (isLoading) {
     return (
-      <AdminLayout title="Cita">
+      <AdminLayout title="Cita" leftActions={<BackButton fallbackHref="/calendar" />}>
         <div className="flex h-64 items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
@@ -317,7 +318,7 @@ export default function AppointmentDetailsPage() {
 
   if (error || !appointment) {
     return (
-      <AdminLayout title="Cita">
+      <AdminLayout title="Cita" leftActions={<BackButton fallbackHref="/calendar" />}>
         <div className="flex h-64 flex-col items-center justify-center gap-4">
           <p className="text-muted-foreground">{error || "Cita no encontrada"}</p>
           <Button variant="outline" onClick={() => router.push("/calendar")}>
@@ -332,29 +333,33 @@ export default function AppointmentDetailsPage() {
   const meta = typeMeta[appointment.type];
   const Icon = meta.icon;
   function safeDateFromParts(year?: number, month?: number, day?: number): Date | null {
-  if (
-    year == null || month == null || day == null ||
-    Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day) ||
-    month < 1 || month > 12 || day < 1 || day > 31
-  ) {
-    return null;
+    if (
+      year == null ||
+      month == null ||
+      day == null ||
+      Number.isNaN(year) ||
+      Number.isNaN(month) ||
+      Number.isNaN(day) ||
+      month < 1 ||
+      month > 12 ||
+      day < 1 ||
+      day > 31
+    ) {
+      return null;
+    }
+    const d = new Date(year, month - 1, day);
+    if (Number.isNaN(d.getTime())) return null;
+    return d;
   }
-  const d = new Date(year, month - 1, day);
-  if (Number.isNaN(d.getTime())) return null;
-  return d;
-}
 
   const aptDate = safeDateFromParts(appointment.year, appointment.month, appointment.day);
 
   return (
-    <AdminLayout title={appointment.title || "Detalle de Cita"}>
+    <AdminLayout
+      title={appointment.title || "Detalle de Cita"}
+      leftActions={<BackButton fallbackHref="/calendar" />}
+    >
       <div className="mx-auto max-w-4xl space-y-6">
-        {/* Back button */}
-        <Button variant="ghost" className="-ml-2 px-2" onClick={() => router.push("/calendar")}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Volver al calendario
-        </Button>
-
         {/* Header card */}
         <Card className="shadow-sm">
           <CardContent className="p-6">
@@ -372,7 +377,9 @@ export default function AppointmentDetailsPage() {
                   <h1 className={typography.h2}>{appointment.title || "Sin título"}</h1>
                   <div className="mt-1 flex flex-wrap items-center gap-2">
                     <span className="text-sm text-muted-foreground">{meta.label}</span>
-                    <Badge className={cn("rounded-md text-xs", statusBadgeClasses(appointment.status))}>
+                    <Badge
+                      className={cn("rounded-md text-xs", statusBadgeClasses(appointment.status))}
+                    >
                       {appointment.status}
                     </Badge>
                   </div>
@@ -396,10 +403,12 @@ export default function AppointmentDetailsPage() {
                     </a>
                   </Button>
                 )}
-                <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Editar
-                </Button>
+                <Can module="calendar" action="canUpdate">
+                  <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Editar
+                  </Button>
+                </Can>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-9 w-9">
@@ -407,21 +416,27 @@ export default function AppointmentDetailsPage() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setIsEditing(true)}>
-                      <Pencil className="mr-2 h-4 w-4" />
-                      Editar Cita
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleCancelAppointment}>
-                      <Ban className="mr-2 h-4 w-4" />
-                      Cancelar Cita
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-destructive focus:text-destructive"
-                      onClick={handleDeleteAppointment}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Eliminar Cita
-                    </DropdownMenuItem>
+                    <Can module="calendar" action="canUpdate">
+                      <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Editar Cita
+                      </DropdownMenuItem>
+                    </Can>
+                    <Can module="calendar" action="canUpdate">
+                      <DropdownMenuItem onClick={handleCancelAppointment}>
+                        <Ban className="mr-2 h-4 w-4" />
+                        Cancelar Cita
+                      </DropdownMenuItem>
+                    </Can>
+                    <Can module="calendar" action="canDelete">
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={handleDeleteAppointment}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Eliminar Cita
+                      </DropdownMenuItem>
+                    </Can>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -440,7 +455,10 @@ export default function AppointmentDetailsPage() {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Tipo</Label>
-                    <Select value={editType} onValueChange={(v) => setEditType(v as AppointmentType)}>
+                    <Select
+                      value={editType}
+                      onValueChange={(v) => setEditType(v as AppointmentType)}
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -453,7 +471,10 @@ export default function AppointmentDetailsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Estado</Label>
-                    <Select value={editStatus} onValueChange={(v) => setEditStatus(v as AppointmentStatus)}>
+                    <Select
+                      value={editStatus}
+                      onValueChange={(v) => setEditStatus(v as AppointmentStatus)}
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -555,17 +576,26 @@ export default function AppointmentDetailsPage() {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Teléfono</Label>
-                    <Input value={editContactPhone} onChange={(e) => setEditContactPhone(e.target.value)} />
+                    <Input
+                      value={editContactPhone}
+                      onChange={(e) => setEditContactPhone(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Email</Label>
-                    <Input value={editContactEmail} onChange={(e) => setEditContactEmail(e.target.value)} />
+                    <Input
+                      value={editContactEmail}
+                      onChange={(e) => setEditContactEmail(e.target.value)}
+                    />
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label>Cliente</Label>
-                  <Input value={editClientName} onChange={(e) => setEditClientName(e.target.value)} />
+                  <Input
+                    value={editClientName}
+                    onChange={(e) => setEditClientName(e.target.value)}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -603,7 +633,9 @@ export default function AppointmentDetailsPage() {
                   <div>
                     <p className="text-xs text-muted-foreground">Fecha</p>
                     <p className="text-sm font-medium">
-                      {aptDate ? format(aptDate, "EEEE, d 'de' MMMM, yyyy", { locale: es }) : "Fecha no disponible"}
+                      {aptDate
+                        ? format(aptDate, "EEEE, d 'de' MMMM, yyyy", { locale: es })
+                        : "Fecha no disponible"}
                     </p>
                   </div>
                 </div>
@@ -637,7 +669,8 @@ export default function AppointmentDetailsPage() {
                   <div>
                     <p className="text-xs text-muted-foreground">Precio</p>
                     <p className="text-sm font-medium">
-                      {appointment.priceLabel || (appointment.price != null ? `$${appointment.price}` : "—")}
+                      {appointment.priceLabel ||
+                        (appointment.price != null ? `$${appointment.price}` : "—")}
                     </p>
                   </div>
                 </div>
@@ -645,7 +678,9 @@ export default function AppointmentDetailsPage() {
                   <User className="h-4 w-4 text-muted-foreground" />
                   <div>
                     <p className="text-xs text-muted-foreground">Asignado a</p>
-                    <p className="text-sm font-medium">{appointment.assignedTo?.displayName || "—"}</p>
+                    <p className="text-sm font-medium">
+                      {appointment.assignedTo?.displayName || "—"}
+                    </p>
                   </div>
                 </div>
                 <div className="sm:col-span-2">
@@ -663,18 +698,24 @@ export default function AppointmentDetailsPage() {
             <CardTitle className="text-base">Notas Adicionales</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Textarea
-              value={noteDraft}
-              onChange={(e) => setNoteDraft(e.target.value)}
-              placeholder="Añade notas sobre esta cita..."
-              rows={4}
-            />
-            <div className="flex justify-end">
-              <Button onClick={handleSaveNotes} disabled={isSaving}>
-                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Guardar Notas
-              </Button>
-            </div>
+            <Can
+              module="calendar"
+              action="canUpdate"
+              fallback={<p className="text-sm whitespace-pre-wrap">{noteDraft || "Sin notas."}</p>}
+            >
+              <Textarea
+                value={noteDraft}
+                onChange={(e) => setNoteDraft(e.target.value)}
+                placeholder="Añade notas sobre esta cita..."
+                rows={4}
+              />
+              <div className="flex justify-end">
+                <Button onClick={handleSaveNotes} disabled={isSaving}>
+                  {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Guardar Notas
+                </Button>
+              </div>
+            </Can>
           </CardContent>
         </Card>
       </div>

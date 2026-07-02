@@ -3,7 +3,13 @@
 import { useState, useEffect } from "react";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components_shadcn/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components_shadcn/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components_shadcn/ui/card";
 import { Button } from "@/components_shadcn/ui/button";
 import { Input } from "@/components_shadcn/ui/input";
 import { Textarea } from "@/components_shadcn/ui/textarea";
@@ -12,9 +18,23 @@ import { Skeleton } from "@/components_shadcn/ui/skeleton";
 import { Badge } from "@/components_shadcn/ui/badge";
 import { spacing, typography } from "@/lib/design-system";
 import { toast } from "@/lib/toast";
-import { Building2, MessageSquare, Calendar, CreditCard, Save, Eye, EyeOff, Loader2, ShieldCheck, Phone } from "lucide-react";
+import {
+  Building2,
+  MessageSquare,
+  Calendar,
+  CreditCard,
+  Save,
+  Eye,
+  EyeOff,
+  Loader2,
+  ShieldCheck,
+  Phone,
+  ListOrdered,
+} from "lucide-react";
 import { BillingSettingsSection } from "./components/billing-settings-section";
 import { PermissionsSettingsSection } from "./components/permissions-settings-section";
+import { MenuSettingsSection } from "./components/menu-settings-section";
+import { usePermissions } from "@/lib/permissions-context";
 
 interface Configuration {
   id: number;
@@ -57,6 +77,9 @@ const defaultCompanyInfo: CompanyInfo = {
 };
 
 export default function SettingsPage() {
+  const { can } = usePermissions();
+  const canEditSettings = can("settings", "canUpdate");
+  const canCreateSettings = can("settings", "canCreate");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [configurations, setConfigurations] = useState<Configuration[]>([]);
@@ -137,7 +160,12 @@ export default function SettingsPage() {
     }
   };
 
-  const createConfiguration = async (key: string, category: string, description: string, isSecret: boolean = false) => {
+  const createConfiguration = async (
+    key: string,
+    category: string,
+    description: string,
+    isSecret: boolean = false
+  ) => {
     try {
       const response = await fetch("/api/configuration", {
         method: "POST",
@@ -209,6 +237,10 @@ export default function SettingsPage() {
             <Phone className="h-4 w-4" />
             <span className="hidden sm:inline">Contacto</span>
           </TabsTrigger>
+          <TabsTrigger value="menu" className="gap-2 data-[state=active]:bg-primary/10">
+            <ListOrdered className="h-4 w-4" />
+            <span className="hidden sm:inline">Menú</span>
+          </TabsTrigger>
           <TabsTrigger value="permissions" className="gap-2 data-[state=active]:bg-primary/10">
             <ShieldCheck className="h-4 w-4" />
             <span className="hidden sm:inline">Permisos</span>
@@ -231,7 +263,10 @@ export default function SettingsPage() {
                   <Input
                     id="companyName"
                     value={companyInfo.companyName}
-                    onChange={(e) => setCompanyInfo({ ...companyInfo, companyName: e.target.value })}
+                    onChange={(e) =>
+                      setCompanyInfo({ ...companyInfo, companyName: e.target.value })
+                    }
+                    disabled={!canEditSettings}
                     placeholder="CAR 4 YOU PANAMA, S.A."
                   />
                 </div>
@@ -242,6 +277,7 @@ export default function SettingsPage() {
                     type="email"
                     value={companyInfo.email}
                     onChange={(e) => setCompanyInfo({ ...companyInfo, email: e.target.value })}
+                    disabled={!canEditSettings}
                     placeholder="contacto@car4you.com"
                   />
                 </div>
@@ -251,6 +287,7 @@ export default function SettingsPage() {
                     id="phone"
                     value={companyInfo.phone}
                     onChange={(e) => setCompanyInfo({ ...companyInfo, phone: e.target.value })}
+                    disabled={!canEditSettings}
                     placeholder="+507 6000-0000"
                   />
                 </div>
@@ -259,7 +296,10 @@ export default function SettingsPage() {
                   <Input
                     id="legalRepName"
                     value={companyInfo.legalRepName}
-                    onChange={(e) => setCompanyInfo({ ...companyInfo, legalRepName: e.target.value })}
+                    onChange={(e) =>
+                      setCompanyInfo({ ...companyInfo, legalRepName: e.target.value })
+                    }
+                    disabled={!canEditSettings}
                     placeholder="Nombre completo"
                   />
                 </div>
@@ -268,7 +308,10 @@ export default function SettingsPage() {
                   <Input
                     id="legalRepNationality"
                     value={companyInfo.legalRepNationality}
-                    onChange={(e) => setCompanyInfo({ ...companyInfo, legalRepNationality: e.target.value })}
+                    onChange={(e) =>
+                      setCompanyInfo({ ...companyInfo, legalRepNationality: e.target.value })
+                    }
+                    disabled={!canEditSettings}
                     placeholder="estadounidense"
                   />
                 </div>
@@ -277,7 +320,10 @@ export default function SettingsPage() {
                   <Input
                     id="legalRepMaritalStatus"
                     value={companyInfo.legalRepMaritalStatus}
-                    onChange={(e) => setCompanyInfo({ ...companyInfo, legalRepMaritalStatus: e.target.value })}
+                    onChange={(e) =>
+                      setCompanyInfo({ ...companyInfo, legalRepMaritalStatus: e.target.value })
+                    }
+                    disabled={!canEditSettings}
                     placeholder="casado"
                   />
                 </div>
@@ -286,7 +332,10 @@ export default function SettingsPage() {
                   <Input
                     id="legalRepPassport"
                     value={companyInfo.legalRepPassport}
-                    onChange={(e) => setCompanyInfo({ ...companyInfo, legalRepPassport: e.target.value })}
+                    onChange={(e) =>
+                      setCompanyInfo({ ...companyInfo, legalRepPassport: e.target.value })
+                    }
+                    disabled={!canEditSettings}
                     placeholder="A80537445"
                   />
                 </div>
@@ -296,7 +345,10 @@ export default function SettingsPage() {
                 <Textarea
                   id="companyAddress"
                   value={companyInfo.companyAddress}
-                  onChange={(e) => setCompanyInfo({ ...companyInfo, companyAddress: e.target.value })}
+                  onChange={(e) =>
+                    setCompanyInfo({ ...companyInfo, companyAddress: e.target.value })
+                  }
+                  disabled={!canEditSettings}
                   placeholder="Dirección completa de la empresa"
                   rows={2}
                 />
@@ -307,18 +359,21 @@ export default function SettingsPage() {
                   id="registryInfo"
                   value={companyInfo.registryInfo}
                   onChange={(e) => setCompanyInfo({ ...companyInfo, registryInfo: e.target.value })}
+                  disabled={!canEditSettings}
                   placeholder="Inscrita a ficha, documento, de la Sección Mercantil del Registro Público"
                   rows={2}
                 />
               </div>
-              <Button onClick={saveCompanyInfo} disabled={isSaving} className="w-full sm:w-auto">
-                {isSaving ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <Save className="h-4 w-4 mr-2" />
-                )}
-                Guardar Información
-              </Button>
+              {canEditSettings && (
+                <Button onClick={saveCompanyInfo} disabled={isSaving} className="w-full sm:w-auto">
+                  {isSaving ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Guardar Información
+                </Button>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -342,10 +397,24 @@ export default function SettingsPage() {
                 onConfigChange={handleConfigChange}
                 onSaveConfig={saveConfiguration}
                 onCreateConfig={createConfiguration}
+                canEdit={canEditSettings}
+                canCreate={canCreateSettings}
                 defaultConfigs={[
-                  { key: "WHATSAPP_PHONE_NUMBER_ID", description: "ID del número de teléfono de WhatsApp Business", isSecret: false },
-                  { key: "WHATSAPP_ACCESS_TOKEN", description: "Token de acceso de la API de WhatsApp", isSecret: true },
-                  { key: "WHATSAPP_BUSINESS_ACCOUNT_ID", description: "ID de la cuenta de WhatsApp Business", isSecret: false },
+                  {
+                    key: "WHATSAPP_PHONE_NUMBER_ID",
+                    description: "ID del número de teléfono de WhatsApp Business",
+                    isSecret: false,
+                  },
+                  {
+                    key: "WHATSAPP_ACCESS_TOKEN",
+                    description: "Token de acceso de la API de WhatsApp",
+                    isSecret: true,
+                  },
+                  {
+                    key: "WHATSAPP_BUSINESS_ACCOUNT_ID",
+                    description: "ID de la cuenta de WhatsApp Business",
+                    isSecret: false,
+                  },
                 ]}
               />
             </CardContent>
@@ -371,10 +440,24 @@ export default function SettingsPage() {
                 onConfigChange={handleConfigChange}
                 onSaveConfig={saveConfiguration}
                 onCreateConfig={createConfiguration}
+                canEdit={canEditSettings}
+                canCreate={canCreateSettings}
                 defaultConfigs={[
-                  { key: "GOOGLE_CLIENT_ID", description: "ID de cliente de Google OAuth", isSecret: false },
-                  { key: "GOOGLE_CLIENT_SECRET", description: "Secreto de cliente de Google OAuth", isSecret: true },
-                  { key: "GOOGLE_CALENDAR_ID", description: "ID del calendario de Google a sincronizar", isSecret: false },
+                  {
+                    key: "GOOGLE_CLIENT_ID",
+                    description: "ID de cliente de Google OAuth",
+                    isSecret: false,
+                  },
+                  {
+                    key: "GOOGLE_CLIENT_SECRET",
+                    description: "Secreto de cliente de Google OAuth",
+                    isSecret: true,
+                  },
+                  {
+                    key: "GOOGLE_CALENDAR_ID",
+                    description: "ID del calendario de Google a sincronizar",
+                    isSecret: false,
+                  },
                 ]}
               />
             </CardContent>
@@ -392,8 +475,8 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className={typography.h3}>Contacto de la administración</CardTitle>
               <CardDescription>
-                Datos que verán los usuarios para comunicarse (WhatsApp, email y redes).
-                El primer teléfono se usa para el botón de WhatsApp.
+                Datos que verán los usuarios para comunicarse (WhatsApp, email y redes). El primer
+                teléfono se usa para el botón de WhatsApp.
               </CardDescription>
             </CardHeader>
             <CardContent className={`flex flex-col ${spacing.gap.medium}`}>
@@ -406,9 +489,19 @@ export default function SettingsPage() {
                 onConfigChange={handleConfigChange}
                 onSaveConfig={saveConfiguration}
                 onCreateConfig={createConfiguration}
+                canEdit={canEditSettings}
+                canCreate={canCreateSettings}
                 defaultConfigs={[
-                  { key: "CONTACT_PHONE_1", description: "Teléfono principal (WhatsApp). Ej: +507 8337688", isSecret: false },
-                  { key: "CONTACT_PHONE_2", description: "Teléfono secundario (opcional)", isSecret: false },
+                  {
+                    key: "CONTACT_PHONE_1",
+                    description: "Teléfono principal (WhatsApp). Ej: +507 8337688",
+                    isSecret: false,
+                  },
+                  {
+                    key: "CONTACT_PHONE_2",
+                    description: "Teléfono secundario (opcional)",
+                    isSecret: false,
+                  },
                   { key: "CONTACT_EMAIL", description: "Email de contacto", isSecret: false },
                   { key: "CONTACT_TIKTOK", description: "URL de TikTok", isSecret: false },
                   { key: "CONTACT_INSTAGRAM", description: "URL de Instagram", isSecret: false },
@@ -420,6 +513,10 @@ export default function SettingsPage() {
         </TabsContent>
 
         {/* Tab: Permisos */}
+        <TabsContent value="menu">
+          <MenuSettingsSection />
+        </TabsContent>
+
         <TabsContent value="permissions">
           <PermissionsSettingsSection />
         </TabsContent>
@@ -437,8 +534,15 @@ interface ConfigurationSectionProps {
   onToggleSecret: (key: string) => void;
   onConfigChange: (key: string, value: string) => void;
   onSaveConfig: (key: string, value: string) => Promise<void>;
-  onCreateConfig: (key: string, category: string, description: string, isSecret: boolean) => Promise<void>;
+  onCreateConfig: (
+    key: string,
+    category: string,
+    description: string,
+    isSecret: boolean
+  ) => Promise<void>;
   defaultConfigs: { key: string; description: string; isSecret: boolean }[];
+  canEdit: boolean;
+  canCreate: boolean;
 }
 
 function ConfigurationSection({
@@ -451,6 +555,8 @@ function ConfigurationSection({
   onSaveConfig,
   onCreateConfig,
   defaultConfigs,
+  canEdit,
+  canCreate,
 }: ConfigurationSectionProps) {
   const [savingKeys, setSavingKeys] = useState<Record<string, boolean>>({});
 
@@ -471,16 +577,14 @@ function ConfigurationSection({
             <div className="flex items-center gap-2">
               <Label className="font-mono text-sm">{config.key}</Label>
               {config.isSecret && (
-                <Badge variant="secondary" className="text-xs">Secreto</Badge>
+                <Badge variant="secondary" className="text-xs">
+                  Secreto
+                </Badge>
               )}
             </div>
             <div className="flex items-center gap-2">
               {config.isSecret && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onToggleSecret(config.key)}
-                >
+                <Button variant="ghost" size="icon" onClick={() => onToggleSecret(config.key)}>
                   {showSecrets[config.key] ? (
                     <EyeOff className="h-4 w-4" />
                   ) : (
@@ -488,30 +592,36 @@ function ConfigurationSection({
                   )}
                 </Button>
               )}
-              <Button
-                size="sm"
-                onClick={() => handleSave(config.key, editedConfigs[config.key] ?? config.value)}
-                disabled={savingKeys[config.key]}
-              >
-                {savingKeys[config.key] ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-              </Button>
+              {canEdit && (
+                <Button
+                  size="sm"
+                  onClick={() => handleSave(config.key, editedConfigs[config.key] ?? config.value)}
+                  disabled={savingKeys[config.key]}
+                >
+                  {savingKeys[config.key] ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
             </div>
           </div>
           <p className="text-sm text-muted-foreground">{config.description}</p>
           <Input
             type={config.isSecret && !showSecrets[config.key] ? "password" : "text"}
-            value={editedConfigs[config.key] ?? (config.isSecret && config.value === "••••••••" ? "" : config.value)}
+            value={
+              editedConfigs[config.key] ??
+              (config.isSecret && config.value === "••••••••" ? "" : config.value)
+            }
             onChange={(e) => onConfigChange(config.key, e.target.value)}
+            disabled={!canEdit}
             placeholder={config.isSecret ? "Ingresa el valor secreto" : "Ingresa un valor"}
           />
         </div>
       ))}
 
-      {missingConfigs.length > 0 && (
+      {canCreate && missingConfigs.length > 0 && (
         <div className="border-t pt-4 mt-4">
           <p className="text-sm text-muted-foreground mb-3">
             Configuraciones sugeridas pendientes de crear:
@@ -531,7 +641,7 @@ function ConfigurationSection({
         </div>
       )}
 
-      {configs.length === 0 && missingConfigs.length === 0 && (
+      {configs.length === 0 && (!canCreate || missingConfigs.length === 0) && (
         <p className="text-muted-foreground text-center py-8">
           No hay configuraciones en esta categoría
         </p>

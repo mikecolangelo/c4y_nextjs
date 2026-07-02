@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { accruePenaltiesForFinancing } from "@/lib/unified-allocator";
 import { STRAPI_BASE_URL, STRAPI_API_TOKEN } from "@/lib/config";
+import { requireAdmin } from "@/lib/admin-guard";
 import qs from "qs";
 
 /**
@@ -15,6 +16,15 @@ import qs from "qs";
  */
 export async function POST(request: Request) {
   try {
+    try {
+      await requireAdmin();
+    } catch {
+      return NextResponse.json(
+        { error: "Se requieren permisos de administrador." },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json().catch(() => ({}));
     const { financingDocumentId } = body.data || body || {};
 

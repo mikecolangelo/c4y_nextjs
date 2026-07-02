@@ -7,7 +7,13 @@ export { FleetDocuments, DocumentItem } from "./fleet/documents";
 export type { FleetDocument, DocumentItemProps, FleetDocumentsProps } from "./fleet/documents";
 
 // Fleet Components - Reminders
-export { FleetReminders, ReminderItem, RECURRENCE_LABELS, formatTime12Hour, isAllDay } from "./fleet/reminders";
+export {
+  FleetReminders,
+  ReminderItem,
+  RECURRENCE_LABELS,
+  formatTime12Hour,
+  isAllDay,
+} from "./fleet/reminders";
 export type { FleetReminder, ReminderItemProps, FleetRemindersProps } from "./fleet/reminders";
 
 // Fleet Components - Status
@@ -21,6 +27,7 @@ export { VehicleImage, useVehicleImage } from "./fleet/vehicle-image";
 export { FormError } from "./form-error";
 
 // Common Components
+export { StatusBadge, statusBadgeVariants, type StatusTone } from "./status-badge";
 export { HeroSection } from "./hero-section";
 export { LogoutButton } from "./logout-button";
 export { MaintenancePage } from "./maintenance-page";

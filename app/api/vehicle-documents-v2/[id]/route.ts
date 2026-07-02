@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
-import { requireAdmin } from "@/lib/admin-guard";
+import { requireModulePermission } from "@/lib/module-guard";
 
 interface RouteContext {
   params: Promise<{
@@ -11,7 +11,7 @@ interface RouteContext {
 // PUT - Actualizar un documento
 export async function PUT(request: Request, context: RouteContext) {
   try {
-    await requireAdmin();
+    await requireModulePermission("fleet", "canUpdate");
 
     const { id } = await context.params;
     if (!id) {
@@ -44,7 +44,7 @@ export async function PUT(request: Request, context: RouteContext) {
     const result = await response.json();
     return NextResponse.json(result);
   } catch (error) {
-    if (error instanceof Error && error.name === "AdminRequiredError") {
+    if (error instanceof Error && error.name === "ModulePermissionError") {
       return NextResponse.json(
         { error: "Acceso restringido: Se requieren permisos de administrador" },
         { status: 403 }
@@ -59,7 +59,7 @@ export async function PUT(request: Request, context: RouteContext) {
 // DELETE - Eliminar un documento
 export async function DELETE(_: Request, context: RouteContext) {
   try {
-    await requireAdmin();
+    await requireModulePermission("fleet", "canDelete");
 
     const { id } = await context.params;
     if (!id) {
@@ -82,7 +82,7 @@ export async function DELETE(_: Request, context: RouteContext) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    if (error instanceof Error && error.name === "AdminRequiredError") {
+    if (error instanceof Error && error.name === "ModulePermissionError") {
       return NextResponse.json(
         { error: "Acceso restringido: Se requieren permisos de administrador" },
         { status: 403 }

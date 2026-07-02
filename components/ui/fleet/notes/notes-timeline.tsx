@@ -4,15 +4,16 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components_shadcn/ui/button";
 import { typography, spacing } from "@/lib/design-system";
 import { NoteItem } from "./note-item";
+import { Can } from "@/components/auth/can";
 import type { NotesTimelineProps } from "./types";
 
-export function NotesTimeline({ 
-  notes, 
-  isLoading, 
-  onEdit, 
-  onDelete, 
-  vehicleId, 
-  onAddClick, 
+export function NotesTimeline({
+  notes,
+  isLoading,
+  onEdit,
+  onDelete,
+  vehicleId,
+  onAddClick,
 }: NotesTimelineProps) {
   if (isLoading) {
     return (
@@ -29,14 +30,16 @@ export function NotesTimeline({
           Añade una nota a tu vehículo
         </p>
         {onAddClick && (
-          <Button
-            onClick={onAddClick}
-            size="lg"
-            className="h-16 w-16 rounded-full"
-            variant="default"
-          >
-            <Plus className="h-8 w-8" />
-          </Button>
+          <Can module="fleet" action="canCreate">
+            <Button
+              onClick={onAddClick}
+              size="lg"
+              className="h-16 w-16 rounded-full"
+              variant="default"
+            >
+              <Plus className="h-8 w-8" />
+            </Button>
+          </Can>
         )}
       </div>
     );
@@ -60,20 +63,3 @@ export function NotesTimeline({
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

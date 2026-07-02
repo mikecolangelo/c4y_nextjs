@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
+import { requireModulePermission } from "@/lib/module-guard";
 
 interface RouteContext {
   params: Promise<{
@@ -10,6 +11,14 @@ interface RouteContext {
 // PATCH - Actualizar una entrada del historial
 export async function PATCH(request: Request, context: RouteContext) {
   try {
+    try {
+      await requireModulePermission("fleet", "canUpdate");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { id } = await context.params;
     const body = await request.json();
 
@@ -20,18 +29,15 @@ export async function PATCH(request: Request, context: RouteContext) {
       );
     }
 
-    const response = await fetch(
-      `${STRAPI_BASE_URL}/api/driver-histories/${id}`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ data: body.data }),
-        cache: "no-store",
-      }
-    );
+    const response = await fetch(`${STRAPI_BASE_URL}/api/driver-histories/${id}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ data: body.data }),
+      cache: "no-store",
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -43,28 +49,30 @@ export async function PATCH(request: Request, context: RouteContext) {
   } catch (error) {
     console.error("Error actualizando historial de conductor:", error);
     const errorMessage = error instanceof Error ? error.message : "Error desconocido";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
 // DELETE - Eliminar una entrada del historial
 export async function DELETE(_: Request, context: RouteContext) {
   try {
+    try {
+      await requireModulePermission("fleet", "canDelete");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { id } = await context.params;
 
-    const response = await fetch(
-      `${STRAPI_BASE_URL}/api/driver-histories/${id}`,
-      {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-        },
-        cache: "no-store",
-      }
-    );
+    const response = await fetch(`${STRAPI_BASE_URL}/api/driver-histories/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      },
+      cache: "no-store",
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -75,16 +83,21 @@ export async function DELETE(_: Request, context: RouteContext) {
   } catch (error) {
     console.error("Error eliminando historial de conductor:", error);
     const errorMessage = error instanceof Error ? error.message : "Error desconocido";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
 // GET - Obtener una entrada específica
 export async function GET(request: Request, context: RouteContext) {
   try {
+    try {
+      await requireModulePermission("fleet", "canRead");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { id } = await context.params;
 
     const response = await fetch(
@@ -99,10 +112,7 @@ export async function GET(request: Request, context: RouteContext) {
 
     if (!response.ok) {
       if (response.status === 404) {
-        return NextResponse.json(
-          { error: "Historial no encontrado" },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: "Historial no encontrado" }, { status: 404 });
       }
       const errorText = await response.text();
       throw new Error(`Error obteniendo historial: ${errorText || response.statusText}`);
@@ -113,9 +123,6 @@ export async function GET(request: Request, context: RouteContext) {
   } catch (error) {
     console.error("Error obteniendo historial de conductor:", error);
     const errorMessage = error instanceof Error ? error.message : "Error desconocido";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
-import {
-  fetchServicesFromStrapi,
-  createServiceInStrapi,
-} from "@/lib/services";
+import { fetchServicesFromStrapi, createServiceInStrapi } from "@/features/services";
+import { requireModulePermission } from "@/lib/module-guard";
 import type { ServiceCreatePayload } from "@/validations/types";
 
 export async function GET() {
   try {
+    try {
+      await requireModulePermission("adm-services", "canRead");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const services = await fetchServicesFromStrapi();
     return NextResponse.json({ data: services });
   } catch (error) {
@@ -20,6 +26,14 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    try {
+      await requireModulePermission("adm-services", "canCreate");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const body = (await request.json()) as { data?: ServiceCreatePayload };
 
     if (!body?.data) {
@@ -33,18 +47,12 @@ export async function POST(request: Request) {
 
     // Validar campos requeridos
     if (!data.name) {
-      return NextResponse.json(
-        { error: "El nombre del servicio es requerido." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "El nombre del servicio es requerido." }, { status: 400 });
     }
 
     // Validar precio
     if (data.price === undefined || data.price === null) {
-      return NextResponse.json(
-        { error: "El precio del servicio es requerido." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "El precio del servicio es requerido." }, { status: 400 });
     }
 
     if (typeof data.price !== "number" || data.price < 0) {
@@ -74,9 +82,6 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Error creating service:", error);
     const errorMessage = error instanceof Error ? error.message : "No se pudo crear el servicio.";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

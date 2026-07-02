@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
 import qs from "qs";
-import { requireAdmin } from "@/lib/admin-guard";
+import { requireModulePermission } from "@/lib/module-guard";
 
 /**
  * GET /api/fleet/check-initials?initials=FM&excludeId=xxx
@@ -10,7 +10,7 @@ import { requireAdmin } from "@/lib/admin-guard";
 export async function GET(request: Request) {
   try {
     try {
-      await requireAdmin();
+      await requireModulePermission("fleet", "canRead");
     } catch {
       return NextResponse.json(
         { error: "Acceso restringido: Se requieren permisos de administrador" },
@@ -22,33 +22,30 @@ export async function GET(request: Request) {
     const excludeId = searchParams.get("excludeId"); // Para excluir el vehículo actual en edición
 
     if (!initials) {
-      return NextResponse.json(
-        { error: "Las siglas son requeridas" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Las siglas son requeridas" }, { status: 400 });
     }
 
     // Consultar Strapi para verificar si existe
-    const query = qs.stringify({
-      filters: {
-        billingInitials: { $eq: initials },
-        ...(excludeId && {
-          documentId: { $ne: excludeId },
-        }),
-      },
-      fields: ["id", "documentId", "name", "billingInitials"],
-      pagination: { pageSize: 1 },
-    }, { encodeValuesOnly: true });
-
-    const response = await fetch(
-      `${STRAPI_BASE_URL}/api/fleets?${query}`,
+    const query = qs.stringify(
       {
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        filters: {
+          billingInitials: { $eq: initials },
+          ...(excludeId && {
+            documentId: { $ne: excludeId },
+          }),
         },
-        cache: "no-store",
-      }
+        fields: ["id", "documentId", "name", "billingInitials"],
+        pagination: { pageSize: 1 },
+      },
+      { encodeValuesOnly: true }
     );
+
+    const response = await fetch(`${STRAPI_BASE_URL}/api/fleets?${query}`, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      },
+      cache: "no-store",
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -75,9 +72,6 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error("Error checking billing initials:", error);
-    return NextResponse.json(
-      { error: "Error verificando siglas" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Error verificando siglas" }, { status: 500 });
   }
 }

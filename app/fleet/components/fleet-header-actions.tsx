@@ -2,26 +2,10 @@
 
 import { Button } from "@/components_shadcn/ui/button";
 import { Input } from "@/components_shadcn/ui/input";
-import { Label } from "@/components_shadcn/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components_shadcn/ui/select";
-import {
-  Grid3x3,
-  List,
-  Table,
-  Trash2,
-  CheckSquare,
-  Square,
-  Search,
-  Plus,
-} from "lucide-react";
+import { Grid3x3, List, Table, Trash2, CheckSquare, Square, Search, Plus } from "lucide-react";
 import { spacing, typography } from "@/lib/design-system";
-import { cn } from "@/lib/utils";
+import { PageSizeSelect } from "@/components/ui/page-size-select";
+import { Can } from "@/components/auth/can";
 
 export type FleetViewMode = "list" | "grid" | "table";
 
@@ -112,31 +96,33 @@ export function FleetHeaderActions({
             </Button>
           ))}
 
-          <Button
-            variant={isSelectMode ? "default" : "outline"}
-            size="sm"
-            onClick={toggleSelectMode}
-            className="h-8"
-            aria-label="Modo selección"
-          >
-            {isSelectMode ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
-          </Button>
-
-
+          <Can module="fleet" action="canDelete">
+            <Button
+              variant={isSelectMode ? "default" : "outline"}
+              size="sm"
+              onClick={toggleSelectMode}
+              className="h-8"
+              aria-label="Modo selección"
+            >
+              {isSelectMode ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
+            </Button>
+          </Can>
         </div>
 
         <div className="flex items-center gap-2">
           {isSelectMode && selectedVehiclesCount > 0 && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={onDeleteMultiple}
-              disabled={isDeleting}
-              className="h-8"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Eliminar ({selectedVehiclesCount})
-            </Button>
+            <Can module="fleet" action="canDelete">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={onDeleteMultiple}
+                disabled={isDeleting}
+                className="h-8"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Eliminar ({selectedVehiclesCount})
+              </Button>
+            </Can>
           )}
 
           {hasActiveFilters && (
@@ -153,21 +139,11 @@ export function FleetHeaderActions({
       </div>
 
       <div className="flex items-center justify-end gap-2">
-        <Label htmlFor="items-per-page" className={cn(typography.body.small, "text-muted-foreground whitespace-nowrap")}>
-          Mostrar:
-        </Label>
-        <Select value={itemsPerPage.toString()} onValueChange={(value) => onItemsPerPageChange(Number(value))}>
-          <SelectTrigger id="items-per-page" className="h-8 w-20 rounded-lg" suppressHydrationWarning>
-            <SelectValue>{itemsPerPage}</SelectValue>
-          </SelectTrigger>
-          <SelectContent align="end">
-            {[5, 7, 10, 20, 50].map((count) => (
-              <SelectItem key={count} value={count.toString()}>
-                {count}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <PageSizeSelect
+          value={itemsPerPage}
+          onChange={onItemsPerPageChange}
+          options={[5, 7, 10, 20, 50]}
+        />
       </div>
     </section>
   );

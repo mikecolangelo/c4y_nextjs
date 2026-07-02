@@ -5,13 +5,14 @@ import qs from "qs";
 import { fetchFleetVehicleByIdFromStrapi } from "@/lib/fleet";
 import { strapiImages } from "@/lib/strapi-images";
 import type { VehicleStatusPayload } from "@/validations/types";
+import { requireModulePermission } from "@/lib/module-guard";
 
 // Función helper para obtener el user-profile del usuario actual
 async function getCurrentUserProfile() {
   try {
     const cookieStore = await cookies();
     const jwt = cookieStore.get("jwt")?.value;
-    
+
     if (!jwt) {
       return null;
     }
@@ -30,7 +31,7 @@ async function getCurrentUserProfile() {
 
     const userData = await userResponse.json();
     const userId = userData?.id;
-    
+
     if (!userId) {
       return null;
     }
@@ -47,16 +48,13 @@ async function getCurrentUserProfile() {
       },
     });
 
-    const profileResponse = await fetch(
-      `${STRAPI_BASE_URL}/api/user-profiles?${profileQuery}`,
-      {
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        cache: "no-store",
-      }
-    );
+    const profileResponse = await fetch(`${STRAPI_BASE_URL}/api/user-profiles?${profileQuery}`, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+    });
 
     if (!profileResponse.ok) {
       return null;
@@ -64,12 +62,12 @@ async function getCurrentUserProfile() {
 
     const profileData = await profileResponse.json();
     const profile = profileData.data?.[0];
-    
+
     if (!profile || !profile.documentId) {
       return null;
     }
 
-    return { 
+    return {
       documentId: profile.documentId,
       displayName: profile.displayName || profile.email || "Usuario",
       email: profile.email,
@@ -90,14 +88,19 @@ interface RouteContext {
 // GET - Obtener todos los estados de un vehículo
 export async function GET(_: Request, context: RouteContext) {
   try {
+    try {
+      await requireModulePermission("fleet", "canRead");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
+    }
     const { id } = await context.params;
-    
+
     const vehicle = await fetchFleetVehicleByIdFromStrapi(id);
     if (!vehicle) {
-      return NextResponse.json(
-        { error: "Vehículo no encontrado." },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Vehículo no encontrado." }, { status: 404 });
     }
 
     const vehicleQuery = qs.stringify({
@@ -107,15 +110,12 @@ export async function GET(_: Request, context: RouteContext) {
       fields: ["id"],
     });
 
-    const vehicleResponse = await fetch(
-      `${STRAPI_BASE_URL}/api/fleets?${vehicleQuery}`,
-      {
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-        },
-        cache: "no-store",
-      }
-    );
+    const vehicleResponse = await fetch(`${STRAPI_BASE_URL}/api/fleets?${vehicleQuery}`, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      },
+      cache: "no-store",
+    });
 
     if (!vehicleResponse.ok) {
       throw new Error("No se pudo obtener el vehículo");
@@ -145,46 +145,49 @@ export async function GET(_: Request, context: RouteContext) {
       sort: ["createdAt:desc"],
     });
 
-    const statusResponse = await fetch(
-      `${STRAPI_BASE_URL}/api/fleet-statuses?${statusQuery}`,
-      {
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-        },
-        cache: "no-store",
-      }
-    );
+    const statusResponse = await fetch(`${STRAPI_BASE_URL}/api/fleet-statuses?${statusQuery}`, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      },
+      cache: "no-store",
+    });
 
     if (!statusResponse.ok) {
       // Si es 404, el tipo de contenido no existe todavía en Strapi
       // Retornar array vacío en lugar de error
       if (statusResponse.status === 404) {
-        console.warn("Tipo de contenido 'fleet-statuses' no encontrado en Strapi. Retornando array vacío.");
+        console.warn(
+          "Tipo de contenido 'fleet-statuses' no encontrado en Strapi. Retornando array vacío."
+        );
         return NextResponse.json({ data: [] });
       }
-      
+
       const errorText = await statusResponse.text();
       console.error("Error obteniendo estados de Strapi:", {
         status: statusResponse.status,
         statusText: statusResponse.statusText,
         errorText,
       });
-      throw new Error(`No se pudieron obtener los estados: ${errorText || statusResponse.statusText}`);
+      throw new Error(
+        `No se pudieron obtener los estados: ${errorText || statusResponse.statusText}`
+      );
     }
 
     const statusData = await statusResponse.json();
-    
+
     // Función helper para normalizar imágenes
-    const normalizeImages = (imagesData: any): Array<{ id?: number; url?: string; alternativeText?: string }> => {
+    const normalizeImages = (
+      imagesData: any
+    ): Array<{ id?: number; url?: string; alternativeText?: string }> => {
       if (!imagesData) return [];
-      
+
       // Si es un array directo
       if (Array.isArray(imagesData)) {
         return imagesData.map((img: any) => {
           let imageUrl: string | undefined;
           let imageId: number | undefined;
           let imageAlt: string | undefined;
-          
+
           // Si tiene estructura data.attributes
           if (img?.data?.attributes) {
             imageId = img.data.id;
@@ -203,7 +206,7 @@ export async function GET(_: Request, context: RouteContext) {
             imageUrl = img.url;
             imageAlt = img.alternativeText;
           }
-          
+
           return {
             id: imageId,
             url: imageUrl ? strapiImages.getURL(imageUrl) : undefined,
@@ -211,12 +214,12 @@ export async function GET(_: Request, context: RouteContext) {
           };
         });
       }
-      
+
       // Si es un objeto con data que contiene array
       if (imagesData?.data && Array.isArray(imagesData.data)) {
         return normalizeImages(imagesData.data);
       }
-      
+
       return [];
     };
 
@@ -227,7 +230,7 @@ export async function GET(_: Request, context: RouteContext) {
         if (status.images) {
           status.images = normalizeImages(status.images);
         }
-        
+
         if (status.authorDocumentId) {
           try {
             const authorQuery = qs.stringify({
@@ -265,14 +268,11 @@ export async function GET(_: Request, context: RouteContext) {
         return status;
       })
     );
-    
+
     return NextResponse.json({ data: statusesWithAuthor || [] });
   } catch (error) {
     console.error("Error fetching vehicle statuses:", error);
-    return NextResponse.json(
-      { error: "No pudimos obtener los estados." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "No pudimos obtener los estados." }, { status: 500 });
   }
 }
 
@@ -280,13 +280,18 @@ export async function GET(_: Request, context: RouteContext) {
 export async function POST(request: Request, context: RouteContext) {
   console.log("🚀 POST /api/fleet/[id]/status ejecutado");
   try {
-    const body = (await request.json()) as { data?: VehicleStatusPayload };
-    
-    if (!body?.data) {
+    try {
+      await requireModulePermission("fleet", "canCreate");
+    } catch {
       return NextResponse.json(
-        { error: "Los datos del estado son requeridos." },
-        { status: 400 }
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
       );
+    }
+    const body = (await request.json()) as { data?: VehicleStatusPayload };
+
+    if (!body?.data) {
+      return NextResponse.json({ error: "Los datos del estado son requeridos." }, { status: 400 });
     }
 
     // Validar que al menos haya imágenes o comentario
@@ -307,15 +312,12 @@ export async function POST(request: Request, context: RouteContext) {
       fields: ["id"],
     });
 
-    const vehicleResponse = await fetch(
-      `${STRAPI_BASE_URL}/api/fleets?${vehicleQuery}`,
-      {
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-        },
-        cache: "no-store",
-      }
-    );
+    const vehicleResponse = await fetch(`${STRAPI_BASE_URL}/api/fleets?${vehicleQuery}`, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      },
+      cache: "no-store",
+    });
 
     if (!vehicleResponse.ok) {
       throw new Error("No se pudo obtener el vehículo");
@@ -325,18 +327,16 @@ export async function POST(request: Request, context: RouteContext) {
     const vehicleId = vehicleData.data?.[0]?.id;
 
     if (!vehicleId) {
-      return NextResponse.json(
-        { error: "Vehículo no encontrado." },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Vehículo no encontrado." }, { status: 404 });
     }
 
     const currentUserProfile = await getCurrentUserProfile();
-    
-    let authorDocumentId = body.data.authorDocumentId && body.data.authorDocumentId !== null 
-      ? body.data.authorDocumentId 
-      : undefined;
-    
+
+    let authorDocumentId =
+      body.data.authorDocumentId && body.data.authorDocumentId !== null
+        ? body.data.authorDocumentId
+        : undefined;
+
     if (!authorDocumentId) {
       authorDocumentId = currentUserProfile?.documentId;
     }
@@ -350,15 +350,15 @@ export async function POST(request: Request, context: RouteContext) {
     } = {
       vehicle: vehicleId,
     };
-    
+
     if (body.data.comment) {
       statusData.comment = body.data.comment;
     }
-    
+
     if (body.data.images && body.data.images.length > 0) {
       statusData.images = body.data.images;
     }
-    
+
     if (authorDocumentId) {
       statusData.authorDocumentId = authorDocumentId;
     }
@@ -377,23 +377,22 @@ export async function POST(request: Request, context: RouteContext) {
 
     // Si el tipo de contenido no existe (404 o 405), informar al usuario
     if (checkContentTypeResponse.status === 404 || checkContentTypeResponse.status === 405) {
-      throw new Error("El tipo de contenido 'fleet-statuses' no existe en Strapi. Por favor, créalo en Content-Type Builder con los campos: comment (Text), images (Media múltiple), authorDocumentId (Text), y vehicle (Relation a Fleet).");
+      throw new Error(
+        "El tipo de contenido 'fleet-statuses' no existe en Strapi. Por favor, créalo en Content-Type Builder con los campos: comment (Text), images (Media múltiple), authorDocumentId (Text), y vehicle (Relation a Fleet)."
+      );
     }
 
-    const newStatusResponse = await fetch(
-      `${STRAPI_BASE_URL}/api/fleet-statuses`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          data: statusData,
-        }),
-        cache: "no-store",
-      }
-    );
+    const newStatusResponse = await fetch(`${STRAPI_BASE_URL}/api/fleet-statuses`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        data: statusData,
+      }),
+      cache: "no-store",
+    });
 
     if (!newStatusResponse.ok) {
       const errorText = await newStatusResponse.text();
@@ -403,25 +402,33 @@ export async function POST(request: Request, context: RouteContext) {
       } catch {
         errorData = { error: { message: errorText || `Error ${newStatusResponse.status}` } };
       }
-      
+
       // Si es 404, el tipo de contenido no existe en Strapi
       if (newStatusResponse.status === 404) {
-        throw new Error("El tipo de contenido 'fleet-statuses' no existe en Strapi. Por favor, créalo primero en el panel de administración de Strapi.");
+        throw new Error(
+          "El tipo de contenido 'fleet-statuses' no existe en Strapi. Por favor, créalo primero en el panel de administración de Strapi."
+        );
       }
-      
+
       // Si es 405 (Method Not Allowed), el tipo de contenido no existe o no tiene permisos
       if (newStatusResponse.status === 405) {
-        throw new Error("El tipo de contenido 'fleet-statuses' no existe en Strapi o no tiene permisos configurados. Por favor, créalo y configura los permisos en Settings → Roles → Public/Authenticated → Permissions → fleet-statuses → Create.");
+        throw new Error(
+          "El tipo de contenido 'fleet-statuses' no existe en Strapi o no tiene permisos configurados. Por favor, créalo y configura los permisos en Settings → Roles → Public/Authenticated → Permissions → fleet-statuses → Create."
+        );
       }
-      
+
       console.error("Error de Strapi al crear estado:", {
         status: newStatusResponse.status,
         statusText: newStatusResponse.statusText,
         errorText,
         errorData,
       });
-      
-      throw new Error(errorData.error?.message || errorData.message || `Error ${newStatusResponse.status}: ${newStatusResponse.statusText}`);
+
+      throw new Error(
+        errorData.error?.message ||
+          errorData.message ||
+          `Error ${newStatusResponse.status}: ${newStatusResponse.statusText}`
+      );
     }
 
     const newStatus = await newStatusResponse.json();
@@ -450,18 +457,20 @@ export async function POST(request: Request, context: RouteContext) {
       if (createdStatusResponse.ok) {
         const createdStatus = await createdStatusResponse.json();
         const statusData = createdStatus.data;
-        
+
         // Normalizar imágenes
         if (statusData.images) {
-          const normalizeImagesForStatus = (imagesData: any): Array<{ id?: number; url?: string; alternativeText?: string }> => {
+          const normalizeImagesForStatus = (
+            imagesData: any
+          ): Array<{ id?: number; url?: string; alternativeText?: string }> => {
             if (!imagesData) return [];
-            
+
             if (Array.isArray(imagesData)) {
               return imagesData.map((img: any) => {
                 let imageUrl: string | undefined;
                 let imageId: number | undefined;
                 let imageAlt: string | undefined;
-                
+
                 if (img?.data?.attributes) {
                   imageId = img.data.id;
                   imageUrl = img.data.attributes.url;
@@ -475,7 +484,7 @@ export async function POST(request: Request, context: RouteContext) {
                   imageUrl = img.url;
                   imageAlt = img.alternativeText;
                 }
-                
+
                 return {
                   id: imageId,
                   url: imageUrl ? strapiImages.getURL(imageUrl) : undefined,
@@ -483,17 +492,17 @@ export async function POST(request: Request, context: RouteContext) {
                 };
               });
             }
-            
+
             if (imagesData?.data && Array.isArray(imagesData.data)) {
               return normalizeImagesForStatus(imagesData.data);
             }
-            
+
             return [];
           };
-          
+
           statusData.images = normalizeImagesForStatus(statusData.images);
         }
-        
+
         // Agregar el autor si está disponible
         if (statusData.authorDocumentId) {
           if (currentUserProfile && currentUserProfile.documentId === statusData.authorDocumentId) {
@@ -539,26 +548,28 @@ export async function POST(request: Request, context: RouteContext) {
             }
           }
         }
-        
+
         return NextResponse.json({ data: statusData }, { status: 201 });
       }
-      
+
       // Fallback: construir respuesta básica
       const fallbackStatusData = {
         ...newStatus.data,
       };
-      
+
       // Normalizar imágenes en el fallback también
       if (fallbackStatusData.images) {
-        const normalizeImagesForFallback = (imagesData: any): Array<{ id?: number; url?: string; alternativeText?: string }> => {
+        const normalizeImagesForFallback = (
+          imagesData: any
+        ): Array<{ id?: number; url?: string; alternativeText?: string }> => {
           if (!imagesData) return [];
-          
+
           if (Array.isArray(imagesData)) {
             return imagesData.map((img: any) => {
               let imageUrl: string | undefined;
               let imageId: number | undefined;
               let imageAlt: string | undefined;
-              
+
               if (img?.data?.attributes) {
                 imageId = img.data.id;
                 imageUrl = img.data.attributes.url;
@@ -572,7 +583,7 @@ export async function POST(request: Request, context: RouteContext) {
                 imageUrl = img.url;
                 imageAlt = img.alternativeText;
               }
-              
+
               return {
                 id: imageId,
                 url: imageUrl ? strapiImages.getURL(imageUrl) : undefined,
@@ -580,18 +591,22 @@ export async function POST(request: Request, context: RouteContext) {
               };
             });
           }
-          
+
           if (imagesData?.data && Array.isArray(imagesData.data)) {
             return normalizeImagesForFallback(imagesData.data);
           }
-          
+
           return [];
         };
-        
+
         fallbackStatusData.images = normalizeImagesForFallback(fallbackStatusData.images);
       }
-      
-      if (newStatus.data.authorDocumentId && currentUserProfile && currentUserProfile.documentId === newStatus.data.authorDocumentId) {
+
+      if (
+        newStatus.data.authorDocumentId &&
+        currentUserProfile &&
+        currentUserProfile.documentId === newStatus.data.authorDocumentId
+      ) {
         fallbackStatusData.author = {
           id: 0,
           documentId: currentUserProfile.documentId,
@@ -600,17 +615,15 @@ export async function POST(request: Request, context: RouteContext) {
           avatar: currentUserProfile.avatar,
         };
       }
-      
+
       return NextResponse.json({ data: fallbackStatusData }, { status: 201 });
     }
 
     throw new Error("La respuesta de Strapi no contiene los datos esperados");
   } catch (error) {
     console.error("Error creating vehicle status:", error);
-    const errorMessage = error instanceof Error ? error.message : "Error desconocido al crear el estado";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    const errorMessage =
+      error instanceof Error ? error.message : "Error desconocido al crear el estado";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

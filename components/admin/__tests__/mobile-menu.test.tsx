@@ -17,11 +17,18 @@ vi.mock("next/link", () => ({
 }));
 
 vi.mock("@/components_shadcn/ui/sheet", () => {
-  const React = require("react");
   return {
-    Sheet: ({ children }: { children: React.ReactNode }) => <div data-testid="sheet">{children}</div>,
+    Sheet: ({ children }: { children: React.ReactNode }) => (
+      <div data-testid="sheet">{children}</div>
+    ),
     SheetTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-    SheetContent: ({ children, ...props }: any) => (
+    SheetContent: ({
+      children,
+      ...props
+    }: {
+      children: React.ReactNode;
+      [key: string]: unknown;
+    }) => (
       <div data-testid="sheet-content" {...props}>
         {children}
       </div>
@@ -40,6 +47,8 @@ describe("adminNavSections", () => {
       { href: "/stock", label: "Inventario", module: "stock" },
       { href: "/fleet", label: "Flota", module: "fleet" },
       { href: "/billing", label: "Facturación", module: "billing" },
+      { href: "/notifications", label: "Notificaciones", module: "notifications" },
+      { href: "/calendar", label: "Calendario", module: "calendar" },
       { href: "/settings", label: "Configuración", module: "settings" },
     ];
 
@@ -92,7 +101,13 @@ describe("MobileMenu — driver", () => {
   beforeEach(() => {
     // El conductor solo tiene acceso al módulo dashboard (su panel).
     mockPermissions("driver", {
-      dashboard: { canAccess: true, canRead: true, canCreate: false, canUpdate: false, canDelete: false },
+      dashboard: {
+        canAccess: true,
+        canRead: true,
+        canCreate: false,
+        canUpdate: false,
+        canDelete: false,
+      },
     });
   });
 

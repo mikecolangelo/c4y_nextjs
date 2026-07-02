@@ -1,75 +1,18 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
+import { requireModulePermission } from "@/lib/module-guard";
 import qs from "qs";
-
-// Helper para verificar autenticación y rol admin
-async function verifyAdminAuth() {
-  try {
-    const cookieStore = await cookies();
-    const jwt = cookieStore.get("jwt")?.value;
-    
-    if (!jwt) {
-      return { error: "No autenticado", status: 401 };
-    }
-
-    const userResponse = await fetch(`${STRAPI_BASE_URL}/api/users/me`, {
-      headers: {
-        Authorization: `Bearer ${jwt}`,
-        "Content-Type": "application/json",
-      },
-      cache: "no-store",
-    });
-
-    if (!userResponse.ok) {
-      return { error: "Token inválido", status: 401 };
-    }
-
-    const userData = await userResponse.json();
-    
-    // Buscar el user-profile para verificar el rol
-    const profileQuery = qs.stringify({
-      filters: {
-        email: { $eq: userData.email },
-      },
-      fields: ["role"],
-    });
-
-    const profileResponse = await fetch(
-      `${STRAPI_BASE_URL}/api/user-profiles?${profileQuery}`,
-      {
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        cache: "no-store",
-      }
-    );
-
-    if (!profileResponse.ok) {
-      return { error: "Error verificando permisos", status: 500 };
-    }
-
-    const profileData = await profileResponse.json();
-    const profile = profileData.data?.[0];
-    
-    if (!profile || profile.role !== "admin") {
-      return { error: "No tienes permisos para acceder a esta configuración", status: 403 };
-    }
-
-    return { success: true };
-  } catch (error) {
-    console.error("Error verificando autenticación:", error);
-    return { error: "Error de autenticación", status: 500 };
-  }
-}
 
 // GET - Obtener información de la empresa
 export async function GET() {
   try {
-    const authResult = await verifyAdminAuth();
-    if ("error" in authResult) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    try {
+      await requireModulePermission("settings", "canRead");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
     }
 
     const query = qs.stringify({
@@ -80,16 +23,13 @@ export async function GET() {
       },
     });
 
-    const response = await fetch(
-      `${STRAPI_BASE_URL}/api/company-info?${query}`,
-      {
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        cache: "no-store",
-      }
-    );
+    const response = await fetch(`${STRAPI_BASE_URL}/api/company-info?${query}`, {
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+    });
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -121,9 +61,13 @@ export async function GET() {
 // PUT - Actualizar información de la empresa
 export async function PUT(request: Request) {
   try {
-    const authResult = await verifyAdminAuth();
-    if ("error" in authResult) {
-      return NextResponse.json({ error: authResult.error }, { status: authResult.status });
+    try {
+      await requireModulePermission("settings", "canUpdate");
+    } catch {
+      return NextResponse.json(
+        { error: "Acceso restringido: Se requieren permisos de administrador" },
+        { status: 403 }
+      );
     }
 
     const body = await request.json();
@@ -144,7 +88,8 @@ export async function PUT(request: Request) {
     if (companyName !== undefined) updateData.companyName = companyName;
     if (legalRepName !== undefined) updateData.legalRepName = legalRepName;
     if (legalRepNationality !== undefined) updateData.legalRepNationality = legalRepNationality;
-    if (legalRepMaritalStatus !== undefined) updateData.legalRepMaritalStatus = legalRepMaritalStatus;
+    if (legalRepMaritalStatus !== undefined)
+      updateData.legalRepMaritalStatus = legalRepMaritalStatus;
     if (legalRepPassport !== undefined) updateData.legalRepPassport = legalRepPassport;
     if (companyAddress !== undefined) updateData.companyAddress = companyAddress;
     if (registryInfo !== undefined) updateData.registryInfo = registryInfo;
@@ -152,17 +97,14 @@ export async function PUT(request: Request) {
     if (email !== undefined) updateData.email = email;
     if (logo !== undefined) updateData.logo = logo;
 
-    const response = await fetch(
-      `${STRAPI_BASE_URL}/api/company-info`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ data: updateData }),
-      }
-    );
+    const response = await fetch(`${STRAPI_BASE_URL}/api/company-info`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ data: updateData }),
+    });
 
     if (!response.ok) {
       const errorText = await response.text();

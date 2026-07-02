@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { STRAPI_API_TOKEN, STRAPI_BASE_URL } from "@/lib/config";
-import { requireAdmin } from "@/lib/admin-guard";
+import { requireModulePermission } from "@/lib/module-guard";
 
 interface RouteContext {
   params: Promise<{
@@ -12,7 +12,7 @@ interface RouteContext {
 export async function PUT(request: Request, context: RouteContext) {
   try {
     try {
-      await requireAdmin();
+      await requireModulePermission("fleet", "canUpdate");
     } catch {
       return NextResponse.json(
         { error: "Acceso restringido: Se requieren permisos de administrador" },
@@ -23,34 +23,25 @@ export async function PUT(request: Request, context: RouteContext) {
     const { id } = params;
 
     if (!id) {
-      return NextResponse.json(
-        { error: "ID es requerido" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "ID es requerido" }, { status: 400 });
     }
 
     const body = await request.json();
     const { data } = body;
 
     if (!data) {
-      return NextResponse.json(
-        { error: "Datos de actualización requeridos" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Datos de actualización requeridos" }, { status: 400 });
     }
 
-    const updateResponse = await fetch(
-      `${STRAPI_BASE_URL}/api/fleet-document-types/${id}`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-        },
-        body: JSON.stringify({ data }),
-        cache: "no-store",
-      }
-    );
+    const updateResponse = await fetch(`${STRAPI_BASE_URL}/api/fleet-document-types/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      },
+      body: JSON.stringify({ data }),
+      cache: "no-store",
+    });
 
     if (!updateResponse.ok) {
       const errorText = await updateResponse.text();
@@ -66,15 +57,17 @@ export async function PUT(request: Request, context: RouteContext) {
         error: errorData,
         id,
       });
-      
+
       if (updateResponse.status === 404) {
         return NextResponse.json(
           { error: "El tipo de documento no fue encontrado o el tipo de contenido no existe." },
           { status: 404 }
         );
       }
-      
-      throw new Error(errorData.error?.message || `Error ${updateResponse.status}: ${updateResponse.statusText}`);
+
+      throw new Error(
+        errorData.error?.message || `Error ${updateResponse.status}: ${updateResponse.statusText}`
+      );
     }
 
     const result = await updateResponse.json();
@@ -82,10 +75,7 @@ export async function PUT(request: Request, context: RouteContext) {
   } catch (error) {
     console.error("Error updating fleet document type:", error);
     const errorMessage = error instanceof Error ? error.message : "Error desconocido";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
@@ -93,7 +83,7 @@ export async function PUT(request: Request, context: RouteContext) {
 export async function DELETE(_: Request, context: RouteContext) {
   try {
     try {
-      await requireAdmin();
+      await requireModulePermission("fleet", "canDelete");
     } catch {
       return NextResponse.json(
         { error: "Acceso restringido: Se requieren permisos de administrador" },
@@ -104,22 +94,16 @@ export async function DELETE(_: Request, context: RouteContext) {
     const { id } = params;
 
     if (!id) {
-      return NextResponse.json(
-        { error: "ID es requerido" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "ID es requerido" }, { status: 400 });
     }
 
-    const deleteResponse = await fetch(
-      `${STRAPI_BASE_URL}/api/fleet-document-types/${id}`,
-      {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
-        },
-        cache: "no-store",
-      }
-    );
+    const deleteResponse = await fetch(`${STRAPI_BASE_URL}/api/fleet-document-types/${id}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${STRAPI_API_TOKEN}`,
+      },
+      cache: "no-store",
+    });
 
     if (!deleteResponse.ok) {
       const errorText = await deleteResponse.text();
@@ -135,24 +119,23 @@ export async function DELETE(_: Request, context: RouteContext) {
         error: errorData,
         id,
       });
-      
+
       if (deleteResponse.status === 404) {
         return NextResponse.json(
           { error: "El tipo de documento no fue encontrado o el tipo de contenido no existe." },
           { status: 404 }
         );
       }
-      
-      throw new Error(errorData.error?.message || `Error ${deleteResponse.status}: ${deleteResponse.statusText}`);
+
+      throw new Error(
+        errorData.error?.message || `Error ${deleteResponse.status}: ${deleteResponse.statusText}`
+      );
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting fleet document type:", error);
     const errorMessage = error instanceof Error ? error.message : "Error desconocido";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

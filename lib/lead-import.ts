@@ -9,6 +9,16 @@ export interface LeadImportRow {
   hireDate?: string | null; // Fecha de contacto
   workSchedule?: string | null; // Empresa
   role?: string | null; // Rol del contacto
+  // Campos de contacto completos (paridad con el modal "Crear Contacto").
+  // Son opcionales: un lead puede importarse sin ellos.
+  identificationNumber?: string | null; // Cédula / Identificación
+  address?: string | null; // Dirección
+  dateOfBirth?: string | null; // Fecha de nacimiento
+  specialties?: string | null; // Especialidades
+  emergencyContactName?: string | null; // Contacto de emergencia (nombre)
+  emergencyContactPhone?: string | null; // Contacto de emergencia (teléfono)
+  linkedin?: string | null; // LinkedIn
+  driverLicense?: string | null; // Licencia de conducir
   _rowIndex?: number;
   _errors?: string[];
 }
@@ -53,7 +63,7 @@ export const HEADER_MAP: Record<string, keyof LeadImportRow> = {
   "nro telefono": "phone",
   "nro celular": "phone",
   "nro movil": "phone",
-  "nro": "phone",
+  nro: "phone",
   "telefono celular": "phone",
   "telefono movil": "phone",
   "telefono fijo": "phone",
@@ -128,14 +138,91 @@ export const HEADER_MAP: Record<string, keyof LeadImportRow> = {
   "tipo de contacto": "role",
   categoria: "role",
   categoría: "role",
+  // Cédula / Identificación
+  cedula: "identificationNumber",
+  cédula: "identificationNumber",
+  identificacion: "identificationNumber",
+  identificación: "identificationNumber",
+  "cedula identificacion": "identificationNumber",
+  "cedula id": "identificationNumber",
+  "documento de identidad": "identificationNumber",
+  documento: "identificationNumber",
+  dni: "identificationNumber",
+  "id number": "identificationNumber",
+  "national id": "identificationNumber",
+  // Dirección
+  direccion: "address",
+  dirección: "address",
+  address: "address",
+  domicilio: "address",
+  ubicacion: "address",
+  ubicación: "address",
+  // Fecha de nacimiento
+  "fecha de nacimiento": "dateOfBirth",
+  "fecha nacimiento": "dateOfBirth",
+  nacimiento: "dateOfBirth",
+  cumpleanos: "dateOfBirth",
+  cumpleaños: "dateOfBirth",
+  birthdate: "dateOfBirth",
+  "date of birth": "dateOfBirth",
+  dob: "dateOfBirth",
+  // Especialidades
+  especialidades: "specialties",
+  especialidad: "specialties",
+  specialties: "specialties",
+  skills: "specialties",
+  habilidades: "specialties",
+  // Contacto de emergencia (nombre)
+  "contacto de emergencia": "emergencyContactName",
+  "contacto emergencia": "emergencyContactName",
+  "nombre de emergencia": "emergencyContactName",
+  "emergency contact": "emergencyContactName",
+  "emergency contact name": "emergencyContactName",
+  // Contacto de emergencia (teléfono)
+  "telefono de emergencia": "emergencyContactPhone",
+  "teléfono de emergencia": "emergencyContactPhone",
+  "telefono emergencia": "emergencyContactPhone",
+  "emergency phone": "emergencyContactPhone",
+  "emergency contact phone": "emergencyContactPhone",
+  // LinkedIn
+  linkedin: "linkedin",
+  "perfil de linkedin": "linkedin",
+  "linkedin url": "linkedin",
+  // Licencia de conducir
+  "licencia de conducir": "driverLicense",
+  "licencia conducir": "driverLicense",
+  licencia: "driverLicense",
+  "driver license": "driverLicense",
+  "drivers license": "driverLicense",
+  "driving license": "driverLicense",
 };
 
 // Headers que se usan para la firma de detección automática
 const HEADER_SIGNATURES = [
-  "nombre", "name", "nombres", "nombre completo", "full name", "contacto", "cliente",
-  "telefono", "tel", "celular", "movil", "phone", "numero de telefono",
-  "email", "correo", "correo electronico", "e-mail", "mail",
-  "origen", "origen del lead", "fuente", "source", "canal", "procedencia",
+  "nombre",
+  "name",
+  "nombres",
+  "nombre completo",
+  "full name",
+  "contacto",
+  "cliente",
+  "telefono",
+  "tel",
+  "celular",
+  "movil",
+  "phone",
+  "numero de telefono",
+  "email",
+  "correo",
+  "correo electronico",
+  "e-mail",
+  "mail",
+  "origen",
+  "origen del lead",
+  "fuente",
+  "source",
+  "canal",
+  "procedencia",
 ];
 
 // Campos obligatorios — relajados a peticion del usuario:
@@ -152,6 +239,14 @@ export const FIELD_LABELS: Record<keyof LeadImportRow, string> = {
   hireDate: "Fecha de contacto",
   workSchedule: "Empresa",
   role: "Rol",
+  identificationNumber: "Cédula / Identificación",
+  address: "Dirección",
+  dateOfBirth: "Fecha de nacimiento",
+  specialties: "Especialidades",
+  emergencyContactName: "Contacto de emergencia",
+  emergencyContactPhone: "Teléfono de emergencia",
+  linkedin: "LinkedIn",
+  driverLicense: "Licencia de conducir",
   _rowIndex: "Fila",
   _errors: "Errores",
 };
@@ -163,6 +258,7 @@ function normalizeHeader(header: string): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9\s]/g, "")
+    .replace(/\s+/g, " ") // colapsa espacios (p.ej. "cedula / id" -> "cedula id")
     .trim();
 }
 
@@ -214,17 +310,28 @@ export function mapHeader(header: string): keyof LeadImportRow | null {
   return null;
 }
 
+/** Format a Y/M/D triple as an ISO date (YYYY-MM-DD) with no timezone drift. */
+function toIsoDate(y: number, m: number, d: number): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${y}-${pad(m)}-${pad(d)}`;
+}
+
 function parseDate(value: any): string | null {
   if (!value) return null;
   if (value instanceof Date) {
-    return isNaN(value.getTime()) ? null : value.toISOString().split("T")[0];
+    if (isNaN(value.getTime())) return null;
+    // Use UTC parts: XLSX builds dates at UTC midnight, so local getters could
+    // roll the day back in timezones east of UTC.
+    return toIsoDate(value.getUTCFullYear(), value.getUTCMonth() + 1, value.getUTCDate());
   }
   if (typeof value === "number") {
-    // Excel serial date
+    // Excel serial date — anchor the epoch in UTC to avoid an off-by-one day.
     if (value > 30000 && value < 50000) {
-      const epoch = new Date(1899, 11, 30);
-      const d = new Date(epoch.getTime() + value * 24 * 60 * 60 * 1000);
-      return isNaN(d.getTime()) ? null : d.toISOString().split("T")[0];
+      const ms = Date.UTC(1899, 11, 30) + value * 24 * 60 * 60 * 1000;
+      const d = new Date(ms);
+      return isNaN(d.getTime())
+        ? null
+        : toIsoDate(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
     }
     return null;
   }
@@ -236,13 +343,19 @@ function parseDate(value: any): string | null {
   let d = parseInt(parts[0], 10);
   let m = parseInt(parts[1], 10);
   let y = parseInt(parts[2], 10);
+  if (Number.isNaN(d) || Number.isNaN(m) || Number.isNaN(y)) return null;
   if (y < 100) y += 2000;
   if (m > 12 && d <= 12) {
-    const tmp = d; d = m; m = tmp;
+    const tmp = d;
+    d = m;
+    m = tmp;
   }
-  const date = new Date(y, m - 1, d);
-  if (isNaN(date.getTime()) || date.getDate() !== d || date.getMonth() !== m - 1) return null;
-  return date.toISOString().split("T")[0];
+  // Validate against a UTC date so the calendar check never drifts by TZ.
+  const date = new Date(Date.UTC(y, m - 1, d));
+  if (isNaN(date.getTime()) || date.getUTCDate() !== d || date.getUTCMonth() !== m - 1) {
+    return null;
+  }
+  return toIsoDate(y, m, d);
 }
 
 function cleanPhone(value: any): string | null {
@@ -290,7 +403,11 @@ const ROLE_ALIASES: Record<string, string> = {
 export function normalizeRole(value: any): string | null {
   const raw = cleanString(value);
   if (!raw) return null;
-  const key = raw.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+  const key = raw
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
   return ROLE_ALIASES[key] || null;
 }
 
@@ -309,16 +426,17 @@ function findHeaderRow(json: any[][]): { rowIndex: number; headers: string[] } {
     const row = json[i];
     if (!row || row.length === 0) continue;
     const normalized = row.map((h: any) => normalizeHeader(String(h)));
-    const matches = normalized.filter((h: string) =>
-      HEADER_SIGNATURES.includes(h)
-    ).length;
+    const matches = normalized.filter((h: string) => HEADER_SIGNATURES.includes(h)).length;
     if (matches >= 1) {
       return { rowIndex: i, headers: row.map((h: any) => String(h).trim()) };
     }
   }
   // Fallback: primera fila no vacía
   for (let i = 0; i < json.length; i++) {
-    if (json[i] && json[i].some((cell: any) => cell !== "" && cell !== null && cell !== undefined)) {
+    if (
+      json[i] &&
+      json[i].some((cell: any) => cell !== "" && cell !== null && cell !== undefined)
+    ) {
       return { rowIndex: i, headers: json[i].map((h: any) => String(h).trim()) };
     }
   }
@@ -339,10 +457,7 @@ export interface ParseResult {
   unmappedColumns: UnmappedColumn[];
 }
 
-export function parseLeadImportFile(
-  arrayBuffer: ArrayBuffer,
-  fileName: string
-): ParseResult {
+export function parseLeadImportFile(arrayBuffer: ArrayBuffer, _fileName: string): ParseResult {
   const workbook = XLSX.read(arrayBuffer, { type: "array" });
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
@@ -375,7 +490,10 @@ export function parseLeadImportFile(
       }
       unmappedColumns.push({ header, index: idx, sampleValues });
       // eslint-disable-next-line no-console
-      console.warn(`[LeadImport] Columna NO mapeada: "${header}" (índice ${idx}) — muestras:`, sampleValues);
+      console.warn(
+        `[LeadImport] Columna NO mapeada: "${header}" (índice ${idx}) — muestras:`,
+        sampleValues
+      );
     }
   });
 
@@ -397,18 +515,28 @@ export function parseLeadImportFile(
         case "department":
         case "bio":
         case "workSchedule":
+        case "identificationNumber":
+        case "address":
+        case "specialties":
+        case "emergencyContactName":
+        case "linkedin":
+        case "driverLicense":
           row[mapped] = cleanString(rawValue);
           break;
         case "phone":
           row.phone = cleanPhone(rawValue);
-          // eslint-disable-next-line no-console
-          console.log(`[LeadImport] Teléfono fila ${i + 1}: raw="${rawValue}" → clean="${row.phone}"`);
+          break;
+        case "emergencyContactPhone":
+          row.emergencyContactPhone = cleanPhone(rawValue);
           break;
         case "email":
           row.email = cleanString(rawValue)?.toLowerCase() || null;
           break;
         case "hireDate":
           row.hireDate = parseDate(rawValue);
+          break;
+        case "dateOfBirth":
+          row.dateOfBirth = parseDate(rawValue);
           break;
         case "role":
           row.role = normalizeRole(rawValue);
@@ -422,7 +550,10 @@ export function parseLeadImportFile(
   console.log("[LeadImport] Total filas parseadas:", rows.length);
   if (unmappedColumns.length > 0) {
     // eslint-disable-next-line no-console
-    console.warn("[LeadImport] Columnas no mapeadas:", unmappedColumns.map((c) => c.header));
+    console.warn(
+      "[LeadImport] Columnas no mapeadas:",
+      unmappedColumns.map((c) => c.header)
+    );
   }
 
   return { headers, mappedHeaders, rows, headerRowIndex, unmappedColumns };
@@ -436,9 +567,7 @@ export interface ValidationResult {
   unmappedHeaders: string[];
 }
 
-export function validateHeaders(
-  mappedHeaders: (keyof LeadImportRow | null)[]
-): ValidationResult {
+export function validateHeaders(mappedHeaders: (keyof LeadImportRow | null)[]): ValidationResult {
   const detected = mappedHeaders.filter((h): h is keyof LeadImportRow => h !== null);
   const mappedCount = detected.length;
   const missing = REQUIRED_FIELDS.filter((req) => !detected.includes(req));
@@ -491,7 +620,7 @@ export function checkIntraFileDuplicates(rows: LeadImportRow[]): void {
     }
   });
 
-  phoneMap.forEach((indices, phone) => {
+  phoneMap.forEach((indices) => {
     if (indices.length > 1) {
       indices.forEach((idx) => {
         const row = rows[idx];
@@ -503,7 +632,7 @@ export function checkIntraFileDuplicates(rows: LeadImportRow[]): void {
     }
   });
 
-  emailMap.forEach((indices, email) => {
+  emailMap.forEach((indices) => {
     if (indices.length > 1) {
       indices.forEach((idx) => {
         const row = rows[idx];
@@ -526,6 +655,14 @@ export function generateTemplateBuffer(): ArrayBuffer {
     "Fecha de contacto",
     "Empresa",
     "Rol",
+    "Cédula / Identificación",
+    "Dirección",
+    "Fecha de nacimiento",
+    "Especialidades",
+    "Contacto de emergencia",
+    "Teléfono de emergencia",
+    "LinkedIn",
+    "Licencia de conducir",
   ];
 
   const exampleRows = [
@@ -538,6 +675,14 @@ export function generateTemplateBuffer(): ArrayBuffer {
       "15/04/2026",
       "Constructora ABC",
       "lead",
+      "8-123-4567",
+      "Calle 50, Ciudad de Panamá",
+      "12/05/1990",
+      "Ventas",
+      "María Pérez",
+      "+50769876543",
+      "https://linkedin.com/in/juanperez",
+      "B-12345678",
     ],
     [
       "María González",
@@ -548,6 +693,14 @@ export function generateTemplateBuffer(): ArrayBuffer {
       "20/04/2026",
       "",
       "driver",
+      "8-765-4321",
+      "Vía España, Ciudad de Panamá",
+      "03/11/1988",
+      "Atención al cliente",
+      "Pedro González",
+      "+50761112233",
+      "",
+      "C-87654321",
     ],
   ];
 
@@ -561,6 +714,14 @@ export function generateTemplateBuffer(): ArrayBuffer {
     { wch: 18 },
     { wch: 25 },
     { wch: 15 },
+    { wch: 20 },
+    { wch: 28 },
+    { wch: 18 },
+    { wch: 22 },
+    { wch: 22 },
+    { wch: 18 },
+    { wch: 30 },
+    { wch: 18 },
   ];
 
   const wb = XLSX.utils.book_new();
