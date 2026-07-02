@@ -503,7 +503,7 @@ export async function POST(request: Request, context: RouteContext) {
         errorText,
       });
       
-      let errorMessage = errorData.error?.message || errorData.message || `Error ${createResponse.status}: ${createResponse.statusText}`;
+      const errorMessage = errorData.error?.message || errorData.message || `Error : `;
       
       throw new Error(errorMessage);
     }

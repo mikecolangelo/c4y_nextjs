@@ -1,8 +1,9 @@
 /**
  * Servidor de emergencia para Next.js
- * 
+ *
  * Intercepta rutas API problemáticas con Strapi v5
  */
+/* eslint-disable @typescript-eslint/no-require-imports -- standalone CommonJS Node script, not part of the Next.js bundle */
 
 const http = require('http');
 const url = require('url');

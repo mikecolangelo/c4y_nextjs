@@ -31,8 +31,8 @@ export function UnifiedReminderItem({
     ? String(reminder.id) 
     : (reminder.documentId || String(reminder.id));
   const isCompleted = reminder.isCompleted || false;
-  const module = reminder.module || "fleet";
-  const moduleColors = MODULE_COLORS[module];
+  const reminderModule = reminder.module || "fleet";
+  const moduleColors = MODULE_COLORS[reminderModule];
 
   const handleDelete = async () => {
     if (!onDelete) return;
@@ -119,7 +119,7 @@ export function UnifiedReminderItem({
               variant="outline" 
               className={`text-xs ${moduleColors.bg} ${moduleColors.text} ${moduleColors.border}`}
             >
-              {MODULE_LABELS[module]}
+              {MODULE_LABELS[reminderModule]}
             </Badge>
           )}
 

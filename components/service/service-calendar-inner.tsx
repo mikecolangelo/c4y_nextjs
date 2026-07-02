@@ -725,7 +725,9 @@ export function ServiceCalendarInner({
                                 className="flex items-center gap-1 text-xs mt-1.5 p-1.5 bg-muted/50 rounded cursor-pointer hover:bg-muted transition-colors"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  apt.fleetVehicleDocumentId && router.push(`/fleet/details/${apt.fleetVehicleDocumentId}`);
+                                  if (apt.fleetVehicleDocumentId) {
+                                    router.push(`/fleet/details/${apt.fleetVehicleDocumentId}`);
+                                  }
                                 }}
                               >
                                 <Car className="h-3 w-3 text-primary" />

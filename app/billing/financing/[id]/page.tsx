@@ -386,7 +386,7 @@ export default function FinancingDetailPage() {
     const nextQuotaNumber = maxQuotaCovered + 1;
 
     // Calcular la fecha de la siguiente cuota
-    let resultDate = new Date(baseDate);
+    const resultDate = new Date(baseDate);
 
     switch (frequency) {
       case "semanal":

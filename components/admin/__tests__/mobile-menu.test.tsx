@@ -17,6 +17,7 @@ vi.mock("next/link", () => ({
 }));
 
 vi.mock("@/components_shadcn/ui/sheet", () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- vi.mock factories are hoisted, so top-level imports are not available here
   const React = require("react");
   return {
     Sheet: ({ children }: { children: React.ReactNode }) => <div data-testid="sheet">{children}</div>,

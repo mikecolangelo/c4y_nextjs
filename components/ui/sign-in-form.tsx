@@ -34,6 +34,13 @@ export function SignInForm({ data }: SignInFormProps) {
   // Hooks primero (reglas de React)
   const [formState, setFormState] = useState<FormState>(INITIAL_STATE);
   const [isPending, startTransition] = useTransition();
+  const form = useForm<z.infer<typeof SignInFormSchema>>({
+    resolver: zodResolver(SignInFormSchema),
+    defaultValues: {
+      identifier: "",
+      password: "",
+    },
+  });
 
   // Verificación de data después de los hooks
   if (!data) return null;
@@ -50,14 +57,6 @@ export function SignInForm({ data }: SignInFormProps) {
   } = data;
 
   const singupLink = singup_link?.[0];
-
-  const form = useForm<z.infer<typeof SignInFormSchema>>({
-    resolver: zodResolver(SignInFormSchema),
-    defaultValues: {
-      identifier: "",
-      password: "",
-    },
-  });
 
   async function onSubmit(values: z.infer<typeof SignInFormSchema>) {
     const formData = new FormData();

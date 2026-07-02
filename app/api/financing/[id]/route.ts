@@ -78,7 +78,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
   } catch (error) {
     console.error("Error updating financing:", error);
     
-    let errorMessage = "No se pudo actualizar el financiamiento.";
+    const errorMessage = "No se pudo actualizar el financiamiento.";
     if (error instanceof Error && error.message.includes("404")) {
       return NextResponse.json(
         { error: "Financiamiento no encontrado." },
