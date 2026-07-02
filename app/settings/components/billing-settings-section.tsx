@@ -7,11 +7,24 @@ import { Label } from "@/components_shadcn/ui/label";
 import { Switch } from "@/components_shadcn/ui/switch";
 import { Slider } from "@/components_shadcn/ui/slider";
 import { Input } from "@/components_shadcn/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components_shadcn/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components_shadcn/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components_shadcn/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components_shadcn/ui/card";
 
 import { Badge } from "@/components_shadcn/ui/badge";
 import { toast } from "sonner";
+import { usePermissions } from "@/lib/permissions-context";
 
 interface BillingSettings {
   billingTestModeEnabled: boolean;
@@ -39,9 +52,9 @@ const DAYS_OF_WEEK = [
   { value: "sunday", label: "Domingo" },
 ];
 
-
-
 export function BillingSettingsSection() {
+  const { can } = usePermissions();
+  const canEdit = can("settings", "canUpdate");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [configs, setConfigs] = useState<ConfigItem[]>([]);
@@ -66,7 +79,7 @@ export function BillingSettingsSection() {
       if (!res.ok) throw new Error("Error cargando");
       const data = await res.json();
       const allConfigs: ConfigItem[] = data.data || [];
-      
+
       setConfigs(allConfigs);
 
       const get = (key: string, def: string) => {
@@ -106,12 +119,12 @@ export function BillingSettingsSection() {
       const res = await fetch("/api/configuration", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          key, 
-          value, 
-          description: desc, 
+        body: JSON.stringify({
+          key,
+          value,
+          description: desc,
           category: "billing",
-          isSecret: false 
+          isSecret: false,
         }),
       });
       if (!res.ok) throw new Error(`Error creando ${key}`);
@@ -157,9 +170,7 @@ export function BillingSettingsSection() {
             <CreditCard className="h-5 w-5" />
             Facturacion Automatica
           </CardTitle>
-          <CardDescription>
-            Configuracion del sistema de facturacion automatica
-          </CardDescription>
+          <CardDescription>Configuracion del sistema de facturacion automatica</CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-6">
@@ -178,6 +189,7 @@ export function BillingSettingsSection() {
               <Switch
                 checked={settings.billingTestModeEnabled}
                 onCheckedChange={(v) => setSettings((s) => ({ ...s, billingTestModeEnabled: v }))}
+                disabled={!canEdit}
               />
             </div>
           </div>
@@ -197,6 +209,7 @@ export function BillingSettingsSection() {
               min={0}
               max={50}
               step={0.5}
+              disabled={!canEdit}
             />
             <p className="text-sm text-muted-foreground">
               Porcentaje aplicado sobre el monto de la cuota cuando la factura vence
@@ -213,13 +226,16 @@ export function BillingSettingsSection() {
               <Select
                 value={settings.billingDayOfWeek}
                 onValueChange={(v) => setSettings((s) => ({ ...s, billingDayOfWeek: v }))}
+                disabled={!canEdit}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {DAYS_OF_WEEK.map((d) => (
-                    <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                    <SelectItem key={d.value} value={d.value}>
+                      {d.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -233,13 +249,16 @@ export function BillingSettingsSection() {
               <Select
                 value={settings.paymentDeadlineDayOfWeek}
                 onValueChange={(v) => setSettings((s) => ({ ...s, paymentDeadlineDayOfWeek: v }))}
+                disabled={!canEdit}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {DAYS_OF_WEEK.map((d) => (
-                    <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                    <SelectItem key={d.value} value={d.value}>
+                      {d.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -250,10 +269,18 @@ export function BillingSettingsSection() {
           <div className="p-4 bg-muted rounded-lg">
             <p className="font-medium mb-2">Resumen del ciclo:</p>
             <ul className="space-y-1 text-sm text-muted-foreground">
-              <li>• Facturacion: {DAYS_OF_WEEK.find(d => d.value === settings.billingDayOfWeek)?.label}</li>
-              <li>• Limite de pago: {DAYS_OF_WEEK.find(d => d.value === settings.paymentDeadlineDayOfWeek)?.label}</li>
+              <li>
+                • Facturacion:{" "}
+                {DAYS_OF_WEEK.find((d) => d.value === settings.billingDayOfWeek)?.label}
+              </li>
+              <li>
+                • Limite de pago:{" "}
+                {DAYS_OF_WEEK.find((d) => d.value === settings.paymentDeadlineDayOfWeek)?.label}
+              </li>
               <li>• Penalidad: {settings.penaltyPercentage}%</li>
-              <li>• Modo pruebas: {settings.billingTestModeEnabled ? "Activado" : "Desactivado"}</li>
+              <li>
+                • Modo pruebas: {settings.billingTestModeEnabled ? "Activado" : "Desactivado"}
+              </li>
             </ul>
           </div>
         </CardContent>
@@ -266,9 +293,7 @@ export function BillingSettingsSection() {
             <Settings className="h-5 w-5" />
             Configuraciones Generales
           </CardTitle>
-          <CardDescription>
-            Parametros por defecto para contratos y pagos
-          </CardDescription>
+          <CardDescription>Parametros por defecto para contratos y pagos</CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-6">
@@ -286,6 +311,7 @@ export function BillingSettingsSection() {
               max="520"
               value={settings.defaultQuotaCount}
               onChange={(e) => setSettings((s) => ({ ...s, defaultQuotaCount: e.target.value }))}
+              disabled={!canEdit}
             />
           </div>
 
@@ -303,15 +329,28 @@ export function BillingSettingsSection() {
               min="1000"
               step="500"
               value={settings.maintenanceIntervalKm}
-              onChange={(e) => setSettings((s) => ({ ...s, maintenanceIntervalKm: e.target.value }))}
+              onChange={(e) =>
+                setSettings((s) => ({ ...s, maintenanceIntervalKm: e.target.value }))
+              }
+              disabled={!canEdit}
             />
           </div>
         </CardContent>
       </Card>
 
-      <Button onClick={handleSave} disabled={saving} className="w-full gap-2">
-        {saving ? <><Loader2 className="h-4 w-4 animate-spin" /> Guardando...</> : <><Save className="h-4 w-4" /> Guardar Configuracion</>}
-      </Button>
+      {canEdit && (
+        <Button onClick={handleSave} disabled={saving} className="w-full gap-2">
+          {saving ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" /> Guardando...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4" /> Guardar Configuracion
+            </>
+          )}
+        </Button>
+      )}
     </div>
   );
 }

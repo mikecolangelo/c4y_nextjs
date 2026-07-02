@@ -1,6 +1,7 @@
 "use client";
 
 import { Checkbox } from "@/components_shadcn/ui/checkbox";
+import { Can } from "@/components/auth/can";
 import Image from "next/image";
 import { Car } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -46,13 +47,15 @@ export function TableVehicleRow({
       }}
     >
       {isSelectMode && (
-        <td className="p-4" onClick={(e) => e.stopPropagation()}>
-          <Checkbox
-            checked={isSelected}
-            onCheckedChange={() => onToggleVehicleSelection(vehicleId)}
-            className="h-4 w-4"
-          />
-        </td>
+        <Can module="fleet" action="canDelete">
+          <td className="p-4" onClick={(e) => e.stopPropagation()}>
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={() => onToggleVehicleSelection(vehicleId)}
+              className="h-4 w-4"
+            />
+          </td>
+        </Can>
       )}
       <td className="p-4" style={{ width: 80 } as CSSProperties}>
         {vehicle.imageUrl ? (
@@ -80,7 +83,7 @@ export function TableVehicleRow({
       <td className="p-4">
         <ConditionBadge status={vehicle.condition} />
       </td>
-      
+
       {/* Columna de Kilometraje */}
       <td className="p-4" onClick={(e) => e.stopPropagation()}>
         <MileageCounter
@@ -93,14 +96,10 @@ export function TableVehicleRow({
           variant="compact"
         />
       </td>
-      
+
       {!isSelectMode && (
         <td className="p-4" onClick={(e) => e.stopPropagation()}>
-          <VehicleActionMenu
-            vehicle={vehicle}
-            vehicleId={vehicleId}
-            {...actionProps}
-          />
+          <VehicleActionMenu vehicle={vehicle} vehicleId={vehicleId} {...actionProps} />
         </td>
       )}
     </tr>

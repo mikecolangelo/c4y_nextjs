@@ -45,6 +45,7 @@ import { toast } from "@/lib/toast";
 import { getInitials } from "@/lib/format";
 
 import { UserVehicleManagement } from "@/components/ui/user-vehicle-management";
+import { usePermissions } from "@/lib/permissions-context";
 import { format } from "date-fns";
 
 interface UserProfile {
@@ -91,6 +92,8 @@ const roleConfig = {
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { can } = usePermissions();
+  const canEditProfile = can("profile", "canUpdate");
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -404,7 +407,13 @@ export default function ProfilePage() {
     );
   }
 
-  const roleInfo = roleConfig[user.role];
+  // Los roles personalizados (y "lead") no están en `roleConfig`; caemos a un
+  // display por defecto usando la clave del rol para no romper la página.
+  const roleInfo = roleConfig[user.role as keyof typeof roleConfig] ?? {
+    label: user.role,
+    className: "bg-muted text-muted-foreground",
+    icon: Shield,
+  };
   const RoleIcon = roleInfo.icon;
 
   return (
@@ -444,18 +453,20 @@ export default function ProfilePage() {
                   {getInitials(user.displayName)}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100">
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  className="h-12 w-12 rounded-full bg-background/80 text-foreground hover:bg-background"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploadingImage}
-                >
-                  <Camera className="h-6 w-6" />
-                </Button>
-              </div>
+              {canEditProfile && (
+                <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100">
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-12 w-12 rounded-full bg-background/80 text-foreground hover:bg-background"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingImage}
+                  >
+                    <Camera className="h-6 w-6" />
+                  </Button>
+                </div>
+              )}
               {isUploadingImage && (
                 <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
                   <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -509,6 +520,7 @@ export default function ProfilePage() {
                     type="text"
                     value={formData.displayName}
                     onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+                    disabled={!canEditProfile}
                     placeholder="e.g. Alejandro Martinez"
                     className={`h-14 px-[15px] text-base ${components.input.base}`}
                   />
@@ -546,6 +558,7 @@ export default function ProfilePage() {
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    disabled={!canEditProfile}
                     placeholder="e.g. +34 600 123 456"
                     className={`h-14 px-[15px] text-base ${components.input.base}`}
                   />
@@ -566,6 +579,7 @@ export default function ProfilePage() {
                     onChange={(e) =>
                       setFormData({ ...formData, identificationNumber: e.target.value })
                     }
+                    disabled={!canEditProfile}
                     placeholder="e.g. 8-888-8888"
                     className={`h-14 px-[15px] text-base ${components.input.base}`}
                   />
@@ -584,6 +598,7 @@ export default function ProfilePage() {
                     type="date"
                     value={formData.dateOfBirth}
                     onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                    disabled={!canEditProfile}
                     className={`h-14 px-[15px] text-base ${components.input.base}`}
                   />
                 </div>
@@ -600,6 +615,7 @@ export default function ProfilePage() {
                     id="address"
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    disabled={!canEditProfile}
                     placeholder="Dirección completa"
                     className={`min-h-[80px] px-[15px] py-3 text-base ${components.input.base}`}
                     rows={3}
@@ -630,6 +646,7 @@ export default function ProfilePage() {
                     type="text"
                     value={formData.department}
                     onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                    disabled={!canEditProfile}
                     placeholder="e.g. Ventas, Administración"
                     className={`h-14 px-[15px] text-base ${components.input.base}`}
                   />
@@ -648,6 +665,7 @@ export default function ProfilePage() {
                     type="date"
                     value={formData.hireDate}
                     onChange={(e) => setFormData({ ...formData, hireDate: e.target.value })}
+                    disabled={!canEditProfile}
                     className={`h-14 px-[15px] text-base ${components.input.base}`}
                   />
                 </div>
@@ -665,6 +683,7 @@ export default function ProfilePage() {
                     type="text"
                     value={formData.workSchedule}
                     onChange={(e) => setFormData({ ...formData, workSchedule: e.target.value })}
+                    disabled={!canEditProfile}
                     placeholder="e.g. Lunes a Viernes 9:00 - 18:00"
                     className={`h-14 px-[15px] text-base ${components.input.base}`}
                   />
@@ -684,6 +703,7 @@ export default function ProfilePage() {
                       type="text"
                       value={formData.driverLicense}
                       onChange={(e) => setFormData({ ...formData, driverLicense: e.target.value })}
+                      disabled={!canEditProfile}
                       placeholder="e.g. B, C, D"
                       className={`h-14 px-[15px] text-base ${components.input.base}`}
                     />
@@ -698,6 +718,7 @@ export default function ProfilePage() {
                     id="bio"
                     value={formData.bio}
                     onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                    disabled={!canEditProfile}
                     placeholder="Escribe una breve biografía sobre ti..."
                     className={`min-h-[100px] px-[15px] py-3 text-base ${components.input.base}`}
                     rows={4}
@@ -726,6 +747,7 @@ export default function ProfilePage() {
                     onChange={(e) =>
                       setFormData({ ...formData, emergencyContactName: e.target.value })
                     }
+                    disabled={!canEditProfile}
                     placeholder="e.g. María García"
                     className={`h-14 px-[15px] text-base ${components.input.base}`}
                   />
@@ -746,6 +768,7 @@ export default function ProfilePage() {
                     onChange={(e) =>
                       setFormData({ ...formData, emergencyContactPhone: e.target.value })
                     }
+                    disabled={!canEditProfile}
                     placeholder="e.g. +34 600 123 456"
                     className={`h-14 px-[15px] text-base ${components.input.base}`}
                   />
@@ -764,6 +787,7 @@ export default function ProfilePage() {
                     type="url"
                     value={formData.linkedin}
                     onChange={(e) => setFormData({ ...formData, linkedin: e.target.value })}
+                    disabled={!canEditProfile}
                     placeholder="e.g. https://linkedin.com/in/tu-perfil"
                     className={`h-14 px-[15px] text-base ${components.input.base}`}
                   />
@@ -784,25 +808,25 @@ export default function ProfilePage() {
             </div>
 
             {/* Gestión de Vehículos */}
-            {user && (
-              <UserVehicleManagement userId={user.documentId || user.id} userRole={user.role} />
-            )}
+            {user && <UserVehicleManagement userId={user.documentId || user.id} />}
           </section>
         </div>
       </AdminLayout>
 
       {/* Floating Action Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <Button
-            className={`h-14 w-full ${components.input.full} text-base font-bold`}
-            onClick={handleSaveChanges}
-            disabled={isSaving || isUploadingImage}
-          >
-            {isSaving || isUploadingImage ? "Guardando..." : "Guardar Cambios"}
-          </Button>
+      {canEditProfile && (
+        <div className="fixed bottom-0 left-0 right-0 bg-background border-t z-10">
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <Button
+              className={`h-14 w-full ${components.input.full} text-base font-bold`}
+              onClick={handleSaveChanges}
+              disabled={isSaving || isUploadingImage}
+            >
+              {isSaving || isUploadingImage ? "Guardando..." : "Guardar Cambios"}
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Diálogo de Cambio de Contraseña */}
       <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>

@@ -20,7 +20,7 @@ import {
   calculateQuotaAmount,
   calculateNextDueDate,
   type PaymentFrequency,
-} from "@/lib/financing";
+} from "@/lib/financing-calculations";
 
 interface FinancingCalculatorProps {
   totalAmount: number;
@@ -64,7 +64,7 @@ export function FinancingCalculator({
     // Usar totalQuotas del prop si está disponible, de lo contrario calcularlo
     const totalQuotas = propTotalQuotas || calculateTotalQuotas(financingMonths, paymentFrequency);
     const quotaAmount = calculateQuotaAmount(totalAmount, totalQuotas);
-    
+
     // Calcular fecha de finalización estimada
     const start = startDate ? new Date(startDate) : new Date();
     const endDateStr = calculateNextDueDate(
@@ -76,9 +76,10 @@ export function FinancingCalculator({
     // Años y meses de duración
     const years = Math.floor(financingMonths / 12);
     const months = financingMonths % 12;
-    const durationText = years > 0 
-      ? `${years} año${years > 1 ? "s" : ""}${months > 0 ? ` y ${months} mes${months > 1 ? "es" : ""}` : ""}`
-      : `${months} mes${months > 1 ? "es" : ""}`;
+    const durationText =
+      years > 0
+        ? `${years} año${years > 1 ? "s" : ""}${months > 0 ? ` y ${months} mes${months > 1 ? "es" : ""}` : ""}`
+        : `${months} mes${months > 1 ? "es" : ""}`;
 
     return {
       totalQuotas,
@@ -198,9 +199,7 @@ export function FinancingCalculator({
                     <SelectItem key={option.value} value={option.value}>
                       <div className="flex flex-col">
                         <span>{option.label}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {option.description}
-                        </span>
+                        <span className="text-xs text-muted-foreground">{option.description}</span>
                       </div>
                     </SelectItem>
                   ))}
@@ -262,9 +261,7 @@ export function FinancingCalculator({
                 <Clock className="h-4 w-4" />
                 <span className="text-xs">Duración</span>
               </div>
-              <p className={typography.body.large}>
-                {calculations.durationText}
-              </p>
+              <p className={typography.body.large}>{calculations.durationText}</p>
             </div>
 
             {/* Fecha Estimada de Fin */}
@@ -273,9 +270,7 @@ export function FinancingCalculator({
                 <Calendar className="h-4 w-4" />
                 <span className="text-xs">Fecha Estimada de Fin</span>
               </div>
-              <p className={typography.body.large}>
-                {formatDate(calculations.endDate)}
-              </p>
+              <p className={typography.body.large}>{formatDate(calculations.endDate)}</p>
             </div>
           </div>
 

@@ -50,6 +50,7 @@ import {
 
 // Layout & Design
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { Can } from "@/components/auth/can";
 import { commonClasses, spacing, typography } from "@/lib/design-system";
 
 // Billing Components
@@ -365,34 +366,40 @@ export default function BillingPage() {
     <AdminLayout title="Gestión de Financiamiento" showFilterAction>
       {/* Action Buttons */}
       <div className={`flex ${spacing.gap.base} flex-wrap`}>
-        <Button
-          size="lg"
-          className="flex-1 rounded-lg"
-          onClick={() => setIsCreateFinancingOpen(true)}
-        >
-          <Plus />
-          Nuevo Financiamiento
-        </Button>
-        <Button
-          variant="outline"
-          size="lg"
-          className="flex-1 rounded-lg"
-          onClick={() => setIsCreatePaymentOpen(true)}
-        >
-          <CreditCard />
-          Registrar Pago
-        </Button>
+        <Can module="billing" action="canCreate">
+          <Button
+            size="lg"
+            className="flex-1 rounded-lg"
+            onClick={() => setIsCreateFinancingOpen(true)}
+          >
+            <Plus />
+            Nuevo Financiamiento
+          </Button>
+        </Can>
+        <Can module="billing" action="canCreate">
+          <Button
+            variant="outline"
+            size="lg"
+            className="flex-1 rounded-lg"
+            onClick={() => setIsCreatePaymentOpen(true)}
+          >
+            <CreditCard />
+            Registrar Pago
+          </Button>
+        </Can>
       </div>
       <div className={`flex ${spacing.gap.base} flex-wrap`}>
-        <Button
-          variant="secondary"
-          size="lg"
-          className="flex-1 rounded-lg"
-          onClick={() => router.push("/billing/import")}
-        >
-          <Upload />
-          Importar Cobranza
-        </Button>
+        <Can module="billing" action="canCreate">
+          <Button
+            variant="secondary"
+            size="lg"
+            className="flex-1 rounded-lg"
+            onClick={() => router.push("/billing/import")}
+          >
+            <Upload />
+            Importar Cobranza
+          </Button>
+        </Can>
         <Button
           variant="outline"
           size="lg"
@@ -559,14 +566,16 @@ export default function BillingPage() {
                     : "No se encontraron financiamientos con los filtros aplicados"}
                 </p>
                 {financings.length === 0 && (
-                  <Button
-                    variant="outline"
-                    className="mt-4 w-full"
-                    onClick={() => setIsCreateFinancingOpen(true)}
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Crear primer financiamiento
-                  </Button>
+                  <Can module="billing" action="canCreate">
+                    <Button
+                      variant="outline"
+                      className="mt-4 w-full"
+                      onClick={() => setIsCreateFinancingOpen(true)}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Crear primer financiamiento
+                    </Button>
+                  </Can>
                 )}
               </CardContent>
             </Card>
@@ -612,13 +621,15 @@ export default function BillingPage() {
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={(e) => handleDeleteClick(e, "financing", financing)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Eliminar
-                      </DropdownMenuItem>
+                      <Can module="billing" action="canDelete">
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={(e) => handleDeleteClick(e, "financing", financing)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Eliminar
+                        </DropdownMenuItem>
+                      </Can>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -706,14 +717,16 @@ export default function BillingPage() {
                     : "No se encontraron pagos con los filtros aplicados"}
                 </p>
                 {payments.length === 0 && (
-                  <Button
-                    variant="outline"
-                    className="mt-4 w-full"
-                    onClick={() => setIsCreatePaymentOpen(true)}
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Registrar primer pago
-                  </Button>
+                  <Can module="billing" action="canCreate">
+                    <Button
+                      variant="outline"
+                      className="mt-4 w-full"
+                      onClick={() => setIsCreatePaymentOpen(true)}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Registrar primer pago
+                    </Button>
+                  </Can>
                 )}
               </CardContent>
             </Card>
@@ -748,13 +761,15 @@ export default function BillingPage() {
                         Ver detalles
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={(e) => handleDeleteClick(e, "payment", payment)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Eliminar
-                      </DropdownMenuItem>
+                      <Can module="billing" action="canDelete">
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={(e) => handleDeleteClick(e, "payment", payment)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Eliminar
+                        </DropdownMenuItem>
+                      </Can>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>

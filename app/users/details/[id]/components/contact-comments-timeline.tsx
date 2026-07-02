@@ -10,6 +10,7 @@ import { Textarea } from "@/components_shadcn/ui/textarea";
 import { Avatar, AvatarFallback } from "@/components_shadcn/ui/avatar";
 import { Skeleton } from "@/components_shadcn/ui/skeleton";
 import { typography } from "@/lib/design-system";
+import { Can } from "@/components/auth/can";
 import { toast } from "@/lib/toast";
 import { clientLogger } from "@/lib/client-logger";
 
@@ -112,25 +113,27 @@ export function ContactCommentsTimeline({ contactDocumentId }: ContactCommentsTi
       </CardHeader>
       <CardContent className="px-6 pb-6">
         {/* Composer */}
-        <div className="flex flex-col gap-2">
-          <Textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="Escribe un comentario..."
-            rows={3}
-            disabled={isSubmitting}
-          />
-          <div className="flex justify-end">
-            <Button
-              onClick={handleSubmit}
-              disabled={!draft.trim() || isSubmitting}
-              className="gap-2"
-            >
-              <Send className="h-4 w-4" />
-              {isSubmitting ? "Guardando..." : "Comentar"}
-            </Button>
+        <Can module="users" action="canUpdate">
+          <div className="flex flex-col gap-2">
+            <Textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="Escribe un comentario..."
+              rows={3}
+              disabled={isSubmitting}
+            />
+            <div className="flex justify-end">
+              <Button
+                onClick={handleSubmit}
+                disabled={!draft.trim() || isSubmitting}
+                className="gap-2"
+              >
+                <Send className="h-4 w-4" />
+                {isSubmitting ? "Guardando..." : "Comentar"}
+              </Button>
+            </div>
           </div>
-        </div>
+        </Can>
 
         {/* Timeline */}
         <div className="mt-6 flex flex-col gap-4">
@@ -166,15 +169,17 @@ export function ContactCommentsTimeline({ contactDocumentId }: ContactCommentsTi
                             locale: es,
                           })}
                         </time>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
-                          onClick={() => handleDelete(comment.documentId)}
-                          aria-label="Eliminar comentario"
-                        >
-                          <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
-                        </Button>
+                        <Can module="users" action="canDelete">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
+                            onClick={() => handleDelete(comment.documentId)}
+                            aria-label="Eliminar comentario"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+                          </Button>
+                        </Can>
                       </div>
                     </div>
                     <p className={`${typography.body.base} whitespace-pre-wrap break-words`}>

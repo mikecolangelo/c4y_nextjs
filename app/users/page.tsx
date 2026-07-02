@@ -26,6 +26,7 @@ import { usePaginatedSelection } from "@/hooks/use-paginated-selection";
 import { useBatchDelete } from "@/hooks/use-batch-delete";
 import { DataPagination } from "@/components/ui/data-pagination";
 import { PageSizeSelect } from "@/components/ui/page-size-select";
+import { Can } from "@/components/auth/can";
 import { getInitials } from "@/lib/format";
 import { clientLogger } from "@/lib/client-logger";
 import { BulkActionBar } from "@/components/ui/selection/bulk-action-bar";
@@ -407,25 +408,27 @@ export default function UsersPage() {
 
           {/* Acciones: crear / importar + selector de cantidad por página */}
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <QuickUserCreate
-                onUserCreated={handleUserCreated}
-                trigger={
-                  <Button className="rounded-lg h-9 gap-2 font-semibold">
-                    <Plus className="h-4 w-4" />
-                    Crear Contacto
-                  </Button>
-                }
-              />
-              <Button
-                variant="secondary"
-                className="rounded-lg h-9 gap-2 font-semibold"
-                onClick={() => router.push("/users/import")}
-              >
-                <Upload className="h-4 w-4" />
-                Importar Contactos
-              </Button>
-            </div>
+            <Can module="users" action="canCreate">
+              <div className="flex items-center gap-2">
+                <QuickUserCreate
+                  onUserCreated={handleUserCreated}
+                  trigger={
+                    <Button className="rounded-lg h-9 gap-2 font-semibold">
+                      <Plus className="h-4 w-4" />
+                      Crear Contacto
+                    </Button>
+                  }
+                />
+                <Button
+                  variant="secondary"
+                  className="rounded-lg h-9 gap-2 font-semibold"
+                  onClick={() => router.push("/users/import")}
+                >
+                  <Upload className="h-4 w-4" />
+                  Importar Contactos
+                </Button>
+              </div>
+            </Can>
             <PageSizeSelect value={pageSize} onChange={setPageSize} />
           </div>
         </div>
@@ -433,23 +436,25 @@ export default function UsersPage() {
         <Separator className="my-3" />
 
         {/* Barra de acciones masivas */}
-        <BulkActionBar
-          selectionCount={selectionCount}
-          onClear={selection.clearAll}
-          onSelectCurrentPage={() => selection.selectCurrentPage(pageIds)}
-          currentPageCount={paginatedUsers.length}
-        >
-          <Button
-            variant="destructive"
-            size="sm"
-            className="h-8 text-xs"
-            onClick={openDeleteDialog}
-            disabled={isDeleting}
+        <Can module="users" action="canDelete">
+          <BulkActionBar
+            selectionCount={selectionCount}
+            onClear={selection.clearAll}
+            onSelectCurrentPage={() => selection.selectCurrentPage(pageIds)}
+            currentPageCount={paginatedUsers.length}
           >
-            <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-            Eliminar
-          </Button>
-        </BulkActionBar>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="h-8 text-xs"
+              onClick={openDeleteDialog}
+              disabled={isDeleting}
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+              Eliminar
+            </Button>
+          </BulkActionBar>
+        </Can>
 
         {/* Banner "seleccionar en todas las páginas" (estilo Gmail) */}
         <SelectAllAcrossPagesBanner
@@ -463,19 +468,21 @@ export default function UsersPage() {
 
         {/* Checkbox "Seleccionar todos" cuando no hay selección pero sí resultados */}
         {selectionCount === 0 && filteredUsers.length > 0 && (
-          <div className="flex items-center gap-2 px-1 py-1">
-            <Checkbox
-              id="select-all"
-              checked={isAllSelected}
-              onCheckedChange={(checked) => {
-                if (checked) selection.selectCurrentPage(pageIds);
-                else selection.clearCurrentPage(pageIds);
-              }}
-            />
-            <label htmlFor="select-all" className="text-sm text-muted-foreground cursor-pointer">
-              Seleccionar todos en esta página ({paginatedUsers.length})
-            </label>
-          </div>
+          <Can module="users" action="canDelete">
+            <div className="flex items-center gap-2 px-1 py-1">
+              <Checkbox
+                id="select-all"
+                checked={isAllSelected}
+                onCheckedChange={(checked) => {
+                  if (checked) selection.selectCurrentPage(pageIds);
+                  else selection.clearCurrentPage(pageIds);
+                }}
+              />
+              <label htmlFor="select-all" className="text-sm text-muted-foreground cursor-pointer">
+                Seleccionar todos en esta página ({paginatedUsers.length})
+              </label>
+            </div>
+          </Can>
         )}
       </div>
 
@@ -500,15 +507,17 @@ export default function UsersPage() {
               >
                 <div className={`flex items-center ${spacing.gap.medium} flex-1 min-w-0`}>
                   {/* Checkbox de selección */}
-                  <div
-                    className="shrink-0"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      selection.toggle(key);
-                    }}
-                  >
-                    <Checkbox checked={isSelected} />
-                  </div>
+                  <Can module="users" action="canDelete">
+                    <div
+                      className="shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        selection.toggle(key);
+                      }}
+                    >
+                      <Checkbox checked={isSelected} />
+                    </div>
+                  </Can>
 
                   <Avatar className="h-14 w-14 shrink-0 rounded-full overflow-hidden ring-2 ring-background">
                     {user.avatar?.url ? (

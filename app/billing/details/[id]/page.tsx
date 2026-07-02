@@ -43,6 +43,7 @@ import { VerifyPaymentDialog } from "../../components/verify-payment-dialog";
 import { spacing, typography, commonClasses, colors, components } from "@/lib/design-system";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { BackButton } from "@/components/admin/back-button";
+import { Can } from "@/components/auth/can";
 import { cn } from "@/lib/utils";
 import type { BillingRecordCard, BillingDocument, BillingStatus } from "@/validations/types";
 import { Badge } from "@/components_shadcn/ui/badge";
@@ -705,46 +706,75 @@ export default function BillingDetailsPage() {
                 <Label htmlFor="status" className={typography.label}>
                   Estado
                 </Label>
-                <Select value={status} onValueChange={(value) => setStatus(value as BillingStatus)}>
-                  <SelectTrigger
-                    id="status"
-                    className={`w-1/2 ${components.input.base} ${getStatusColor(status)}`}
+                <Can
+                  module="billing"
+                  action="canUpdate"
+                  fallback={
+                    <span
+                      className={cn(
+                        "w-1/2 text-right",
+                        typography.body.base,
+                        getStatusColor(status)
+                      )}
+                    >
+                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                    </span>
+                  }
+                >
+                  <Select
+                    value={status}
+                    onValueChange={(value) => setStatus(value as BillingStatus)}
                   >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="retrasado" className="text-red-600">
-                      Retrasado
-                    </SelectItem>
-                    <SelectItem value="pendiente" className="text-yellow-600">
-                      Pendiente
-                    </SelectItem>
-                    <SelectItem value="abonado" className="text-purple-600">
-                      Abonado
-                    </SelectItem>
-                    <SelectItem value="adelanto" className="text-blue-600">
-                      Adelanto
-                    </SelectItem>
-                    <SelectItem value="pagado" className="text-green-600">
-                      Pagado
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                    <SelectTrigger
+                      id="status"
+                      className={`w-1/2 ${components.input.base} ${getStatusColor(status)}`}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="retrasado" className="text-red-600">
+                        Retrasado
+                      </SelectItem>
+                      <SelectItem value="pendiente" className="text-yellow-600">
+                        Pendiente
+                      </SelectItem>
+                      <SelectItem value="abonado" className="text-purple-600">
+                        Abonado
+                      </SelectItem>
+                      <SelectItem value="adelanto" className="text-blue-600">
+                        Adelanto
+                      </SelectItem>
+                      <SelectItem value="pagado" className="text-green-600">
+                        Pagado
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Can>
               </div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="payment-date" className={typography.label}>
                   Fecha de Pago
                 </Label>
-                <div className="relative w-1/2">
-                  <Input
-                    id="payment-date"
-                    type="date"
-                    value={paymentDate}
-                    onChange={(e) => setPaymentDate(e.target.value)}
-                    className={`${components.input.base} pr-10`}
-                  />
-                  <Calendar className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                </div>
+                <Can
+                  module="billing"
+                  action="canUpdate"
+                  fallback={
+                    <span className={cn("w-1/2 text-right", typography.body.base)}>
+                      {paymentDate ? formatDate(paymentDate) : "-"}
+                    </span>
+                  }
+                >
+                  <div className="relative w-1/2">
+                    <Input
+                      id="payment-date"
+                      type="date"
+                      value={paymentDate}
+                      onChange={(e) => setPaymentDate(e.target.value)}
+                      className={`${components.input.base} pr-10`}
+                    />
+                    <Calendar className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                  </div>
+                </Can>
               </div>
               {record.remindersSent > 0 && (
                 <div className="flex items-center justify-between">
@@ -987,26 +1017,46 @@ export default function BillingDetailsPage() {
                   <Label htmlFor="receiptId" className={typography.label}>
                     ID de Recibo
                   </Label>
-                  <Input
-                    id="receiptId"
-                    value={receiptId}
-                    onChange={(e) => setReceiptId(e.target.value)}
-                    placeholder="REC-2025-001"
-                    className={components.input.base}
-                  />
+                  <Can
+                    module="billing"
+                    action="canUpdate"
+                    fallback={
+                      <p className={cn(components.input.base, "flex items-center")}>
+                        {receiptId || "-"}
+                      </p>
+                    }
+                  >
+                    <Input
+                      id="receiptId"
+                      value={receiptId}
+                      onChange={(e) => setReceiptId(e.target.value)}
+                      placeholder="REC-2025-001"
+                      className={components.input.base}
+                    />
+                  </Can>
                 </div>
 
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="confirmationNumber" className={typography.label}>
                     # Confirmación
                   </Label>
-                  <Input
-                    id="confirmationNumber"
-                    value={confirmationNumber}
-                    onChange={(e) => setConfirmationNumber(e.target.value)}
-                    placeholder="123456789"
-                    className={components.input.base}
-                  />
+                  <Can
+                    module="billing"
+                    action="canUpdate"
+                    fallback={
+                      <p className={cn(components.input.base, "flex items-center")}>
+                        {confirmationNumber || "-"}
+                      </p>
+                    }
+                  >
+                    <Input
+                      id="confirmationNumber"
+                      value={confirmationNumber}
+                      onChange={(e) => setConfirmationNumber(e.target.value)}
+                      placeholder="123456789"
+                      className={components.input.base}
+                    />
+                  </Can>
                 </div>
               </div>
 
@@ -1022,11 +1072,21 @@ export default function BillingDetailsPage() {
                     <p className={typography.body.small}>Marcar si el pago fue verificado</p>
                   </div>
                 </div>
-                <Switch
-                  id="verifiedInBank"
-                  checked={verifiedInBank}
-                  onCheckedChange={setVerifiedInBank}
-                />
+                <Can
+                  module="billing"
+                  action="canUpdate"
+                  fallback={
+                    <StatusBadge tone={verifiedInBank ? "success" : "warning"}>
+                      {verifiedInBank ? "Verificado" : "Pendiente"}
+                    </StatusBadge>
+                  }
+                >
+                  <Switch
+                    id="verifiedInBank"
+                    checked={verifiedInBank}
+                    onCheckedChange={setVerifiedInBank}
+                  />
+                </Can>
               </div>
             </div>
           </CardContent>
@@ -1039,14 +1099,24 @@ export default function BillingDetailsPage() {
               <Label htmlFor="comments" className={`mb-2 block ${commonClasses.sectionTitle}`}>
                 Comentarios / Notas
               </Label>
-              <Textarea
-                id="comments"
-                value={comments}
-                onChange={(e) => setComments(e.target.value)}
-                placeholder="Añade comentarios o notas sobre este pago..."
-                rows={3}
-                className={components.input.base}
-              />
+              <Can
+                module="billing"
+                action="canUpdate"
+                fallback={
+                  <p className={cn(typography.body.base, "text-muted-foreground")}>
+                    {comments || "Sin comentarios"}
+                  </p>
+                }
+              >
+                <Textarea
+                  id="comments"
+                  value={comments}
+                  onChange={(e) => setComments(e.target.value)}
+                  placeholder="Añade comentarios o notas sobre este pago..."
+                  rows={3}
+                  className={components.input.base}
+                />
+              </Can>
             </div>
           </CardContent>
         </Card>
@@ -1118,72 +1188,76 @@ export default function BillingDetailsPage() {
                           </a>
                         </Button>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteDocument(doc.id, doc.documentId);
-                        }}
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <Can module="billing" action="canDelete">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteDocument(doc.id, doc.documentId);
+                          }}
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </Can>
                     </div>
                   </div>
                 );
               })}
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={() => {
-                  if (!isUploading) {
-                    document.getElementById("file-upload")?.click();
-                  }
-                }}
-                className={cn(
-                  "flex w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed py-6 transition-colors",
-                  components.input.base,
-                  isDragging
-                    ? "border-primary bg-primary/10"
-                    : "border-muted-foreground/30 bg-muted/30 hover:bg-muted/50",
-                  isUploading && "pointer-events-none opacity-50"
-                )}
-              >
-                <div className={`flex flex-col items-center justify-center ${spacing.gap.small}`}>
-                  {isUploading ? (
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  ) : (
-                    <Upload
-                      className={cn(
-                        "h-8 w-8",
-                        isDragging ? "text-primary animate-bounce" : "text-primary"
-                      )}
-                    />
+              <Can module="billing" action="canCreate">
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => {
+                    if (!isUploading) {
+                      document.getElementById("file-upload")?.click();
+                    }
+                  }}
+                  className={cn(
+                    "flex w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed py-6 transition-colors",
+                    components.input.base,
+                    isDragging
+                      ? "border-primary bg-primary/10"
+                      : "border-muted-foreground/30 bg-muted/30 hover:bg-muted/50",
+                    isUploading && "pointer-events-none opacity-50"
                   )}
-                  <p className={typography.body.base}>
+                >
+                  <div className={`flex flex-col items-center justify-center ${spacing.gap.small}`}>
                     {isUploading ? (
-                      "Subiendo..."
-                    ) : isDragging ? (
-                      <span className="font-semibold text-primary">Suelta el archivo aquí</span>
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     ) : (
-                      <>
-                        <span className="font-semibold">Click para subir</span> o arrastrar
-                      </>
+                      <Upload
+                        className={cn(
+                          "h-8 w-8",
+                          isDragging ? "text-primary animate-bounce" : "text-primary"
+                        )}
+                      />
                     )}
-                  </p>
-                  <p className={typography.body.small}>PDF, PNG, JPG (max. 5MB)</p>
+                    <p className={typography.body.base}>
+                      {isUploading ? (
+                        "Subiendo..."
+                      ) : isDragging ? (
+                        <span className="font-semibold text-primary">Suelta el archivo aquí</span>
+                      ) : (
+                        <>
+                          <span className="font-semibold">Click para subir</span> o arrastrar
+                        </>
+                      )}
+                    </p>
+                    <p className={typography.body.small}>PDF, PNG, JPG (max. 5MB)</p>
+                  </div>
+                  <Input
+                    id="file-upload"
+                    type="file"
+                    accept=".pdf,.png,.jpg,.jpeg"
+                    onChange={handleFileUpload}
+                    disabled={isUploading}
+                    className="sr-only"
+                  />
                 </div>
-                <Input
-                  id="file-upload"
-                  type="file"
-                  accept=".pdf,.png,.jpg,.jpeg"
-                  onChange={handleFileUpload}
-                  disabled={isUploading}
-                  className="sr-only"
-                />
-              </div>
+              </Can>
             </div>
           </CardContent>
         </Card>
@@ -1234,70 +1308,74 @@ export default function BillingDetailsPage() {
                 className="w-full"
                 variant="outline"
               />
-              <Button
-                variant="secondary"
-                onClick={handleSendReminder}
-                className={`w-full ${components.button.base} flex items-center justify-center ${spacing.gap.small}`}
-              >
-                <Bell className="h-4 w-4" />
-                Enviar Recordatorio
-              </Button>
+              <Can module="billing" action="canUpdate">
+                <Button
+                  variant="secondary"
+                  onClick={handleSendReminder}
+                  className={`w-full ${components.button.base} flex items-center justify-center ${spacing.gap.small}`}
+                >
+                  <Bell className="h-4 w-4" />
+                  Enviar Recordatorio
+                </Button>
 
-              {/* Botón de Verificación */}
-              <Button
-                variant={verifiedInBank ? "outline" : "default"}
-                onClick={() => setIsVerifyDialogOpen(true)}
-                className={cn(
-                  `w-full ${components.button.base} flex items-center justify-center ${spacing.gap.small}`,
-                  verifiedInBank && "border-green-500 text-green-600 hover:bg-green-50"
-                )}
-              >
-                <BadgeCheck className="h-4 w-4" />
-                {verifiedInBank ? "Verificado en Banco" : "Verificar en Banco"}
-              </Button>
+                {/* Botón de Verificación */}
+                <Button
+                  variant={verifiedInBank ? "outline" : "default"}
+                  onClick={() => setIsVerifyDialogOpen(true)}
+                  className={cn(
+                    `w-full ${components.button.base} flex items-center justify-center ${spacing.gap.small}`,
+                    verifiedInBank && "border-green-500 text-green-600 hover:bg-green-50"
+                  )}
+                >
+                  <BadgeCheck className="h-4 w-4" />
+                  {verifiedInBank ? "Verificado en Banco" : "Verificar en Banco"}
+                </Button>
+              </Can>
 
               <Separator />
 
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="destructive"
-                    className={`w-full ${components.button.base} flex items-center justify-center ${spacing.gap.small}`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Eliminar Pago
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>¿Eliminar este pago?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Estás a punto de eliminar el pago <strong>{record.invoiceNumber}</strong>.
-                      Esta acción no se puede deshacer.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleDeleteRecord}
-                      disabled={isDeleting}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              <Can module="billing" action="canDelete">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      className={`w-full ${components.button.base} flex items-center justify-center ${spacing.gap.small}`}
                     >
-                      {isDeleting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Eliminando...
-                        </>
-                      ) : (
-                        <>
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Eliminar
-                        </>
-                      )}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                      <Trash2 className="h-4 w-4" />
+                      Eliminar Pago
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>¿Eliminar este pago?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Estás a punto de eliminar el pago <strong>{record.invoiceNumber}</strong>.
+                        Esta acción no se puede deshacer.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleDeleteRecord}
+                        disabled={isDeleting}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {isDeleting ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Eliminando...
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Eliminar
+                          </>
+                        )}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </Can>
             </div>
           </CardContent>
         </Card>
@@ -1412,23 +1490,25 @@ export default function BillingDetailsPage() {
         {/* Footer Fixed */}
         <footer className="fixed bottom-0 left-0 w-full border-t bg-background/80 p-4 backdrop-blur-sm">
           <div className="mx-auto w-full max-w-7xl px-6">
-            <Button
-              onClick={handleSaveChanges}
-              disabled={isSaving}
-              className={`w-full ${components.button.base} flex items-center justify-center py-3.5 text-base font-bold shadow-lg`}
-              style={{
-                boxShadow: `0 10px 15px -3px ${colors.primary}30, 0 4px 6px -2px ${colors.primary}20`,
-              }}
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Guardando...
-                </>
-              ) : (
-                "Guardar Cambios"
-              )}
-            </Button>
+            <Can module="billing" action="canUpdate">
+              <Button
+                onClick={handleSaveChanges}
+                disabled={isSaving}
+                className={`w-full ${components.button.base} flex items-center justify-center py-3.5 text-base font-bold shadow-lg`}
+                style={{
+                  boxShadow: `0 10px 15px -3px ${colors.primary}30, 0 4px 6px -2px ${colors.primary}20`,
+                }}
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Guardando...
+                  </>
+                ) : (
+                  "Guardar Cambios"
+                )}
+              </Button>
+            </Can>
           </div>
         </footer>
       </div>

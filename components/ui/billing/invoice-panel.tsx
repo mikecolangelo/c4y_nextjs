@@ -1,18 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { 
-  FileText, 
-  Calendar, 
-  Banknote, 
-  AlertCircle, 
-  CheckCircle2, 
-  Clock, 
+import {
+  FileText,
+  Calendar,
+  Banknote,
+  AlertCircle,
+  CheckCircle2,
+  Clock,
   XCircle,
   Filter,
   Loader2,
   Search,
-  CreditCard
+  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components_shadcn/ui/button";
 import { Input } from "@/components_shadcn/ui/input";
@@ -37,6 +37,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
 import { cn } from "@/lib/utils";
+import { Can } from "@/components/auth/can";
 
 export interface Invoice {
   id: number;
@@ -48,7 +49,7 @@ export interface Invoice {
   dueDate: string;
   billingDate: string;
   paymentDate?: string;
-  status: 'pending' | 'overdue' | 'paid' | 'cancelled';
+  status: "pending" | "overdue" | "paid" | "cancelled";
   paymentMethod?: string;
   quotaNumber?: number;
   notes?: string;
@@ -69,23 +70,23 @@ interface InvoicePanelProps {
 
 const STATUS_CONFIG = {
   pending: {
-    label: 'Pendiente',
-    color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+    label: "Pendiente",
+    color: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
     icon: Clock,
   },
   overdue: {
-    label: 'Vencida',
-    color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+    label: "Vencida",
+    color: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
     icon: AlertCircle,
   },
   paid: {
-    label: 'Pagada',
-    color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+    label: "Pagada",
+    color: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
     icon: CheckCircle2,
   },
   cancelled: {
-    label: 'Cancelada',
-    color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
+    label: "Cancelada",
+    color: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
     icon: XCircle,
   },
 };
@@ -105,24 +106,24 @@ export function InvoicePanel({ financingId, clientId, showFilters = true }: Invo
   const fetchInvoices = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const params = new URLSearchParams();
-      if (financingId) params.append('financingId', financingId);
-      if (clientId) params.append('clientId', clientId);
-      if (statusFilter !== 'all') params.append('status', statusFilter);
-      
+      if (financingId) params.append("financingId", financingId);
+      if (clientId) params.append("clientId", clientId);
+      if (statusFilter !== "all") params.append("status", statusFilter);
+
       const response = await fetch(`/api/invoices?${params.toString()}`);
-      
+
       if (!response.ok) {
-        throw new Error('Error cargando facturas');
+        throw new Error("Error cargando facturas");
       }
-      
+
       const data = await response.json();
       setInvoices(data.data || []);
     } catch (err) {
-      console.error('Error cargando facturas:', err);
-      setError(err instanceof Error ? err.message : 'Error desconocido');
+      console.error("Error cargando facturas:", err);
+      setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
       setLoading(false);
     }
@@ -131,28 +132,28 @@ export function InvoicePanel({ financingId, clientId, showFilters = true }: Invo
   const handlePayInvoice = async (invoice: Invoice) => {
     try {
       const response = await fetch(`/api/invoices/${invoice.id}/pay`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          paymentDate: new Date().toISOString().split('T')[0],
-          paymentMethod: 'cash',
+          paymentDate: new Date().toISOString().split("T")[0],
+          paymentMethod: "cash",
         }),
       });
-      
+
       if (!response.ok) {
-        throw new Error('Error pagando factura');
+        throw new Error("Error pagando factura");
       }
-      
+
       // Recargar facturas
       fetchInvoices();
     } catch (err) {
-      console.error('Error pagando factura:', err);
-      alert('Error al procesar el pago');
+      console.error("Error pagando factura:", err);
+      alert("Error al procesar el pago");
     }
   };
 
   // Filtrar por búsqueda
-  const filteredInvoices = invoices.filter(inv => {
+  const filteredInvoices = invoices.filter((inv) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
@@ -163,12 +164,15 @@ export function InvoicePanel({ financingId, clientId, showFilters = true }: Invo
   });
 
   // Calcular totales
-  const totals = invoices.reduce((acc, inv) => {
-    if (inv.status === 'pending') acc.pending += inv.totalAmount;
-    if (inv.status === 'overdue') acc.overdue += inv.totalAmount;
-    if (inv.status === 'paid') acc.paid += inv.totalAmount;
-    return acc;
-  }, { pending: 0, overdue: 0, paid: 0 });
+  const totals = invoices.reduce(
+    (acc, inv) => {
+      if (inv.status === "pending") acc.pending += inv.totalAmount;
+      if (inv.status === "overdue") acc.overdue += inv.totalAmount;
+      if (inv.status === "paid") acc.paid += inv.totalAmount;
+      return acc;
+    },
+    { pending: 0, overdue: 0, paid: 0 }
+  );
 
   if (loading) {
     return (
@@ -261,7 +265,7 @@ export function InvoicePanel({ financingId, clientId, showFilters = true }: Invo
               {filteredInvoices.map((invoice) => {
                 const statusConfig = STATUS_CONFIG[invoice.status];
                 const StatusIcon = statusConfig.icon;
-                
+
                 return (
                   <TableRow key={invoice.id}>
                     <TableCell className="font-medium">
@@ -272,14 +276,10 @@ export function InvoicePanel({ financingId, clientId, showFilters = true }: Invo
                         </span>
                       )}
                     </TableCell>
-                    <TableCell>
-                      {invoice.client?.displayName || 'N/A'}
-                    </TableCell>
+                    <TableCell>{invoice.client?.displayName || "N/A"}</TableCell>
                     <TableCell>
                       <div className="space-y-1">
-                        <span className="font-medium">
-                          ${invoice.totalAmount.toFixed(2)}
-                        </span>
+                        <span className="font-medium">${invoice.totalAmount.toFixed(2)}</span>
                         {invoice.penaltyAmount > 0 && (
                           <span className="text-xs text-red-500 block">
                             +${invoice.penaltyAmount.toFixed(2)} penalidad
@@ -290,7 +290,7 @@ export function InvoicePanel({ financingId, clientId, showFilters = true }: Invo
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
-                        {format(new Date(invoice.dueDate), 'dd/MM/yyyy', { locale: es })}
+                        {format(new Date(invoice.dueDate), "dd/MM/yyyy", { locale: es })}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -300,29 +300,34 @@ export function InvoicePanel({ financingId, clientId, showFilters = true }: Invo
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      {invoice.status === 'pending' && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handlePayInvoice(invoice)}
-                        >
-                          <CreditCard className="h-4 w-4 mr-1" />
-                          Pagar
-                        </Button>
+                      {invoice.status === "pending" && (
+                        <Can module="billing" action="canUpdate">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handlePayInvoice(invoice)}
+                          >
+                            <CreditCard className="h-4 w-4 mr-1" />
+                            Pagar
+                          </Button>
+                        </Can>
                       )}
-                      {invoice.status === 'overdue' && (
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handlePayInvoice(invoice)}
-                        >
-                          <Banknote className="h-4 w-4 mr-1" />
-                          Pagar + Penalidad
-                        </Button>
+                      {invoice.status === "overdue" && (
+                        <Can module="billing" action="canUpdate">
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handlePayInvoice(invoice)}
+                          >
+                            <Banknote className="h-4 w-4 mr-1" />
+                            Pagar + Penalidad
+                          </Button>
+                        </Can>
                       )}
-                      {invoice.status === 'paid' && invoice.paymentDate && (
+                      {invoice.status === "paid" && invoice.paymentDate && (
                         <span className="text-sm text-muted-foreground">
-                          Pagado el {format(new Date(invoice.paymentDate), 'dd/MM/yyyy', { locale: es })}
+                          Pagado el{" "}
+                          {format(new Date(invoice.paymentDate), "dd/MM/yyyy", { locale: es })}
                         </span>
                       )}
                     </TableCell>

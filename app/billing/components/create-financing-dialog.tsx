@@ -54,6 +54,7 @@ import { cn } from "@/lib/utils";
 import { getInitials } from "@/lib/format";
 import { FinancingCalculator, QuickUserCreate, type CreatedUser } from "@/components/ui/billing";
 import type { PaymentFrequency } from "@/lib/financing";
+import { Can } from "@/components/auth/can";
 
 // Tipos
 interface VehicleOption {
@@ -493,15 +494,17 @@ export function CreateFinancingDialog({
                       </div>
                       Cliente
                     </h3>
-                    <QuickUserCreate
-                      onUserCreated={handleUserCreated}
-                      trigger={
-                        <Button variant="ghost" size="sm" className="gap-1 h-8">
-                          <UserPlus className="h-4 w-4" />
-                          Crear nuevo
-                        </Button>
-                      }
-                    />
+                    <Can module="users" action="canCreate">
+                      <QuickUserCreate
+                        onUserCreated={handleUserCreated}
+                        trigger={
+                          <Button variant="ghost" size="sm" className="gap-1 h-8">
+                            <UserPlus className="h-4 w-4" />
+                            Crear nuevo
+                          </Button>
+                        }
+                      />
+                    </Can>
                   </div>
 
                   <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>

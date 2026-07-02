@@ -18,6 +18,7 @@ import { BackButton } from "@/components/admin/back-button";
 import { Button } from "@/components_shadcn/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components_shadcn/ui/card";
 import { StatusBadge } from "@/components/ui";
+import { Can } from "@/components/auth/can";
 import {
   Table,
   TableBody,
@@ -87,14 +88,16 @@ export default function BillingImportsPage() {
               </p>
             </div>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => router.push("/billing/import")}
-            className="gap-2"
-          >
-            <Upload className="h-4 w-4" />
-            Nueva Importacion
-          </Button>
+          <Can module="billing" action="canCreate">
+            <Button
+              variant="outline"
+              onClick={() => router.push("/billing/import")}
+              className="gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              Nueva Importacion
+            </Button>
+          </Can>
         </div>
 
         {/* Stats Summary */}
@@ -150,14 +153,16 @@ export default function BillingImportsPage() {
               <div className="text-center py-12 space-y-4">
                 <FileSpreadsheet className="mx-auto h-10 w-10 text-muted-foreground" />
                 <p className="text-muted-foreground">No hay importaciones registradas.</p>
-                <Button
-                  variant="outline"
-                  onClick={() => router.push("/billing/import")}
-                  className="gap-2"
-                >
-                  <Upload className="h-4 w-4" />
-                  Importar primer lote
-                </Button>
+                <Can module="billing" action="canCreate">
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push("/billing/import")}
+                    className="gap-2"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Importar primer lote
+                  </Button>
+                </Can>
               </div>
             ) : (
               <div className="overflow-x-auto">

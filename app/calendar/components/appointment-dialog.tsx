@@ -28,11 +28,8 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "@/lib/toast";
-import type {
-  AppointmentType,
-  AppointmentStatus,
-  AppointmentFrequency,
-} from "@/validations/types";
+import { Can } from "@/components/auth/can";
+import type { AppointmentType, AppointmentStatus, AppointmentFrequency } from "@/validations/types";
 
 export interface CreatePayload {
   title?: string;
@@ -298,9 +295,7 @@ export function AppointmentDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
         <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
-          <DialogTitle>
-            {mode === "edit" ? "Editar Cita" : "Agregar Nueva Cita"}
-          </DialogTitle>
+          <DialogTitle>{mode === "edit" ? "Editar Cita" : "Agregar Nueva Cita"}</DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto min-h-0">
@@ -322,7 +317,10 @@ export function AppointmentDialog({
 
               <div className="space-y-2">
                 <Label>Frecuencia</Label>
-                <Select value={frequency} onValueChange={(v) => setFrequency(v as AppointmentFrequency)}>
+                <Select
+                  value={frequency}
+                  onValueChange={(v) => setFrequency(v as AppointmentFrequency)}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecciona frecuencia" />
                   </SelectTrigger>
@@ -399,16 +397,18 @@ export function AppointmentDialog({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Servicio</Label>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-auto gap-1 px-2 py-1 text-xs"
-                  onClick={() => setIsServiceModalOpen(true)}
-                >
-                  <Plus className="h-3 w-3" />
-                  Nuevo Servicio
-                </Button>
+                <Can module="adm-services" action="canCreate">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-auto gap-1 px-2 py-1 text-xs"
+                    onClick={() => setIsServiceModalOpen(true)}
+                  >
+                    <Plus className="h-3 w-3" />
+                    Nuevo Servicio
+                  </Button>
+                </Can>
               </div>
               <Select value={service} onValueChange={setService}>
                 <SelectTrigger>
@@ -589,7 +589,11 @@ export function AppointmentDialog({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsServiceModalOpen(false)} disabled={isCreatingService}>
+            <Button
+              variant="outline"
+              onClick={() => setIsServiceModalOpen(false)}
+              disabled={isCreatingService}
+            >
               Cancelar
             </Button>
             <Button onClick={handleCreateService} disabled={isCreatingService}>

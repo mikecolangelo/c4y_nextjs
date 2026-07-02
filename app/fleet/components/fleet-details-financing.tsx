@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import Link from "next/link";
+import { Can } from "@/components/auth/can";
 
 interface FinancingInfo {
   id: number;
@@ -122,12 +123,14 @@ export function FleetDetailsFinancingCard({
           <p className={cn(typography.body.base, "text-muted-foreground text-center")}>
             Este vehículo no tiene un financiamiento activo
           </p>
-          <Link href="/billing">
-            <Button variant="outline" size="sm" className="mt-2">
-              <CreditCard className="h-4 w-4 mr-2" />
-              Crear Financiamiento
-            </Button>
-          </Link>
+          <Can module="billing" action="canCreate">
+            <Link href="/billing">
+              <Button variant="outline" size="sm" className="mt-2">
+                <CreditCard className="h-4 w-4 mr-2" />
+                Crear Financiamiento
+              </Button>
+            </Link>
+          </Can>
         </CardContent>
       </Card>
     );

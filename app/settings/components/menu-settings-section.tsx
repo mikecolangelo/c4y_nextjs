@@ -48,6 +48,7 @@ import {
 } from "@/lib/menu-items";
 import type { ModulePermission } from "@/lib/permissions";
 import { fetchRoles, type Role } from "@/lib/roles";
+import { usePermissions } from "@/lib/permissions-context";
 
 type FullMatrix = Record<string, Record<string, ModulePermission>>;
 
@@ -84,6 +85,7 @@ function SortableMenuRow({
   visibleRoles,
   onToggleVisibility,
   onChangeRoles,
+  canEdit,
 }: {
   item: NavItem;
   configurableRoles: string[];
@@ -91,9 +93,11 @@ function SortableMenuRow({
   visibleRoles: string[];
   onToggleVisibility: (module: string) => void;
   onChangeRoles: (module: string, roles: string[]) => void;
+  canEdit: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.module,
+    disabled: !canEdit,
   });
   const Icon = item.icon;
   const isVisible = visibleRoles.length > 0;
@@ -130,6 +134,7 @@ function SortableMenuRow({
             size="sm"
             value={visibleRoles}
             onValueChange={(roles) => onChangeRoles(item.module, roles)}
+            disabled={!canEdit}
             aria-label={`Roles que ven ${item.label}`}
           >
             {configurableRoles.map((role) => (
@@ -149,6 +154,7 @@ function SortableMenuRow({
                 variant="ghost"
                 size="icon"
                 onClick={() => onToggleVisibility(item.module)}
+                disabled={!canEdit}
                 aria-label={isVisible ? `Ocultar ${item.label}` : `Mostrar ${item.label}`}
                 aria-pressed={isVisible}
               >
@@ -181,6 +187,8 @@ function SortableMenuRow({
  * su menú sin perder el acceso por URL.
  */
 export function MenuSettingsSection() {
+  const { can } = usePermissions();
+  const canEdit = can("settings", "canUpdate");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [items, setItems] = useState<NavItem[]>([]);
@@ -384,6 +392,7 @@ export function MenuSettingsSection() {
                   visibleRoles={visibleRolesFor(item.module)}
                   onToggleVisibility={handleToggleVisibility}
                   onChangeRoles={setRolesForModule}
+                  canEdit={canEdit}
                 />
               ))}
             </div>
@@ -394,14 +403,16 @@ export function MenuSettingsSection() {
           Administrador: ocultar es solo visual, conserva el acceso
         </Badge>
 
-        <Button onClick={handleSave} disabled={isSaving} className="w-full sm:w-auto">
-          {isSaving ? (
-            <Loader2 className="mr-2 size-4 animate-spin" />
-          ) : (
-            <Save className="mr-2 size-4" />
-          )}
-          Guardar menú
-        </Button>
+        {canEdit && (
+          <Button onClick={handleSave} disabled={isSaving} className="w-full sm:w-auto">
+            {isSaving ? (
+              <Loader2 className="mr-2 size-4 animate-spin" />
+            ) : (
+              <Save className="mr-2 size-4" />
+            )}
+            Guardar menú
+          </Button>
+        )}
       </CardContent>
     </Card>
   );

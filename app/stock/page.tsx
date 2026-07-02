@@ -33,6 +33,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { commonClasses, spacing, typography } from "@/lib/design-system";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { Can } from "@/components/auth/can";
 import { toast } from "@/lib/toast";
 import type { InventoryItemCard, StockStatus, InventoryIcon } from "@/validations/types";
 import type { InventoryRequestCard } from "@/validations/inventory-request-types";
@@ -544,19 +545,23 @@ export default function StockPage() {
                               >
                                 Ver detalles
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  router.push(`/stock/details/${item.documentId}?edit=true`)
-                                }
-                              >
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => setItemToDelete(item)}
-                                className="text-destructive focus:text-destructive"
-                              >
-                                Eliminar
-                              </DropdownMenuItem>
+                              <Can module="stock" action="canUpdate">
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    router.push(`/stock/details/${item.documentId}?edit=true`)
+                                  }
+                                >
+                                  Editar
+                                </DropdownMenuItem>
+                              </Can>
+                              <Can module="stock" action="canDelete">
+                                <DropdownMenuItem
+                                  onClick={() => setItemToDelete(item)}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  Eliminar
+                                </DropdownMenuItem>
+                              </Can>
                             </DropdownMenuContent>
                           </DropdownMenu>
                           <ChevronRight className="h-5 w-5 text-muted-foreground" />
@@ -694,18 +699,20 @@ export default function StockPage() {
       </Tabs>
 
       {/* Botón flotante contextual */}
-      {activeTab === "catalog" ? (
-        <AddInventoryItemButton onClick={() => setIsItemDialogOpen(true)} />
-      ) : (
-        <Button
-          className="fixed bottom-6 right-6 z-50 size-14 rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105"
-          size="icon"
-          onClick={() => setIsRequestDialogOpen(true)}
-          aria-label="Solicitar pieza"
-        >
-          <Plus className="h-6 w-6" />
-        </Button>
-      )}
+      <Can module="stock" action="canCreate">
+        {activeTab === "catalog" ? (
+          <AddInventoryItemButton onClick={() => setIsItemDialogOpen(true)} />
+        ) : (
+          <Button
+            className="fixed bottom-6 right-6 z-50 size-14 rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105"
+            size="icon"
+            onClick={() => setIsRequestDialogOpen(true)}
+            aria-label="Solicitar pieza"
+          >
+            <Plus className="h-6 w-6" />
+          </Button>
+        )}
+      </Can>
 
       <CreateInventoryItemDialog
         isOpen={isItemDialogOpen}

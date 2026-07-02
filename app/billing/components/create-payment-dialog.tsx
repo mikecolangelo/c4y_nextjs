@@ -31,11 +31,7 @@ import { Input } from "@/components_shadcn/ui/input";
 import { Label } from "@/components_shadcn/ui/label";
 import { Textarea } from "@/components_shadcn/ui/textarea";
 import { Separator } from "@/components_shadcn/ui/separator";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components_shadcn/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components_shadcn/ui/popover";
 import {
   Command,
   CommandEmpty,
@@ -50,12 +46,8 @@ import { Card, CardContent } from "@/components_shadcn/ui/card";
 import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
 import { spacing, typography, components } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
-import {
-  calculateLateFee,
-  calculateDaysLate,
-  processPayment,
-  type FinancingCard,
-} from "@/lib/financing";
+import { calculateLateFee, calculateDaysLate, processPayment } from "@/lib/financing-calculations";
+import type { FinancingCard } from "@/lib/financing";
 
 // Tipos
 export interface FinancingOption {
@@ -215,15 +207,13 @@ export function CreatePaymentDialog({
       };
     }
 
-    const daysLate = calculateDaysLate(
-      selectedFinancing.nextDueDate,
-      formData.paymentDate
-    );
+    const daysLate = calculateDaysLate(selectedFinancing.nextDueDate, formData.paymentDate);
 
     const isLate = daysLate > 0;
 
     // Calcular multa si aplica
-    const pendingQuotaAmount = selectedFinancing.quotaAmount - selectedFinancing.partialPaymentCredit;
+    const pendingQuotaAmount =
+      selectedFinancing.quotaAmount - selectedFinancing.partialPaymentCredit;
     const lateFeeAmount = isLate
       ? calculateLateFee(pendingQuotaAmount, daysLate, selectedFinancing.lateFeePercentage)
       : 0;
@@ -258,11 +248,7 @@ export function CreatePaymentDialog({
 
   // Validación del formulario (permitir montos negativos para ajustes)
   const isFormValid = useMemo(() => {
-    return (
-      formData.financingId !== "" &&
-      formData.amount !== 0 &&
-      formData.paymentDate !== ""
-    );
+    return formData.financingId !== "" && formData.amount !== 0 && formData.paymentDate !== "";
   }, [formData]);
 
   // Resetear formulario
@@ -386,10 +372,7 @@ export function CreatePaymentDialog({
                         Financiamiento
                       </h3>
 
-                      <Popover
-                        open={financingSearchOpen}
-                        onOpenChange={setFinancingSearchOpen}
-                      >
+                      <Popover open={financingSearchOpen} onOpenChange={setFinancingSearchOpen}>
                         <PopoverTrigger asChild>
                           <Button
                             variant="outline"
@@ -447,15 +430,11 @@ export function CreatePaymentDialog({
                                           </span>
                                           <Badge
                                             variant={
-                                              fin.status === "en_mora"
-                                                ? "destructive"
-                                                : "secondary"
+                                              fin.status === "en_mora" ? "destructive" : "secondary"
                                             }
                                             className="text-xs"
                                           >
-                                            {fin.status === "en_mora"
-                                              ? "En mora"
-                                              : "Activo"}
+                                            {fin.status === "en_mora" ? "En mora" : "Activo"}
                                           </Badge>
                                         </div>
                                         <span className="text-xs text-muted-foreground">
@@ -496,20 +475,15 @@ export function CreatePaymentDialog({
                               {selectedFinancing.financingNumber}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                              {selectedFinancing.vehicleName} •{" "}
-                              {selectedFinancing.clientName}
+                              {selectedFinancing.vehicleName} • {selectedFinancing.clientName}
                             </p>
                           </div>
                           <Badge
                             variant={
-                              selectedFinancing.status === "en_mora"
-                                ? "destructive"
-                                : "default"
+                              selectedFinancing.status === "en_mora" ? "destructive" : "default"
                             }
                           >
-                            {selectedFinancing.status === "en_mora"
-                              ? "En Mora"
-                              : "Activo"}
+                            {selectedFinancing.status === "en_mora" ? "En Mora" : "Activo"}
                           </Badge>
                         </div>
 
@@ -521,9 +495,7 @@ export function CreatePaymentDialog({
                             </p>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground">
-                              Próximo Vencimiento
-                            </p>
+                            <p className="text-xs text-muted-foreground">Próximo Vencimiento</p>
                             <p className={typography.body.large}>
                               {formatDate(selectedFinancing.nextDueDate)}
                             </p>
@@ -540,15 +512,13 @@ export function CreatePaymentDialog({
                           <div className="flex justify-between text-xs">
                             <span className="text-muted-foreground">Progreso</span>
                             <span>
-                              {selectedFinancing.paidQuotas} de{" "}
-                              {selectedFinancing.totalQuotas} cuotas
+                              {selectedFinancing.paidQuotas} de {selectedFinancing.totalQuotas}{" "}
+                              cuotas
                             </span>
                           </div>
                           <Progress
                             value={
-                              (selectedFinancing.paidQuotas /
-                                selectedFinancing.totalQuotas) *
-                              100
+                              (selectedFinancing.paidQuotas / selectedFinancing.totalQuotas) * 100
                             }
                             className="h-2"
                           />
@@ -711,10 +681,12 @@ export function CreatePaymentDialog({
                             <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
                               Monto: {formatCurrency(formData.amount)}
                             </p>
-                          ) : paymentCalculations.isLate && (
-                            <p className="text-sm font-semibold text-red-700 dark:text-red-400">
-                              Multa: {formatCurrency(paymentCalculations.lateFeeAmount)}
-                            </p>
+                          ) : (
+                            paymentCalculations.isLate && (
+                              <p className="text-sm font-semibold text-red-700 dark:text-red-400">
+                                Multa: {formatCurrency(paymentCalculations.lateFeeAmount)}
+                              </p>
+                            )
                           )}
                         </Card>
 
@@ -723,12 +695,13 @@ export function CreatePaymentDialog({
                             {formData.amount < 0 ? "Tipo de Ajuste" : "Cuotas Cubiertas"}
                           </p>
                           <p className={cn(typography.metric.base, "text-primary")}>
-                            {formData.amount < 0 ? "Devolución/Ajuste" : paymentCalculations.quotasCovered}
+                            {formData.amount < 0
+                              ? "Devolución/Ajuste"
+                              : paymentCalculations.quotasCovered}
                           </p>
                           {formData.amount >= 0 && paymentCalculations.advanceCredit > 0 && (
                             <p className="text-xs text-blue-600 mt-1">
-                              + {formatCurrency(paymentCalculations.advanceCredit)} de
-                              crédito
+                              + {formatCurrency(paymentCalculations.advanceCredit)} de crédito
                             </p>
                           )}
                         </Card>
@@ -754,8 +727,12 @@ export function CreatePaymentDialog({
                             {formData.amount < 0
                               ? "Ajuste"
                               : paymentCalculations.status === "pagado" && "Pagado"}
-                            {formData.amount >= 0 && paymentCalculations.status === "adelanto" && "Adelanto"}
-                            {formData.amount >= 0 && paymentCalculations.status === "retrasado" && "Retrasado"}
+                            {formData.amount >= 0 &&
+                              paymentCalculations.status === "adelanto" &&
+                              "Adelanto"}
+                            {formData.amount >= 0 &&
+                              paymentCalculations.status === "retrasado" &&
+                              "Retrasado"}
                           </Badge>
                         </div>
                       </div>
@@ -773,9 +750,7 @@ export function CreatePaymentDialog({
                   </h3>
                   <Textarea
                     value={formData.notes}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, notes: e.target.value }))
-                    }
+                    onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
                     placeholder="Notas adicionales sobre el pago..."
                     rows={2}
                     className="rounded-lg resize-none"
@@ -793,11 +768,7 @@ export function CreatePaymentDialog({
         </ScrollAreaPrimitive.Root>
 
         <DialogFooter className="px-6 py-4 border-t shrink-0">
-          <Button
-            variant="outline"
-            onClick={() => handleOpenChange(false)}
-            disabled={isCreating}
-          >
+          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isCreating}>
             Cancelar
           </Button>
           <Button

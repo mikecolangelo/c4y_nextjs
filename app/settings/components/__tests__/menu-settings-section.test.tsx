@@ -7,6 +7,10 @@ vi.mock("@/lib/toast", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
+vi.mock("@/lib/permissions-context", () => ({
+  usePermissions: () => ({ can: () => true, loading: false }),
+}));
+
 const perm = (canAccess: boolean) => ({
   canAccess,
   canRead: canAccess,

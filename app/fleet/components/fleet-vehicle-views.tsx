@@ -2,6 +2,7 @@
 
 import { Button } from "@/components_shadcn/ui/button";
 import { Checkbox } from "@/components_shadcn/ui/checkbox";
+import { Can } from "@/components/auth/can";
 import { CheckSquare, Square, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { spacing, typography } from "@/lib/design-system";
@@ -66,19 +67,21 @@ export function FleetVehicleViews({
   const renderListView = () => (
     <div className={`flex flex-col ${spacing.gap.medium}`}>
       {isSelectMode && (
-        <div className="flex items-center gap-2 pb-2 border-b">
-          <Button variant="outline" size="sm" onClick={onSelectAll} className="h-8">
-            {selectedVehicles.size === paginatedVehicles.length ? (
-              <CheckSquare className="h-4 w-4 mr-2" />
-            ) : (
-              <Square className="h-4 w-4 mr-2" />
+        <Can module="fleet" action="canDelete">
+          <div className="flex items-center gap-2 pb-2 border-b">
+            <Button variant="outline" size="sm" onClick={onSelectAll} className="h-8">
+              {selectedVehicles.size === paginatedVehicles.length ? (
+                <CheckSquare className="h-4 w-4 mr-2" />
+              ) : (
+                <Square className="h-4 w-4 mr-2" />
+              )}
+              Seleccionar todos
+            </Button>
+            {selectedVehicles.size > 0 && (
+              <span className={typography.body.small}>{selectedVehicles.size} seleccionado(s)</span>
             )}
-            Seleccionar todos
-          </Button>
-          {selectedVehicles.size > 0 && (
-            <span className={typography.body.small}>{selectedVehicles.size} seleccionado(s)</span>
-          )}
-        </div>
+          </div>
+        </Can>
       )}
 
       {paginatedVehicles.map((vehicle) => {
@@ -125,16 +128,18 @@ export function FleetVehicleViews({
         <thead>
           <tr className="border-b">
             {isSelectMode && (
-              <th className={`${typography.label} text-left p-4 w-12`}>
-                <Checkbox
-                  checked={
-                    selectedVehicles.size === paginatedVehicles.length &&
-                    paginatedVehicles.length > 0
-                  }
-                  onCheckedChange={onSelectAll}
-                  className="h-4 w-4"
-                />
-              </th>
+              <Can module="fleet" action="canDelete">
+                <th className={`${typography.label} text-left p-4 w-12`}>
+                  <Checkbox
+                    checked={
+                      selectedVehicles.size === paginatedVehicles.length &&
+                      paginatedVehicles.length > 0
+                    }
+                    onCheckedChange={onSelectAll}
+                    className="h-4 w-4"
+                  />
+                </th>
+              </Can>
             )}
             <th className={`${typography.label} text-left p-4`}>Imagen</th>
             <th className={`${typography.label} text-left p-4`}>Nombre</th>

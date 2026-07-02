@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components_shadcn/ui/dropdown-menu";
 import { MoreVertical } from "lucide-react";
+import { Can } from "@/components/auth/can";
 import type { FleetVehicleCard } from "@/validations/types";
 
 export interface VehicleActionMenuProps {
@@ -52,31 +53,37 @@ export function VehicleActionMenu({
         >
           Ver detalles
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={(e) => {
-            e.stopPropagation();
-            onNavigateToEdit(vehicleId);
-          }}
-        >
-          Editar
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={(e) => {
-            e.stopPropagation();
-            onDuplicateVehicle(vehicle);
-          }}
-        >
-          Duplicar
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          className="text-destructive"
-          onClick={(e) => {
-            e.stopPropagation();
-            onRequestDeleteVehicle(vehicle);
-          }}
-        >
-          Eliminar
-        </DropdownMenuItem>
+        <Can module="fleet" action="canUpdate">
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              onNavigateToEdit(vehicleId);
+            }}
+          >
+            Editar
+          </DropdownMenuItem>
+        </Can>
+        <Can module="fleet" action="canCreate">
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              onDuplicateVehicle(vehicle);
+            }}
+          >
+            Duplicar
+          </DropdownMenuItem>
+        </Can>
+        <Can module="fleet" action="canDelete">
+          <DropdownMenuItem
+            className="text-destructive"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRequestDeleteVehicle(vehicle);
+            }}
+          >
+            Eliminar
+          </DropdownMenuItem>
+        </Can>
       </DropdownMenuContent>
     </DropdownMenu>
   );

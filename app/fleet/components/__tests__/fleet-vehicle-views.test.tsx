@@ -12,6 +12,10 @@ vi.mock("next/image", () => ({
   },
 }));
 
+vi.mock("@/components/auth/can", () => ({
+  Can: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 const vehicles: FleetVehicleCard[] = [
   {
     id: "1",

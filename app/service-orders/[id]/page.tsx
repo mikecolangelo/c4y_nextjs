@@ -38,6 +38,7 @@ import {
 } from "@/ui/alert-dialog";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { Can } from "@/components/auth/can";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -352,40 +353,44 @@ export default function ServiceOrderDetailPage() {
             <Badge className={cn("text-xs border", getStatusBadge(order.status))}>
               {getStatusLabel(order.status)}
             </Badge>
-            {!isEditingNotes ? (
+            <Can module="service-orders" action="canUpdate">
+              {!isEditingNotes ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditingNotes(true)}
+                  disabled={isProcessing || isCancelled}
+                >
+                  <Edit className="h-3.5 w-3.5 mr-1" />
+                  Editar
+                </Button>
+              ) : (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleUpdateNotes}
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                  ) : (
+                    <Save className="h-3.5 w-3.5 mr-1" />
+                  )}
+                  Guardar
+                </Button>
+              )}
+            </Can>
+            <Can module="service-orders" action="canDelete">
               <Button
-                variant="outline"
+                variant="destructive"
                 size="sm"
-                onClick={() => setIsEditingNotes(true)}
-                disabled={isProcessing || isCancelled}
-              >
-                <Edit className="h-3.5 w-3.5 mr-1" />
-                Editar
-              </Button>
-            ) : (
-              <Button
-                variant="default"
-                size="sm"
-                onClick={handleUpdateNotes}
+                onClick={() => setShowDeleteDialog(true)}
                 disabled={isProcessing}
               >
-                {isProcessing ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
-                ) : (
-                  <Save className="h-3.5 w-3.5 mr-1" />
-                )}
-                Guardar
+                <Trash2 className="h-3.5 w-3.5 mr-1" />
+                Eliminar
               </Button>
-            )}
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setShowDeleteDialog(true)}
-              disabled={isProcessing}
-            >
-              <Trash2 className="h-3.5 w-3.5 mr-1" />
-              Eliminar
-            </Button>
+            </Can>
           </div>
         </div>
 
@@ -615,35 +620,37 @@ export default function ServiceOrderDetailPage() {
               <CardTitle className="text-sm font-medium">Acciones</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-3">
-              {canFinalize && (
-                <Button
-                  onClick={() => setShowFinalizeDialog(true)}
-                  disabled={isProcessing}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                >
-                  {isProcessing ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                  )}
-                  Finalizar Orden
-                </Button>
-              )}
-              {canCancel && (
-                <Button
-                  variant="outline"
-                  onClick={() => setShowCancelDialog(true)}
-                  disabled={isProcessing}
-                  className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
-                >
-                  {isProcessing ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <XCircle className="h-4 w-4 mr-2" />
-                  )}
-                  Cancelar Orden
-                </Button>
-              )}
+              <Can module="service-orders" action="canUpdate">
+                {canFinalize && (
+                  <Button
+                    onClick={() => setShowFinalizeDialog(true)}
+                    disabled={isProcessing}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    {isProcessing ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                    )}
+                    Finalizar Orden
+                  </Button>
+                )}
+                {canCancel && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowCancelDialog(true)}
+                    disabled={isProcessing}
+                    className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
+                  >
+                    {isProcessing ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <XCircle className="h-4 w-4 mr-2" />
+                    )}
+                    Cancelar Orden
+                  </Button>
+                )}
+              </Can>
               {isCompleted && (
                 <Badge variant="outline" className="text-green-600 border-green-300">
                   <CheckCircle2 className="h-3.5 w-3.5 mr-1" />

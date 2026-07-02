@@ -16,6 +16,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { MaintenanceOrderDialog } from "./maintenance-order-dialog";
+import { Can } from "@/components/auth/can";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import { computeNewMileage, pickHistoryHighlightKey } from "./mileage-utils";
@@ -354,19 +355,21 @@ export function MileageCounter({
             )}
           </div>
           <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-6 text-xs font-semibold shadow-sm px-2 py-0"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleOpenMileageDialog();
-              }}
-              disabled={isButtonDisabled}
-            >
-              <RotateCcw className="h-3 w-3 mr-1" />
-              Actualizar KM
-            </Button>
+            <Can module="fleet" action="canUpdate">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-6 text-xs font-semibold shadow-sm px-2 py-0"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleOpenMileageDialog();
+                }}
+                disabled={isButtonDisabled}
+              >
+                <RotateCcw className="h-3 w-3 mr-1" />
+                Actualizar KM
+              </Button>
+            </Can>
             <Button
               variant="ghost"
               size="sm"
@@ -382,32 +385,36 @@ export function MileageCounter({
             </Button>
             {(isWarning || isDanger) && (
               <>
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="h-6 text-xs font-semibold shadow-sm px-2 py-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleResetOilChange();
-                  }}
-                  disabled={isButtonDisabled}
-                >
-                  {isLoading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
-                  Cambio realizado
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-6 text-xs font-semibold shadow-sm px-2 py-0 border-primary text-primary hover:bg-primary/10"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenMaintenanceDialog();
-                  }}
-                  disabled={isButtonDisabled}
-                >
-                  <ClipboardList className="h-3 w-3 mr-1" />
-                  Servicio + Orden
-                </Button>
+                <Can module="fleet" action="canUpdate">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="h-6 text-xs font-semibold shadow-sm px-2 py-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleResetOilChange();
+                    }}
+                    disabled={isButtonDisabled}
+                  >
+                    {isLoading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                    Cambio realizado
+                  </Button>
+                </Can>
+                <Can module="service-orders" action="canCreate">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-6 text-xs font-semibold shadow-sm px-2 py-0 border-primary text-primary hover:bg-primary/10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenMaintenanceDialog();
+                    }}
+                    disabled={isButtonDisabled}
+                  >
+                    <ClipboardList className="h-3 w-3 mr-1" />
+                    Servicio + Orden
+                  </Button>
+                </Can>
               </>
             )}
           </div>
@@ -476,22 +483,24 @@ export function MileageCounter({
         </div>
 
         <div className="flex gap-2 pt-1">
-          <Button
-            variant="outline"
-            size="sm"
-            className={cn(
-              "h-8 text-xs font-semibold shadow-sm transition-all duration-200 flex-1",
-              isButtonDisabled && "opacity-70 cursor-not-allowed"
-            )}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleOpenMileageDialog();
-            }}
-            disabled={isButtonDisabled}
-          >
-            <RotateCcw className="h-3.5 w-3.5 mr-1" />
-            Colocar Nuevo Record
-          </Button>
+          <Can module="fleet" action="canUpdate">
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "h-8 text-xs font-semibold shadow-sm transition-all duration-200 flex-1",
+                isButtonDisabled && "opacity-70 cursor-not-allowed"
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenMileageDialog();
+              }}
+              disabled={isButtonDisabled}
+            >
+              <RotateCcw className="h-3.5 w-3.5 mr-1" />
+              Colocar Nuevo Record
+            </Button>
+          </Can>
 
           <Button
             variant="secondary"
@@ -512,38 +521,42 @@ export function MileageCounter({
 
           {(isWarning || isDanger) && (
             <>
-              <Button
-                variant="default"
-                size="sm"
-                className={cn(
-                  "h-8 text-xs font-semibold shadow-sm transition-all duration-200 flex-1",
-                  isButtonDisabled && "opacity-70 cursor-not-allowed"
-                )}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleResetOilChange();
-                }}
-                disabled={isButtonDisabled}
-              >
-                {isLoading ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : null}
-                {isLoading ? "Procesando..." : "Cambio realizado"}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn(
-                  "h-8 text-xs font-semibold shadow-sm transition-all duration-200 flex-1 border-primary text-primary hover:bg-primary/10",
-                  isButtonDisabled && "opacity-70 cursor-not-allowed"
-                )}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleOpenMaintenanceDialog();
-                }}
-                disabled={isButtonDisabled}
-              >
-                <ClipboardList className="h-3.5 w-3.5 mr-1" />
-                Servicio + Orden
-              </Button>
+              <Can module="fleet" action="canUpdate">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className={cn(
+                    "h-8 text-xs font-semibold shadow-sm transition-all duration-200 flex-1",
+                    isButtonDisabled && "opacity-70 cursor-not-allowed"
+                  )}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleResetOilChange();
+                  }}
+                  disabled={isButtonDisabled}
+                >
+                  {isLoading ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : null}
+                  {isLoading ? "Procesando..." : "Cambio realizado"}
+                </Button>
+              </Can>
+              <Can module="service-orders" action="canCreate">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "h-8 text-xs font-semibold shadow-sm transition-all duration-200 flex-1 border-primary text-primary hover:bg-primary/10",
+                    isButtonDisabled && "opacity-70 cursor-not-allowed"
+                  )}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenMaintenanceDialog();
+                  }}
+                  disabled={isButtonDisabled}
+                >
+                  <ClipboardList className="h-3.5 w-3.5 mr-1" />
+                  Servicio + Orden
+                </Button>
+              </Can>
             </>
           )}
         </div>
@@ -855,22 +868,24 @@ export function MileageCounter({
                             Último
                           </span>
                         )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                          onClick={() =>
-                            handleDeleteHistoryEntry(item.documentId ?? String(item.id))
-                          }
-                          disabled={deletingId === (item.documentId ?? String(item.id))}
-                          aria-label="Eliminar registro de kilometraje"
-                        >
-                          {deletingId === (item.documentId ?? String(item.id)) ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-3.5 w-3.5" />
-                          )}
-                        </Button>
+                        <Can module="fleet" action="canDelete">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                            onClick={() =>
+                              handleDeleteHistoryEntry(item.documentId ?? String(item.id))
+                            }
+                            disabled={deletingId === (item.documentId ?? String(item.id))}
+                            aria-label="Eliminar registro de kilometraje"
+                          >
+                            {deletingId === (item.documentId ?? String(item.id)) ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        </Can>
                       </div>
                     </div>
                   );

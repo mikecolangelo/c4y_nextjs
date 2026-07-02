@@ -52,6 +52,7 @@ import {
 // Layout & Design
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { BackButton } from "@/components/admin/back-button";
+import { Can } from "@/components/auth/can";
 import { typography, spacing, components } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
 
@@ -511,18 +512,22 @@ export default function FinancingDetailPage() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem>
-              <Edit className="mr-2 h-4 w-4" />
-              Editar
-            </DropdownMenuItem>
+            <Can module="billing" action="canUpdate">
+              <DropdownMenuItem>
+                <Edit className="mr-2 h-4 w-4" />
+                Editar
+              </DropdownMenuItem>
+            </Can>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={() => setDeleteDialogOpen(true)}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Eliminar
-            </DropdownMenuItem>
+            <Can module="billing" action="canDelete">
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => setDeleteDialogOpen(true)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Eliminar
+              </DropdownMenuItem>
+            </Can>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -1176,13 +1181,15 @@ export default function FinancingDetailPage() {
       />
 
       {/* Register Payment Button */}
-      <Button
-        className="w-full mt-6 mb-6 h-12 text-base font-bold"
-        onClick={() => setIsPaymentDialogOpen(true)}
-      >
-        <Plus className="mr-2 h-5 w-5" />
-        Registrar Pago
-      </Button>
+      <Can module="billing" action="canCreate">
+        <Button
+          className="w-full mt-6 mb-6 h-12 text-base font-bold"
+          onClick={() => setIsPaymentDialogOpen(true)}
+        >
+          <Plus className="mr-2 h-5 w-5" />
+          Registrar Pago
+        </Button>
+      </Can>
 
       {/* Delete Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

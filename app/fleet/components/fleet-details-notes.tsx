@@ -8,6 +8,7 @@ import { spacing, typography } from "@/lib/design-system";
 import { FleetNote } from "@/components/ui/notes-timeline";
 import { Textarea } from "@/components_shadcn/ui/textarea";
 import { NotesTimeline } from "@/components/ui/notes-timeline";
+import { Can } from "@/components/auth/can";
 
 interface FleetDetailsNotesCardProps {
   notes: FleetNote[];
@@ -47,10 +48,12 @@ export function FleetDetailsNotesCard({
       <CardHeader className="px-6 pt-6 pb-4 flex flex-row items-center justify-between">
         <CardTitle className={typography.h4}>Notas y Comentarios</CardTitle>
         {notes.length > 0 && !showNoteForm && (
-          <Button onClick={onAddNote} size="sm" variant="outline" className="gap-2">
-            <Plus className="h-4 w-4" />
-            Agregar Nota
-          </Button>
+          <Can module="fleet" action="canCreate">
+            <Button onClick={onAddNote} size="sm" variant="outline" className="gap-2">
+              <Plus className="h-4 w-4" />
+              Agregar Nota
+            </Button>
+          </Can>
         )}
       </CardHeader>
       <CardContent className={`flex flex-col ${spacing.gap.base} px-6 pb-6`}>
@@ -87,26 +90,35 @@ export function FleetDetailsNotesCard({
         )}
 
         {showNoteForm && (
-          <div className={`flex flex-col ${spacing.gap.small} ${notes.length > 0 ? "pt-4 border-t border-border" : ""}`}>
-            <Textarea
-              placeholder="Añadir una nota sobre el vehículo..."
-              value={noteValue}
-              onChange={(e) => onNoteChange(e.target.value)}
-              rows={4}
-              className="min-h-24 resize-y"
-            />
-            <div className="flex gap-2">
-              <Button onClick={onCancelNote} variant="outline" size="lg" className="flex-1">
-                Cancelar
-              </Button>
-              <Button onClick={onSaveNote} variant="default" size="lg" className="flex-1" disabled={!noteValue.trim()}>
-                Guardar Nota
-              </Button>
+          <Can module="fleet" action="canCreate">
+            <div
+              className={`flex flex-col ${spacing.gap.small} ${notes.length > 0 ? "pt-4 border-t border-border" : ""}`}
+            >
+              <Textarea
+                placeholder="Añadir una nota sobre el vehículo..."
+                value={noteValue}
+                onChange={(e) => onNoteChange(e.target.value)}
+                rows={4}
+                className="min-h-24 resize-y"
+              />
+              <div className="flex gap-2">
+                <Button onClick={onCancelNote} variant="outline" size="lg" className="flex-1">
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={onSaveNote}
+                  variant="default"
+                  size="lg"
+                  className="flex-1"
+                  disabled={!noteValue.trim()}
+                >
+                  Guardar Nota
+                </Button>
+              </div>
             </div>
-          </div>
+          </Can>
         )}
       </CardContent>
     </Card>
   );
 }
-

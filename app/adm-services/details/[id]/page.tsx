@@ -50,6 +50,7 @@ import {
 import { spacing, typography } from "@/lib/design-system";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { BackButton } from "@/components/admin/back-button";
+import { Can } from "@/components/auth/can";
 import { toast } from "@/lib/toast";
 import { formatCurrency } from "@/lib/format";
 import type { ServiceCard, ServiceCoverage, InventoryItemRaw } from "@/validations/types";
@@ -497,16 +498,20 @@ export default function AdmServicesDetailsPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="min-w-[8rem]">
-                  <DropdownMenuItem className="cursor-pointer" onClick={() => setIsEditing(true)}>
-                    Editar Servicio
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    variant="destructive"
-                    className="cursor-pointer"
-                    onClick={() => setShowDeleteDialog(true)}
-                  >
-                    Eliminar Servicio
-                  </DropdownMenuItem>
+                  <Can module="adm-services" action="canUpdate">
+                    <DropdownMenuItem className="cursor-pointer" onClick={() => setIsEditing(true)}>
+                      Editar Servicio
+                    </DropdownMenuItem>
+                  </Can>
+                  <Can module="adm-services" action="canDelete">
+                    <DropdownMenuItem
+                      variant="destructive"
+                      className="cursor-pointer"
+                      onClick={() => setShowDeleteDialog(true)}
+                    >
+                      Eliminar Servicio
+                    </DropdownMenuItem>
+                  </Can>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -537,22 +542,26 @@ export default function AdmServicesDetailsPage() {
 
             {/* Botones de acción */}
             <div className={`flex items-center justify-center ${spacing.gap.small} w-full pt-2`}>
-              <Button
-                variant="default"
-                size="icon"
-                className="h-10 w-10 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center"
-                onClick={() => setIsEditing(!isEditing)}
-              >
-                <Edit className="h-5 w-5 flex-shrink-0" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-10 w-10 rounded-lg bg-muted hover:bg-muted/80 flex items-center justify-center"
-                onClick={() => setShowDeleteDialog(true)}
-              >
-                <Trash2 className="h-5 w-5 flex-shrink-0" />
-              </Button>
+              <Can module="adm-services" action="canUpdate">
+                <Button
+                  variant="default"
+                  size="icon"
+                  className="h-10 w-10 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center"
+                  onClick={() => setIsEditing(!isEditing)}
+                >
+                  <Edit className="h-5 w-5 flex-shrink-0" />
+                </Button>
+              </Can>
+              <Can module="adm-services" action="canDelete">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10 rounded-lg bg-muted hover:bg-muted/80 flex items-center justify-center"
+                  onClick={() => setShowDeleteDialog(true)}
+                >
+                  <Trash2 className="h-5 w-5 flex-shrink-0" />
+                </Button>
+              </Can>
               <Button
                 variant="outline"
                 size="icon"
@@ -759,59 +768,61 @@ export default function AdmServicesDetailsPage() {
           </CardHeader>
           <CardContent className={`flex flex-col ${spacing.gap.base} px-6 pb-6`}>
             {/* Selector de repuestos */}
-            <div>
-              <Select
-                value={templateSelectValue}
-                onValueChange={(value) => {
-                  setTemplateSelectValue(value);
-                  if (value !== "none") handleAddTemplateItem(value);
-                }}
-                disabled={isLoadingInventory || availableInventory.length === 0}
-              >
-                <SelectTrigger className="h-10 text-sm w-full">
-                  <SelectValue
-                    placeholder={
-                      isLoadingInventory
-                        ? "Cargando inventario..."
-                        : inventoryError
-                          ? "Error al cargar"
-                          : availableInventory.length === 0
-                            ? "Sin repuestos disponibles"
-                            : "Añadir repuesto del inventario..."
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent className="min-w-[320px] max-w-[90vw] w-[var(--radix-select-trigger-width)]">
-                  <SelectItem value="none">Seleccionar repuesto...</SelectItem>
-                  {availableInventory.map((inv) => {
-                    const itemPrice = Number(inv.salePrice ?? inv.unitCost ?? 0);
-                    return (
-                      <SelectItem
-                        key={String(inv.id ?? inv.documentId)}
-                        value={String(inv.documentId ?? inv.id)}
-                        title={`${inv.code} — ${inv.description || ""}`}
-                      >
-                        <div className="flex items-center gap-2 w-full min-w-0">
-                          <span className="font-medium shrink-0">{inv.code}</span>
-                          <span className="text-muted-foreground truncate flex-1 min-w-0">
-                            {inv.description}
-                          </span>
-                          <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
-                            {itemPrice > 0 ? `$${itemPrice.toFixed(2)}` : "$0.00"}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-              {inventoryError && (
-                <p className="text-xs text-destructive mt-1 flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  {inventoryError}
-                </p>
-              )}
-            </div>
+            <Can module="adm-services" action="canUpdate">
+              <div>
+                <Select
+                  value={templateSelectValue}
+                  onValueChange={(value) => {
+                    setTemplateSelectValue(value);
+                    if (value !== "none") handleAddTemplateItem(value);
+                  }}
+                  disabled={isLoadingInventory || availableInventory.length === 0}
+                >
+                  <SelectTrigger className="h-10 text-sm w-full">
+                    <SelectValue
+                      placeholder={
+                        isLoadingInventory
+                          ? "Cargando inventario..."
+                          : inventoryError
+                            ? "Error al cargar"
+                            : availableInventory.length === 0
+                              ? "Sin repuestos disponibles"
+                              : "Añadir repuesto del inventario..."
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent className="min-w-[320px] max-w-[90vw] w-[var(--radix-select-trigger-width)]">
+                    <SelectItem value="none">Seleccionar repuesto...</SelectItem>
+                    {availableInventory.map((inv) => {
+                      const itemPrice = Number(inv.salePrice ?? inv.unitCost ?? 0);
+                      return (
+                        <SelectItem
+                          key={String(inv.id ?? inv.documentId)}
+                          value={String(inv.documentId ?? inv.id)}
+                          title={`${inv.code} — ${inv.description || ""}`}
+                        >
+                          <div className="flex items-center gap-2 w-full min-w-0">
+                            <span className="font-medium shrink-0">{inv.code}</span>
+                            <span className="text-muted-foreground truncate flex-1 min-w-0">
+                              {inv.description}
+                            </span>
+                            <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
+                              {itemPrice > 0 ? `$${itemPrice.toFixed(2)}` : "$0.00"}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                {inventoryError && (
+                  <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {inventoryError}
+                  </p>
+                )}
+              </div>
+            </Can>
 
             {/* Lista de repuestos de la plantilla */}
             {templateItems.length === 0 ? (
@@ -844,14 +855,16 @@ export default function AdmServicesDetailsPage() {
                           {item.description}
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveTemplateItem(item.id)}
-                        className="p-1.5 hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors shrink-0 mt-0.5"
-                        title="Eliminar repuesto"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      <Can module="adm-services" action="canUpdate">
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTemplateItem(item.id)}
+                          className="p-1.5 hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors shrink-0 mt-0.5"
+                          title="Eliminar repuesto"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </Can>
                     </div>
 
                     {/* Fila inferior: cantidad, precio unitario, total */}
@@ -860,27 +873,47 @@ export default function AdmServicesDetailsPage() {
                         <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
                           Cantidad
                         </Label>
-                        <Input
-                          type="number"
-                          min="0.1"
-                          step="0.1"
-                          value={item.quantity}
-                          onChange={(e) => handleQuantityChange(item.id, e.target.value)}
-                          className="w-20 h-8 text-sm"
-                        />
+                        <Can
+                          module="adm-services"
+                          action="canUpdate"
+                          fallback={
+                            <p className="h-8 w-20 flex items-center text-sm tabular-nums">
+                              {item.quantity}
+                            </p>
+                          }
+                        >
+                          <Input
+                            type="number"
+                            min="0.1"
+                            step="0.1"
+                            value={item.quantity}
+                            onChange={(e) => handleQuantityChange(item.id, e.target.value)}
+                            className="w-20 h-8 text-sm"
+                          />
+                        </Can>
                       </div>
                       <div className="flex flex-col gap-1 flex-1">
                         <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
                           Precio unitario
                         </Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={item.salePrice}
-                          onChange={(e) => handlePriceChange(item.id, e.target.value)}
-                          className="w-full h-8 text-sm"
-                        />
+                        <Can
+                          module="adm-services"
+                          action="canUpdate"
+                          fallback={
+                            <p className="h-8 flex items-center text-sm tabular-nums">
+                              {formatCurrency(item.salePrice)}
+                            </p>
+                          }
+                        >
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.salePrice}
+                            onChange={(e) => handlePriceChange(item.id, e.target.value)}
+                            className="w-full h-8 text-sm"
+                          />
+                        </Can>
                       </div>
                       <div className="flex flex-col gap-1">
                         <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
@@ -909,25 +942,27 @@ export default function AdmServicesDetailsPage() {
             )}
 
             {/* Botón guardar manual (fallback) */}
-            <Button
-              onClick={() => handleSaveTemplate(false)}
-              disabled={isSavingTemplate}
-              variant="outline"
-              size="sm"
-              className="w-full mt-2"
-            >
-              {isSavingTemplate ? (
-                <>
-                  <Loader2 className="animate-spin h-4 w-4 mr-2" />
-                  Guardando...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Guardar ahora
-                </>
-              )}
-            </Button>
+            <Can module="adm-services" action="canUpdate">
+              <Button
+                onClick={() => handleSaveTemplate(false)}
+                disabled={isSavingTemplate}
+                variant="outline"
+                size="sm"
+                className="w-full mt-2"
+              >
+                {isSavingTemplate ? (
+                  <>
+                    <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Guardar ahora
+                  </>
+                )}
+              </Button>
+            </Can>
           </CardContent>
         </Card>
       </section>

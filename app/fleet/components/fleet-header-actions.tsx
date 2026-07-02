@@ -5,6 +5,7 @@ import { Input } from "@/components_shadcn/ui/input";
 import { Grid3x3, List, Table, Trash2, CheckSquare, Square, Search, Plus } from "lucide-react";
 import { spacing, typography } from "@/lib/design-system";
 import { PageSizeSelect } from "@/components/ui/page-size-select";
+import { Can } from "@/components/auth/can";
 
 export type FleetViewMode = "list" | "grid" | "table";
 
@@ -95,29 +96,33 @@ export function FleetHeaderActions({
             </Button>
           ))}
 
-          <Button
-            variant={isSelectMode ? "default" : "outline"}
-            size="sm"
-            onClick={toggleSelectMode}
-            className="h-8"
-            aria-label="Modo selección"
-          >
-            {isSelectMode ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
-          </Button>
+          <Can module="fleet" action="canDelete">
+            <Button
+              variant={isSelectMode ? "default" : "outline"}
+              size="sm"
+              onClick={toggleSelectMode}
+              className="h-8"
+              aria-label="Modo selección"
+            >
+              {isSelectMode ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
+            </Button>
+          </Can>
         </div>
 
         <div className="flex items-center gap-2">
           {isSelectMode && selectedVehiclesCount > 0 && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={onDeleteMultiple}
-              disabled={isDeleting}
-              className="h-8"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Eliminar ({selectedVehiclesCount})
-            </Button>
+            <Can module="fleet" action="canDelete">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={onDeleteMultiple}
+                disabled={isDeleting}
+                className="h-8"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Eliminar ({selectedVehiclesCount})
+              </Button>
+            </Can>
           )}
 
           {hasActiveFilters && (

@@ -5,6 +5,7 @@ import type { MouseEvent } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components_shadcn/ui/button";
 import { toast } from "@/lib/toast";
+import { usePermissions } from "@/lib/permissions-context";
 import { spacing, typography } from "@/lib/design-system";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { BackButton } from "@/components/admin/back-button";
@@ -43,6 +44,7 @@ export default function FleetDetailsPage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const vehicleId = params.id as string;
+  const { can } = usePermissions();
 
   // Estados locales de UI
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -602,12 +604,14 @@ export default function FleetDetailsPage() {
   useEffect(() => {
     const editParam = searchParams.get("edit");
     if (editParam === "true" && !isLoading && vehicleData) {
-      setIsEditing(true);
+      if (can("fleet", "canUpdate")) {
+        setIsEditing(true);
+      }
       const url = new URL(window.location.href);
       url.searchParams.delete("edit");
       window.history.replaceState({}, "", url.toString());
     }
-  }, [searchParams, isLoading, vehicleData, setIsEditing]);
+  }, [searchParams, isLoading, vehicleData, setIsEditing, can]);
 
   // Precio formateado
   const priceLabel = useMemo(() => {

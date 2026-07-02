@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components_shadcn/ui/dropdown-menu";
 import { spacing, typography } from "@/lib/design-system";
+import { Can } from "@/components/auth/can";
 import { strapiImages } from "@/lib/strapi-images";
 import type { FleetVehicleCondition, StrapiImage } from "@/validations/types";
 import { VehicleImage } from "@/components/ui/fleet/vehicle-image";
@@ -96,25 +97,29 @@ export function VehicleHeaderCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[12rem]">
-              <DropdownMenuItem className="cursor-pointer" onClick={onEdit}>
-                <Edit className="h-4 w-4 mr-2" />
-                Editar Vehículo
-              </DropdownMenuItem>
+              <Can module="fleet" action="canUpdate">
+                <DropdownMenuItem className="cursor-pointer" onClick={onEdit}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Editar Vehículo
+                </DropdownMenuItem>
+              </Can>
               {onCreateServiceAppointment && (
                 <DropdownMenuItem className="cursor-pointer" onClick={onCreateServiceAppointment}>
                   <Calendar className="h-4 w-4 mr-2" />
                   Agendar Servicio
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem
-                variant="destructive"
-                className="cursor-pointer text-primary focus:text-primary hover:text-primary"
-                onClick={onDelete}
-                disabled={isDeleting}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Eliminar Vehículo
-              </DropdownMenuItem>
+              <Can module="fleet" action="canDelete">
+                <DropdownMenuItem
+                  variant="destructive"
+                  className="cursor-pointer text-primary focus:text-primary hover:text-primary"
+                  onClick={onDelete}
+                  disabled={isDeleting}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Eliminar Vehículo
+                </DropdownMenuItem>
+              </Can>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -140,15 +145,17 @@ export function VehicleHeaderCard({
         </div>
 
         <div className={`flex items-center justify-center ${spacing.gap.small} w-full pt-2`}>
-          <Button
-            variant="default"
-            size="icon"
-            className="h-10 w-10 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center"
-            onClick={onEdit}
-            aria-label="Editar vehículo"
-          >
-            <Edit className="h-5 w-5" />
-          </Button>
+          <Can module="fleet" action="canUpdate">
+            <Button
+              variant="default"
+              size="icon"
+              className="h-10 w-10 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center"
+              onClick={onEdit}
+              aria-label="Editar vehículo"
+            >
+              <Edit className="h-5 w-5" />
+            </Button>
+          </Can>
           {onCreateServiceAppointment && (
             <Button
               variant="outline"
@@ -160,16 +167,18 @@ export function VehicleHeaderCard({
               <Wrench className="h-5 w-5" />
             </Button>
           )}
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-10 w-10 rounded-lg bg-muted hover:bg-muted/80 flex items-center justify-center"
-            aria-label="Eliminar vehículo"
-            onClick={onDelete}
-            disabled={isDeleting}
-          >
-            <Trash2 className="h-5 w-5" />
-          </Button>
+          <Can module="fleet" action="canDelete">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 rounded-lg bg-muted hover:bg-muted/80 flex items-center justify-center"
+              aria-label="Eliminar vehículo"
+              onClick={onDelete}
+              disabled={isDeleting}
+            >
+              <Trash2 className="h-5 w-5" />
+            </Button>
+          </Can>
         </div>
       </CardContent>
     </Card>

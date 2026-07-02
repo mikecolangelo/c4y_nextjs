@@ -11,6 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components_shadcn/ui/alert-dialog";
+import { Can } from "@/components/auth/can";
 
 interface VehicleDeleteDialogProps {
   isOpen: boolean;
@@ -31,17 +32,19 @@ export function VehicleDeleteDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>¿Eliminar este vehículo?</AlertDialogTitle>
           <AlertDialogDescription>
-            Esta acción eliminará el vehículo de la flota y no se podrá deshacer. Confirma si deseas continuar.
+            Esta acción eliminará el vehículo de la flota y no se podrá deshacer. Confirma si deseas
+            continuar.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirmDelete} disabled={isDeleting}>
-            {isDeleting ? "Eliminando..." : "Eliminar"}
-          </AlertDialogAction>
+          <Can module="fleet" action="canDelete">
+            <AlertDialogAction onClick={onConfirmDelete} disabled={isDeleting}>
+              {isDeleting ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </Can>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   );
 }
-

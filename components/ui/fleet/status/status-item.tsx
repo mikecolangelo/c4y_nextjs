@@ -25,6 +25,7 @@ import { Label } from "@/components_shadcn/ui/label";
 import { typography, spacing } from "@/lib/design-system";
 import { strapiImages } from "@/lib/strapi-images";
 import { StatusItemSkeleton } from "./status-item-skeleton";
+import { Can } from "@/components/auth/can";
 import type { StatusItemProps } from "./types";
 
 export function StatusItem({ status, isLast, isLoading, onEdit, onDelete }: StatusItemProps) {
@@ -203,26 +204,30 @@ export function StatusItem({ status, isLast, isLoading, onEdit, onDelete }: Stat
           {!isEditing && (onEdit || onDelete) && (
             <div className="absolute top-1.5 right-2 flex gap-1 z-10">
               {onEdit && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => setIsEditing(true)}
-                  disabled={isDeleting}
-                >
-                  <Edit2 className="h-3.5 w-3.5" />
-                </Button>
+                <Can module="fleet" action="canUpdate">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setIsEditing(true)}
+                    disabled={isDeleting}
+                  >
+                    <Edit2 className="h-3.5 w-3.5" />
+                  </Button>
+                </Can>
               )}
               {onDelete && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-destructive hover:text-destructive"
-                  onClick={handleDelete}
-                  disabled={isDeleting || isSaving}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+                <Can module="fleet" action="canDelete">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-destructive hover:text-destructive"
+                    onClick={handleDelete}
+                    disabled={isDeleting || isSaving}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </Can>
               )}
             </div>
           )}

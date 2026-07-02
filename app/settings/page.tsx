@@ -34,6 +34,7 @@ import {
 import { BillingSettingsSection } from "./components/billing-settings-section";
 import { PermissionsSettingsSection } from "./components/permissions-settings-section";
 import { MenuSettingsSection } from "./components/menu-settings-section";
+import { usePermissions } from "@/lib/permissions-context";
 
 interface Configuration {
   id: number;
@@ -76,6 +77,9 @@ const defaultCompanyInfo: CompanyInfo = {
 };
 
 export default function SettingsPage() {
+  const { can } = usePermissions();
+  const canEditSettings = can("settings", "canUpdate");
+  const canCreateSettings = can("settings", "canCreate");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [configurations, setConfigurations] = useState<Configuration[]>([]);
@@ -262,6 +266,7 @@ export default function SettingsPage() {
                     onChange={(e) =>
                       setCompanyInfo({ ...companyInfo, companyName: e.target.value })
                     }
+                    disabled={!canEditSettings}
                     placeholder="CAR 4 YOU PANAMA, S.A."
                   />
                 </div>
@@ -272,6 +277,7 @@ export default function SettingsPage() {
                     type="email"
                     value={companyInfo.email}
                     onChange={(e) => setCompanyInfo({ ...companyInfo, email: e.target.value })}
+                    disabled={!canEditSettings}
                     placeholder="contacto@car4you.com"
                   />
                 </div>
@@ -281,6 +287,7 @@ export default function SettingsPage() {
                     id="phone"
                     value={companyInfo.phone}
                     onChange={(e) => setCompanyInfo({ ...companyInfo, phone: e.target.value })}
+                    disabled={!canEditSettings}
                     placeholder="+507 6000-0000"
                   />
                 </div>
@@ -292,6 +299,7 @@ export default function SettingsPage() {
                     onChange={(e) =>
                       setCompanyInfo({ ...companyInfo, legalRepName: e.target.value })
                     }
+                    disabled={!canEditSettings}
                     placeholder="Nombre completo"
                   />
                 </div>
@@ -303,6 +311,7 @@ export default function SettingsPage() {
                     onChange={(e) =>
                       setCompanyInfo({ ...companyInfo, legalRepNationality: e.target.value })
                     }
+                    disabled={!canEditSettings}
                     placeholder="estadounidense"
                   />
                 </div>
@@ -314,6 +323,7 @@ export default function SettingsPage() {
                     onChange={(e) =>
                       setCompanyInfo({ ...companyInfo, legalRepMaritalStatus: e.target.value })
                     }
+                    disabled={!canEditSettings}
                     placeholder="casado"
                   />
                 </div>
@@ -325,6 +335,7 @@ export default function SettingsPage() {
                     onChange={(e) =>
                       setCompanyInfo({ ...companyInfo, legalRepPassport: e.target.value })
                     }
+                    disabled={!canEditSettings}
                     placeholder="A80537445"
                   />
                 </div>
@@ -337,6 +348,7 @@ export default function SettingsPage() {
                   onChange={(e) =>
                     setCompanyInfo({ ...companyInfo, companyAddress: e.target.value })
                   }
+                  disabled={!canEditSettings}
                   placeholder="Dirección completa de la empresa"
                   rows={2}
                 />
@@ -347,18 +359,21 @@ export default function SettingsPage() {
                   id="registryInfo"
                   value={companyInfo.registryInfo}
                   onChange={(e) => setCompanyInfo({ ...companyInfo, registryInfo: e.target.value })}
+                  disabled={!canEditSettings}
                   placeholder="Inscrita a ficha, documento, de la Sección Mercantil del Registro Público"
                   rows={2}
                 />
               </div>
-              <Button onClick={saveCompanyInfo} disabled={isSaving} className="w-full sm:w-auto">
-                {isSaving ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <Save className="h-4 w-4 mr-2" />
-                )}
-                Guardar Información
-              </Button>
+              {canEditSettings && (
+                <Button onClick={saveCompanyInfo} disabled={isSaving} className="w-full sm:w-auto">
+                  {isSaving ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Guardar Información
+                </Button>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -382,6 +397,8 @@ export default function SettingsPage() {
                 onConfigChange={handleConfigChange}
                 onSaveConfig={saveConfiguration}
                 onCreateConfig={createConfiguration}
+                canEdit={canEditSettings}
+                canCreate={canCreateSettings}
                 defaultConfigs={[
                   {
                     key: "WHATSAPP_PHONE_NUMBER_ID",
@@ -423,6 +440,8 @@ export default function SettingsPage() {
                 onConfigChange={handleConfigChange}
                 onSaveConfig={saveConfiguration}
                 onCreateConfig={createConfiguration}
+                canEdit={canEditSettings}
+                canCreate={canCreateSettings}
                 defaultConfigs={[
                   {
                     key: "GOOGLE_CLIENT_ID",
@@ -470,6 +489,8 @@ export default function SettingsPage() {
                 onConfigChange={handleConfigChange}
                 onSaveConfig={saveConfiguration}
                 onCreateConfig={createConfiguration}
+                canEdit={canEditSettings}
+                canCreate={canCreateSettings}
                 defaultConfigs={[
                   {
                     key: "CONTACT_PHONE_1",
@@ -520,6 +541,8 @@ interface ConfigurationSectionProps {
     isSecret: boolean
   ) => Promise<void>;
   defaultConfigs: { key: string; description: string; isSecret: boolean }[];
+  canEdit: boolean;
+  canCreate: boolean;
 }
 
 function ConfigurationSection({
@@ -532,6 +555,8 @@ function ConfigurationSection({
   onSaveConfig,
   onCreateConfig,
   defaultConfigs,
+  canEdit,
+  canCreate,
 }: ConfigurationSectionProps) {
   const [savingKeys, setSavingKeys] = useState<Record<string, boolean>>({});
 
@@ -567,17 +592,19 @@ function ConfigurationSection({
                   )}
                 </Button>
               )}
-              <Button
-                size="sm"
-                onClick={() => handleSave(config.key, editedConfigs[config.key] ?? config.value)}
-                disabled={savingKeys[config.key]}
-              >
-                {savingKeys[config.key] ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
-              </Button>
+              {canEdit && (
+                <Button
+                  size="sm"
+                  onClick={() => handleSave(config.key, editedConfigs[config.key] ?? config.value)}
+                  disabled={savingKeys[config.key]}
+                >
+                  {savingKeys[config.key] ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
             </div>
           </div>
           <p className="text-sm text-muted-foreground">{config.description}</p>
@@ -588,12 +615,13 @@ function ConfigurationSection({
               (config.isSecret && config.value === "••••••••" ? "" : config.value)
             }
             onChange={(e) => onConfigChange(config.key, e.target.value)}
+            disabled={!canEdit}
             placeholder={config.isSecret ? "Ingresa el valor secreto" : "Ingresa un valor"}
           />
         </div>
       ))}
 
-      {missingConfigs.length > 0 && (
+      {canCreate && missingConfigs.length > 0 && (
         <div className="border-t pt-4 mt-4">
           <p className="text-sm text-muted-foreground mb-3">
             Configuraciones sugeridas pendientes de crear:
@@ -613,7 +641,7 @@ function ConfigurationSection({
         </div>
       )}
 
-      {configs.length === 0 && missingConfigs.length === 0 && (
+      {configs.length === 0 && (!canCreate || missingConfigs.length === 0) && (
         <p className="text-muted-foreground text-center py-8">
           No hay configuraciones en esta categoría
         </p>

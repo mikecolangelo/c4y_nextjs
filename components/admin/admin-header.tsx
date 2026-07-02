@@ -98,85 +98,64 @@ export function AdminHeader({
     fetchPermissions();
   }, []);
 
-  // Cargar recordatorios y notificaciones manuales
+  // Cargar recordatorios y notificaciones manuales desde una ÚNICA fuente.
+  //
+  // `/api/notifications` ya consolida recordatorios (`type === "reminder"`) y
+  // notificaciones manuales en una sola respuesta deduplicada — igual que la
+  // página `/notifications`. Antes el campanita consumía además `/api/reminders`,
+  // y como ambas rutas leen la MISMA colección de Strapi, un mismo recordatorio
+  // aparecía dos veces: en "Nuevas" (vía la heurística frágil que trataba un
+  // `type="reminder"` sin `reminderType`/`module` como manual) y en
+  // "Recordatorios". Usar la fuente única elimina el duplicado de raíz y mantiene
+  // el campanita consistente con la página completa.
   const loadNotifications = useCallback(async () => {
     setIsLoadingReminders(true);
     try {
-      // Cargar recordatorios desde /api/reminders
-      const remindersResponse = await fetch("/api/reminders", { cache: "no-store" });
-      if (remindersResponse.ok) {
-        const { data } = await remindersResponse.json();
-        // Filtrar recordatorios activos y no completados
-        const activeReminders = (data || []).filter(
-          (r: any) => normalizeBoolean(r.isActive) && !normalizeBoolean(r.isCompleted)
-        );
-
-        // Aplicar deduplicación adicional en el frontend
-        const remindersByKey = new Map<string, any>();
-        for (const reminder of activeReminders) {
-          const normalizedTitle = (reminder.title?.trim() || "").toLowerCase();
-          const vehicleId =
-            reminder.vehicle?.documentId ||
-            reminder.vehicle?.id ||
-            (reminder.vehicle?.name ? reminder.vehicle.name.toLowerCase().trim() : "unknown");
-          const key = `${normalizedTitle}-${vehicleId}`;
-
-          const existing = remindersByKey.get(key);
-          if (!existing) {
-            remindersByKey.set(key, reminder);
-          } else {
-            const existingDate = existing.createdAt ? new Date(existing.createdAt).getTime() : 0;
-            const newDate = reminder.createdAt ? new Date(reminder.createdAt).getTime() : 0;
-            const existingId = existing.id || 0;
-            const newId = reminder.id || 0;
-
-            if (newDate > existingDate || (newDate === existingDate && newId > existingId)) {
-              remindersByKey.set(key, reminder);
-            }
-          }
-        }
-
-        let uniqueReminders = Array.from(remindersByKey.values());
-
-        // Filtrar recordatorios de vehículo para no-admins
-        const isAdminUser = userRole === "admin" || userRole === "super-admin";
-        if (!isAdminUser) {
-          uniqueReminders = uniqueReminders.filter((r: any) => !r.vehicle);
-        }
-
-        // Ordenar: primero los que ya pasaron (urgentes), luego por fecha próxima
-        const now = new Date();
-        uniqueReminders.sort((a: any, b: any) => {
-          const dateA = new Date(a.nextTrigger);
-          const dateB = new Date(b.nextTrigger);
-          const isPastA = dateA < now;
-          const isPastB = dateB < now;
-
-          if (isPastA && !isPastB) return -1;
-          if (!isPastA && isPastB) return 1;
-
-          return dateA.getTime() - dateB.getTime();
-        });
-        setReminders(uniqueReminders);
+      const response = await fetch("/api/notifications", { cache: "no-store" });
+      if (!response.ok) {
+        return;
       }
 
-      // Cargar notificaciones manuales desde /api/notifications
-      const notificationsResponse = await fetch("/api/notifications", { cache: "no-store" });
-      if (notificationsResponse.ok) {
-        const { data } = await notificationsResponse.json();
-        // Filtrar solo notificaciones manuales (no recordatorios) que no estén leídas
-        const unreadManualNotifications = (data || []).filter((n: any) => {
-          // Solo notificaciones manuales (excluir recordatorios que también vienen en esta API)
-          const isManual = n.type !== "reminder" || (!n.reminderType && !n.module);
-          // No leídas y no expiradas
-          const isUnread = !normalizeBoolean(n.isRead);
-          // No completadas
-          const isNotCompleted = !normalizeBoolean(n.isCompleted);
-          return isManual && isUnread && isNotCompleted;
-        });
+      const { data } = await response.json();
+      const allNotifications: any[] = data || [];
 
-        setManualNotifications(unreadManualNotifications);
+      // Recordatorios: un `type === "reminder"` SIEMPRE es recordatorio, nunca
+      // una notificación manual (misma regla que usa la página).
+      const isAdminUser = userRole === "admin" || userRole === "super-admin";
+      let activeReminders = allNotifications
+        .filter((n: any) => n.type === "reminder")
+        // `/api/notifications` expone el vehículo como `fleetVehicle`; el render
+        // espera `vehicle`.
+        .map((r: any) => ({ ...r, vehicle: r.vehicle || r.fleetVehicle }))
+        .filter((r: any) => normalizeBoolean(r.isActive) && !normalizeBoolean(r.isCompleted));
+
+      // Ocultar recordatorios de vehículo a los no-admins.
+      if (!isAdminUser) {
+        activeReminders = activeReminders.filter((r: any) => !r.vehicle);
       }
+
+      // Ordenar: primero los vencidos (urgentes), luego por fecha próxima.
+      const now = new Date();
+      activeReminders.sort((a: any, b: any) => {
+        const dateA = new Date(a.nextTrigger);
+        const dateB = new Date(b.nextTrigger);
+        const isPastA = dateA < now;
+        const isPastB = dateB < now;
+
+        if (isPastA && !isPastB) return -1;
+        if (!isPastA && isPastB) return 1;
+
+        return dateA.getTime() - dateB.getTime();
+      });
+      setReminders(activeReminders);
+
+      // Notificaciones manuales: todo lo que NO es recordatorio, sin leer y sin
+      // completar.
+      const unreadManualNotifications = allNotifications.filter((n: any) => {
+        if (n.type === "reminder") return false;
+        return !normalizeBoolean(n.isRead) && !normalizeBoolean(n.isCompleted);
+      });
+      setManualNotifications(unreadManualNotifications);
     } catch (error) {
       console.error("Error cargando notificaciones:", error);
     } finally {
@@ -257,33 +236,10 @@ export function AdminHeader({
         // Emitir evento de eliminación después de actualizar el estado local
         emitReminderDeleted(reminderId);
 
-        // Recargar después de un pequeño delay para asegurar que el servidor procesó la eliminación
+        // Recargar desde la fuente única tras un pequeño delay para confirmar el
+        // estado del servidor después de eliminar.
         setTimeout(() => {
-          const loadReminders = async () => {
-            try {
-              const response = await fetch("/api/reminders", { cache: "no-store" });
-              if (response.ok) {
-                const { data } = await response.json();
-                const activeReminders = (data || []).filter(
-                  (r: any) => normalizeBoolean(r.isActive) && !normalizeBoolean(r.isCompleted)
-                );
-                const now = new Date();
-                activeReminders.sort((a: any, b: any) => {
-                  const dateA = new Date(a.nextTrigger);
-                  const dateB = new Date(b.nextTrigger);
-                  const isPastA = dateA < now;
-                  const isPastB = dateB < now;
-                  if (isPastA && !isPastB) return -1;
-                  if (!isPastA && isPastB) return 1;
-                  return dateA.getTime() - dateB.getTime();
-                });
-                setReminders(activeReminders.slice(0, 5));
-              }
-            } catch (error) {
-              console.error("Error recargando recordatorios después de eliminar:", error);
-            }
-          };
-          loadReminders();
+          loadNotifications();
         }, 500);
       } else {
         const errorText = await response.text();

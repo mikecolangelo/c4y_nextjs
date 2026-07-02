@@ -28,6 +28,7 @@ import {
 } from "@/components_shadcn/ui/dropdown-menu";
 import { spacing, typography, commonClasses } from "@/lib/design-system";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { Can } from "@/components/auth/can";
 import {
   CreateDealDialog,
   UploadContractDialog,
@@ -354,22 +355,26 @@ export default function DealPage() {
     <AdminLayout title="Gestión de Contratos" showFilterAction>
       {/* Botones de acción principal */}
       <section className={`flex ${spacing.gap.small}`}>
-        <Button
-          variant="default"
-          className="flex-1 flex items-center justify-center gap-2"
-          onClick={() => setIsCreateDialogOpen(true)}
-        >
-          <Plus className="h-4 w-4" />
-          Generar Contrato
-        </Button>
-        <Button
-          variant="outline"
-          className="flex-1 flex items-center justify-center gap-2"
-          onClick={() => setIsUploadDialogOpen(true)}
-        >
-          <Upload className="h-4 w-4" />
-          Subir Contrato
-        </Button>
+        <Can module="deal" action="canCreate">
+          <Button
+            variant="default"
+            className="flex-1 flex items-center justify-center gap-2"
+            onClick={() => setIsCreateDialogOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+            Generar Contrato
+          </Button>
+        </Can>
+        <Can module="deal" action="canCreate">
+          <Button
+            variant="outline"
+            className="flex-1 flex items-center justify-center gap-2"
+            onClick={() => setIsUploadDialogOpen(true)}
+          >
+            <Upload className="h-4 w-4" />
+            Subir Contrato
+          </Button>
+        </Can>
       </section>
 
       {/* Barra de búsqueda */}
@@ -456,15 +461,19 @@ export default function DealPage() {
                         >
                           Ver detalles
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={(e) => handleDelete(deal.documentId, e)}
-                        >
-                          Eliminar
-                        </DropdownMenuItem>
+                        <Can module="deal" action="canUpdate">
+                          <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+                            Editar
+                          </DropdownMenuItem>
+                        </Can>
+                        <Can module="deal" action="canDelete">
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={(e) => handleDelete(deal.documentId, e)}
+                          >
+                            Eliminar
+                          </DropdownMenuItem>
+                        </Can>
                       </DropdownMenuContent>
                     </DropdownMenu>
                     <ChevronRight className="h-5 w-5 text-muted-foreground" />

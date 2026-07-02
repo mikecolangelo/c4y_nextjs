@@ -78,6 +78,8 @@ import {
   DialogFooter,
 } from "@/components_shadcn/ui/dialog";
 import { typography, spacing, components } from "@/lib/design-system";
+import { Can } from "@/components/auth/can";
+import { usePermissions } from "@/lib/permissions-context";
 import { cn } from "@/lib/utils";
 import { PaymentExport } from "./payment-export";
 
@@ -277,6 +279,7 @@ const penaltyConfig = {
 
 interface DraggableChildItemProps {
   child: PaymentRecord;
+  canDrag: boolean;
   onPaymentClick?: (payment: PaymentRecord) => void;
   onDisassociateFromParent?: (paymentId: string) => Promise<void>;
   onDisassociate?: (payment: PaymentRecord) => void; // Nueva prop para desasociación asíncrona
@@ -289,6 +292,7 @@ interface DraggableChildItemProps {
 // Componente para un hijo draggable
 function DraggableChildItem({
   child,
+  canDrag,
   onPaymentClick,
   onDisassociateFromParent,
   onDisassociate,
@@ -302,6 +306,7 @@ function DraggableChildItem({
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: String(child.id),
     data: { type: "payment", payment: child },
+    disabled: !canDrag,
   });
 
   const style = transform
@@ -348,12 +353,13 @@ function DraggableChildItem({
         <ChildStatusIcon className={cn("h-2 w-2", childConfig.textColor)} />
       </div>
 
-      {/* Card del hijo - ahora toda la tarjeta es draggable */}
+      {/* Card del hijo - ahora toda la tarjeta es draggable (solo si el usuario tiene permiso) */}
       <div
-        {...attributes}
-        {...listeners}
+        {...(canDrag ? attributes : {})}
+        {...(canDrag ? listeners : {})}
         className={cn(
-          "rounded-lg p-2 border transition-all cursor-grab active:cursor-grabbing",
+          "rounded-lg p-2 border transition-all",
+          canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-default",
           childConfig.bgColor,
           childConfig.borderColor,
           "group-hover:shadow-sm"
@@ -362,8 +368,8 @@ function DraggableChildItem({
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Indicador visual de drag */}
-              <GripVertical className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+              {/* Indicador visual de drag (solo si el usuario puede arrastrar) */}
+              {canDrag && <GripVertical className="h-3 w-3 text-muted-foreground flex-shrink-0" />}
               <span className="text-sm font-medium">{getShortIdentifier(child)}</span>
               {child.quotaNumber && (
                 <Badge variant="outline" className="text-[10px]">
@@ -391,33 +397,37 @@ function DraggableChildItem({
 
             {/* Botón desasociar para hijos */}
             {(onDisassociate || onDisassociateFromParent) && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // Usar nueva función asíncrona si está disponible
-                  if (onDisassociate) {
-                    onDisassociate(child);
-                  } else if (onDisassociateFromParent) {
-                    onDisassociateFromParent(String(child.id));
-                  }
-                }}
-                className="p-1 hover:bg-orange-100 rounded-full text-orange-500 transition-colors cursor-pointer"
-                title="Desasociar de recibo padre"
-              >
-                <Unlink className="h-3 w-3" />
-              </button>
+              <Can module="billing" action="canUpdate">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Usar nueva función asíncrona si está disponible
+                    if (onDisassociate) {
+                      onDisassociate(child);
+                    } else if (onDisassociateFromParent) {
+                      onDisassociateFromParent(String(child.id));
+                    }
+                  }}
+                  className="p-1 hover:bg-orange-100 rounded-full text-orange-500 transition-colors cursor-pointer"
+                  title="Desasociar de recibo padre"
+                >
+                  <Unlink className="h-3 w-3" />
+                </button>
+              </Can>
             )}
 
             {/* Botón eliminar para hijos */}
             {onDeletePayment && (
-              <button
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="p-1 hover:bg-red-100 rounded-full text-red-500 transition-colors cursor-pointer disabled:opacity-50"
-                title="Eliminar"
-              >
-                <Trash2 className="h-3 w-3" />
-              </button>
+              <Can module="billing" action="canDelete">
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="p-1 hover:bg-red-100 rounded-full text-red-500 transition-colors cursor-pointer disabled:opacity-50"
+                  title="Eliminar"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </Can>
             )}
           </div>
         </div>
@@ -567,6 +577,11 @@ export function PaymentTimeline({
   onDisassociateFromParent,
   availableParents = [],
 }: PaymentTimelineProps) {
+  const { can } = usePermissions();
+  // Permiso requerido para asociar/desasociar pagos vía drag & drop (misma
+  // acción que gatilla los botones equivalentes de asociar/desasociar).
+  const canDragAssociate = can("billing", "canUpdate");
+
   // Estado local de pagos para actualizaciones optimistas (sin recargar)
   const [localPayments, setLocalPayments] = useState<PaymentRecord[]>(payments);
 
@@ -763,6 +778,11 @@ export function PaymentTimeline({
     setActiveDragId(null);
     setOverId(null);
     setIsDragging(false);
+
+    // Defensa en profundidad: sin permiso de actualización de billing, no se
+    // permite asociar/desasociar pagos vía drag & drop (misma regla que los
+    // botones equivalentes, gateados con <Can module="billing" action="canUpdate">).
+    if (!canDragAssociate) return;
 
     if (!over) return;
 
@@ -1316,7 +1336,8 @@ export function PaymentTimeline({
     const isPenalty = payment.recordType === "penalty";
     const config = isPenalty ? penaltyConfig : isMulta ? multaConfig : statusConfig[payment.status];
     const StatusIcon = config.icon;
-    const isDraggable = onAssociateToParent && canDragPayment(payment) && !isPenalty;
+    const isDraggable =
+      onAssociateToParent && canDragPayment(payment) && !isPenalty && canDragAssociate;
     const isDropTarget = overId === payment.id && activeDragId !== payment.id;
 
     return (
@@ -1628,47 +1649,55 @@ export function PaymentTimeline({
 
               <div onPointerDown={(e) => e.stopPropagation()} className="flex items-center gap-1">
                 {!isPenalty && onAssociateToParent && !payment.parentId && (
-                  <button
-                    onClick={(e) => openAssociateModal(payment, e)}
-                    className="p-1 hover:bg-blue-100 rounded-full text-blue-500 transition-colors cursor-pointer"
-                    title="Asociar a recibo"
-                  >
-                    <Link2 className="h-4 w-4" />
-                  </button>
+                  <Can module="billing" action="canUpdate">
+                    <button
+                      onClick={(e) => openAssociateModal(payment, e)}
+                      className="p-1 hover:bg-blue-100 rounded-full text-blue-500 transition-colors cursor-pointer"
+                      title="Asociar a recibo"
+                    >
+                      <Link2 className="h-4 w-4" />
+                    </button>
+                  </Can>
                 )}
                 {!isPenalty && onDisassociateFromParent && payment.parentId && (
-                  <button
-                    onClick={(e) => handleDisassociate(payment, e)}
-                    className="p-1 hover:bg-orange-100 rounded-full text-orange-500 transition-colors cursor-pointer"
-                    title={`Desasociar de ${payment.parentReceiptNumber || "recibo padre"}`}
-                  >
-                    <Unlink className="h-4 w-4" />
-                  </button>
+                  <Can module="billing" action="canUpdate">
+                    <button
+                      onClick={(e) => handleDisassociate(payment, e)}
+                      className="p-1 hover:bg-orange-100 rounded-full text-orange-500 transition-colors cursor-pointer"
+                      title={`Desasociar de ${payment.parentReceiptNumber || "recibo padre"}`}
+                    >
+                      <Unlink className="h-4 w-4" />
+                    </button>
+                  </Can>
                 )}
               </div>
 
               <div onPointerDown={(e) => e.stopPropagation()} className="flex items-center gap-1">
                 {!isPenalty && onPayPending && payment.status === "pendiente" && (
-                  <button
-                    onClick={(e) => openPayPendingModal(payment, e)}
-                    className="p-1.5 hover:bg-green-100 rounded-full text-green-600 transition-colors cursor-pointer"
-                    title="Pagar cuota"
-                  >
-                    <CreditCard className="h-4 w-4" />
-                  </button>
+                  <Can module="billing" action="canUpdate">
+                    <button
+                      onClick={(e) => openPayPendingModal(payment, e)}
+                      className="p-1.5 hover:bg-green-100 rounded-full text-green-600 transition-colors cursor-pointer"
+                      title="Pagar cuota"
+                    >
+                      <CreditCard className="h-4 w-4" />
+                    </button>
+                  </Can>
                 )}
 
                 {!isPenalty && onDeletePayment && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeletePayment(payment);
-                    }}
-                    className="p-1 hover:bg-red-100 rounded-full text-red-500 transition-colors cursor-pointer"
-                    title="Eliminar cuota"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <Can module="billing" action="canDelete">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeletePayment(payment);
+                      }}
+                      className="p-1 hover:bg-red-100 rounded-full text-red-500 transition-colors cursor-pointer"
+                      title="Eliminar cuota"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </Can>
                 )}
 
                 {payment.children && payment.children.length > 0 && (
@@ -1707,6 +1736,7 @@ export function PaymentTimeline({
                 <DraggableChildItem
                   key={child.id}
                   child={child}
+                  canDrag={canDragAssociate}
                   onPaymentClick={onPaymentClick}
                   onDisassociateFromParent={onDisassociateFromParent}
                   onDisassociate={handleChildDisassociate}
@@ -2052,7 +2082,8 @@ export function PaymentTimeline({
                       })()}
                       <div className="flex flex-col gap-4">
                         {paymentTree.map((payment) => {
-                          const isDraggable = onAssociateToParent && canDragPayment(payment);
+                          const isDraggable =
+                            onAssociateToParent && canDragPayment(payment) && canDragAssociate;
                           const isDropTarget = overId === payment.id && activeDragId !== payment.id;
 
                           return (

@@ -2,6 +2,7 @@
 
 import { Card, CardContent } from "@/components_shadcn/ui/card";
 import { Checkbox } from "@/components_shadcn/ui/checkbox";
+import { Can } from "@/components/auth/can";
 import { cn } from "@/lib/utils";
 import { spacing, typography } from "@/lib/design-system";
 import type { FleetVehicleCard } from "@/validations/types";
@@ -36,10 +37,12 @@ export function ListVehicleCard({
         isSelectMode ? "cursor-default" : "cursor-pointer hover:opacity-90 active:opacity-80",
         isSelected && "ring-2 ring-primary"
       )}
-      style={{
-        backgroundColor: "color-mix(in oklch, var(--background) 50%, transparent)",
-        borderColor: "color-mix(in oklch, var(--border) 85%, transparent)",
-      } as CSSProperties}
+      style={
+        {
+          backgroundColor: "color-mix(in oklch, var(--background) 50%, transparent)",
+          borderColor: "color-mix(in oklch, var(--border) 85%, transparent)",
+        } as CSSProperties
+      }
       onClick={() => {
         if (isSelectMode) {
           onToggleVehicleSelection(vehicleId);
@@ -50,15 +53,17 @@ export function ListVehicleCard({
     >
       <CardContent className={`flex items-start ${spacing.gap.medium} ${spacing.card.padding}`}>
         {isSelectMode && (
-          <div className="flex items-center pt-1" onClick={(e) => e.stopPropagation()}>
-            <Checkbox
-              checked={isSelected}
-              onCheckedChange={() => onToggleVehicleSelection(vehicleId)}
-              className="h-5 w-5"
-            />
-          </div>
+          <Can module="fleet" action="canDelete">
+            <div className="flex items-center pt-1" onClick={(e) => e.stopPropagation()}>
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={() => onToggleVehicleSelection(vehicleId)}
+                className="h-5 w-5"
+              />
+            </div>
+          </Can>
         )}
-        
+
         {/* Imagen del vehículo con manejo de errores */}
         <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-muted sm:h-28 sm:w-28">
           <VehicleImage
@@ -83,12 +88,16 @@ export function ListVehicleCard({
               )}
             </div>
           </div>
-          <p className={`${typography.body.base} text-muted-foreground leading-normal`}>VIN: {vehicle.vin}</p>
-          <p className={`${typography.body.base} font-semibold leading-normal`}>{vehicle.priceLabel}</p>
+          <p className={`${typography.body.base} text-muted-foreground leading-normal`}>
+            VIN: {vehicle.vin}
+          </p>
+          <p className={`${typography.body.base} font-semibold leading-normal`}>
+            {vehicle.priceLabel}
+          </p>
           <div className="pt-1">
             <ConditionBadge status={vehicle.condition} />
           </div>
-          
+
           {/* Contador de Kilometraje */}
           {!isSelectMode && (
             <div className="mt-2" onClick={(e) => e.stopPropagation()}>

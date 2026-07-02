@@ -35,6 +35,7 @@ import Image from "next/image";
 import { Plus, Upload } from "lucide-react";
 import { spacing, typography } from "@/lib/design-system";
 import { cn } from "@/lib/utils";
+import { Can } from "@/components/auth/can";
 import type { Dispatch, SetStateAction, ChangeEvent } from "react";
 import type { FleetVehicleCondition } from "@/validations/types";
 
@@ -106,14 +107,16 @@ interface DeleteMultipleVehicleDialogProps {
 
 export function AddVehicleButton({ onClick }: { onClick: () => void }) {
   return (
-    <Button
-      className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-primary text-white shadow-lg transition-transform hover:scale-105 z-50"
-      size="icon"
-      onClick={onClick}
-      aria-label="Agregar nuevo vehículo"
-    >
-      <Plus className="h-6 w-6" />
-    </Button>
+    <Can module="fleet" action="canCreate">
+      <Button
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-primary text-white shadow-lg transition-transform hover:scale-105 z-50"
+        size="icon"
+        onClick={onClick}
+        aria-label="Agregar nuevo vehículo"
+      >
+        <Plus className="h-6 w-6" />
+      </Button>
+    </Can>
   );
 }
 
@@ -469,19 +472,21 @@ export function CreateVehicleDialog({
           <Button variant="outline" onClick={onCancel} disabled={isCreating}>
             Cancelar
           </Button>
-          <Button
-            onClick={onConfirm}
-            disabled={isCreating || !isFormValid}
-            className={cn(
-              "font-semibold shadow-md hover:shadow-lg transition-all duration-200",
-              !isCreating &&
-                isFormValid &&
-                "bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/95 !opacity-100",
-              (isCreating || !isFormValid) && "!opacity-50 cursor-not-allowed"
-            )}
-          >
-            {isCreating ? "Creando..." : "Crear Vehículo"}
-          </Button>
+          <Can module="fleet" action="canCreate">
+            <Button
+              onClick={onConfirm}
+              disabled={isCreating || !isFormValid}
+              className={cn(
+                "font-semibold shadow-md hover:shadow-lg transition-all duration-200",
+                !isCreating &&
+                  isFormValid &&
+                  "bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/95 !opacity-100",
+                (isCreating || !isFormValid) && "!opacity-50 cursor-not-allowed"
+              )}
+            >
+              {isCreating ? "Creando..." : "Crear Vehículo"}
+            </Button>
+          </Can>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -507,13 +512,15 @@ export function DeleteVehicleDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={onDelete}
-            disabled={isDeleting}
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            {isDeleting ? "Eliminando..." : "Eliminar"}
-          </AlertDialogAction>
+          <Can module="fleet" action="canDelete">
+            <AlertDialogAction
+              onClick={onDelete}
+              disabled={isDeleting}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {isDeleting ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </Can>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -539,13 +546,15 @@ export function DeleteMultipleVehiclesDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={onConfirm}
-            disabled={isDeleting}
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            {isDeleting ? "Eliminando..." : "Eliminar"}
-          </AlertDialogAction>
+          <Can module="fleet" action="canDelete">
+            <AlertDialogAction
+              onClick={onConfirm}
+              disabled={isDeleting}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {isDeleting ? "Eliminando..." : "Eliminar"}
+            </AlertDialogAction>
+          </Can>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

@@ -13,6 +13,8 @@ import { Sparkles, Trash2, AlertCircle, Plus } from "lucide-react";
 import { spacing, typography, commonClasses } from "@/lib/design-system";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { BackButton } from "@/components/admin/back-button";
+import { Can } from "@/components/auth/can";
+import { formatCurrency } from "@/lib/format";
 import type { DealCard, DealPaymentAgreement } from "@/validations/types";
 
 const DetailsSkeleton = () => (
@@ -349,18 +351,28 @@ export default function DealDetailsPage() {
                   <Label htmlFor="price" className={typography.label}>
                     Precio (PAB)
                   </Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
-                      $
-                    </span>
-                    <Input
-                      id="price"
-                      type="number"
-                      value={price}
-                      onChange={(e) => setPrice(e.target.value)}
-                      className="rounded-lg bg-muted pl-7"
-                    />
-                  </div>
+                  <Can
+                    module="deal"
+                    action="canUpdate"
+                    fallback={
+                      <p className={`${typography.body.base} rounded-lg bg-muted px-3 py-2`}>
+                        {formatCurrency(parseFloat(price) || 0)}
+                      </p>
+                    }
+                  >
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                        $
+                      </span>
+                      <Input
+                        id="price"
+                        type="number"
+                        value={price}
+                        onChange={(e) => setPrice(e.target.value)}
+                        className="rounded-lg bg-muted pl-7"
+                      />
+                    </div>
+                  </Can>
                 </div>
               </CardContent>
             </Card>
@@ -375,50 +387,72 @@ export default function DealDetailsPage() {
               >
                 <div className="flex flex-col gap-1">
                   <Label className={typography.label}>Acuerdo de Pago</Label>
-                  <ToggleGroup
-                    type="single"
-                    value={paymentAgreement}
-                    onValueChange={(value) => {
-                      if (value === "semanal" || value === "quincenal") {
-                        setPaymentAgreement(value);
-                      }
-                    }}
-                    className="mt-2"
+                  <Can
+                    module="deal"
+                    action="canUpdate"
+                    fallback={
+                      <p className={`${typography.body.base} mt-2`}>
+                        {paymentAgreement === "quincenal" ? "Quincenal" : "Semanal"}
+                      </p>
+                    }
                   >
-                    <ToggleGroupItem
-                      value="semanal"
-                      className={`flex items-center justify-center flex-1 rounded-lg border py-2.5 text-sm font-bold transition-colors ${
-                        paymentAgreement === "semanal"
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border bg-background text-muted-foreground hover:bg-muted"
-                      }`}
+                    <ToggleGroup
+                      type="single"
+                      value={paymentAgreement}
+                      onValueChange={(value) => {
+                        if (value === "semanal" || value === "quincenal") {
+                          setPaymentAgreement(value);
+                        }
+                      }}
+                      className="mt-2"
                     >
-                      Semanal
-                    </ToggleGroupItem>
-                    <ToggleGroupItem
-                      value="quincenal"
-                      className={`flex items-center justify-center flex-1 rounded-lg border py-2.5 text-sm font-bold transition-colors ${
-                        paymentAgreement === "quincenal"
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border bg-background text-muted-foreground hover:bg-muted"
-                      }`}
-                    >
-                      Quincenal
-                    </ToggleGroupItem>
-                  </ToggleGroup>
+                      <ToggleGroupItem
+                        value="semanal"
+                        className={`flex items-center justify-center flex-1 rounded-lg border py-2.5 text-sm font-bold transition-colors ${
+                          paymentAgreement === "semanal"
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-background text-muted-foreground hover:bg-muted"
+                        }`}
+                      >
+                        Semanal
+                      </ToggleGroupItem>
+                      <ToggleGroupItem
+                        value="quincenal"
+                        className={`flex items-center justify-center flex-1 rounded-lg border py-2.5 text-sm font-bold transition-colors ${
+                          paymentAgreement === "quincenal"
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-background text-muted-foreground hover:bg-muted"
+                        }`}
+                      >
+                        Quincenal
+                      </ToggleGroupItem>
+                    </ToggleGroup>
+                  </Can>
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="summary" className={typography.label}>
                     Resumen / Notas
                   </Label>
-                  <Textarea
-                    id="summary"
-                    value={summary}
-                    onChange={(e) => setSummary(e.target.value)}
-                    placeholder="Añadir notas o resumen del contrato..."
-                    rows={4}
-                    className="rounded-lg bg-muted"
-                  />
+                  <Can
+                    module="deal"
+                    action="canUpdate"
+                    fallback={
+                      <p
+                        className={`${typography.body.base} rounded-lg bg-muted px-3 py-2 whitespace-pre-wrap`}
+                      >
+                        {summary || "Sin notas."}
+                      </p>
+                    }
+                  >
+                    <Textarea
+                      id="summary"
+                      value={summary}
+                      onChange={(e) => setSummary(e.target.value)}
+                      placeholder="Añadir notas o resumen del contrato..."
+                      rows={4}
+                      className="rounded-lg bg-muted"
+                    />
+                  </Can>
                 </div>
               </CardContent>
             </Card>
@@ -439,47 +473,51 @@ export default function DealDetailsPage() {
                         </p>
                       )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDeleteClause(clause.documentId || clause.id)}
-                      className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <Can module="deal" action="canUpdate">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteClause(clause.documentId || clause.id)}
+                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </Can>
                   </CardContent>
                 </Card>
               ))}
 
               {/* Agregar nueva cláusula */}
-              <Card className={commonClasses.card}>
-                <CardContent
-                  className={`flex flex-col ${spacing.gap.medium} ${spacing.card.padding}`}
-                >
-                  <Input
-                    placeholder="Título de la cláusula..."
-                    value={newClauseTitle}
-                    onChange={(e) => setNewClauseTitle(e.target.value)}
-                    className="rounded-lg bg-muted"
-                  />
-                  <Textarea
-                    placeholder="Descripción (opcional)..."
-                    value={newClauseDescription}
-                    onChange={(e) => setNewClauseDescription(e.target.value)}
-                    rows={2}
-                    className="rounded-lg bg-muted"
-                  />
-                  <Button
-                    variant="ghost"
-                    onClick={handleAddClause}
-                    disabled={!newClauseTitle.trim()}
-                    className="flex items-center justify-center gap-1.5 text-sm font-bold text-primary"
+              <Can module="deal" action="canUpdate">
+                <Card className={commonClasses.card}>
+                  <CardContent
+                    className={`flex flex-col ${spacing.gap.medium} ${spacing.card.padding}`}
                   >
-                    <Plus className="h-4 w-4" />
-                    Añadir Cláusula
-                  </Button>
-                </CardContent>
-              </Card>
+                    <Input
+                      placeholder="Título de la cláusula..."
+                      value={newClauseTitle}
+                      onChange={(e) => setNewClauseTitle(e.target.value)}
+                      className="rounded-lg bg-muted"
+                    />
+                    <Textarea
+                      placeholder="Descripción (opcional)..."
+                      value={newClauseDescription}
+                      onChange={(e) => setNewClauseDescription(e.target.value)}
+                      rows={2}
+                      className="rounded-lg bg-muted"
+                    />
+                    <Button
+                      variant="ghost"
+                      onClick={handleAddClause}
+                      disabled={!newClauseTitle.trim()}
+                      className="flex items-center justify-center gap-1.5 text-sm font-bold text-primary"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Añadir Cláusula
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Can>
             </div>
           </section>
 
@@ -508,14 +546,16 @@ export default function DealDetailsPage() {
                           - {discount.amountLabel}
                         </p>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteDiscount(discount.documentId || discount.id)}
-                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <Can module="deal" action="canUpdate">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteDiscount(discount.documentId || discount.id)}
+                          className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </Can>
                     </CardContent>
                   </Card>
                 ))}
@@ -547,21 +587,23 @@ export default function DealDetailsPage() {
       <div className="sticky bottom-0 z-10 border-t bg-background px-0 py-4">
         <div className="mx-auto w-full max-w-2xl">
           <div className={`flex ${spacing.gap.base}`}>
-            <Button
-              variant="outline"
-              onClick={handleSaveDraft}
-              disabled={isSaving}
-              className="flex flex-1 items-center justify-center rounded-lg border-primary bg-background py-3 text-sm font-bold text-primary transition-colors hover:bg-primary/5"
-            >
-              {isSaving ? "Guardando..." : "Guardar Borrador"}
-            </Button>
-            <Button
-              onClick={handleGenerateContract}
-              disabled={isSaving}
-              className="flex flex-1 items-center justify-center rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              {isSaving ? "Procesando..." : "Generar Contrato"}
-            </Button>
+            <Can module="deal" action="canUpdate">
+              <Button
+                variant="outline"
+                onClick={handleSaveDraft}
+                disabled={isSaving}
+                className="flex flex-1 items-center justify-center rounded-lg border-primary bg-background py-3 text-sm font-bold text-primary transition-colors hover:bg-primary/5"
+              >
+                {isSaving ? "Guardando..." : "Guardar Borrador"}
+              </Button>
+              <Button
+                onClick={handleGenerateContract}
+                disabled={isSaving}
+                className="flex flex-1 items-center justify-center rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                {isSaving ? "Procesando..." : "Generar Contrato"}
+              </Button>
+            </Can>
           </div>
         </div>
       </div>

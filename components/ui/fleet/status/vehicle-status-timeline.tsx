@@ -4,16 +4,17 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components_shadcn/ui/button";
 import { typography } from "@/lib/design-system";
 import { StatusItem } from "./status-item";
+import { Can } from "@/components/auth/can";
 import type { VehicleStatusTimelineProps } from "./types";
 
-export function VehicleStatusTimeline({ 
-  statuses, 
-  isLoading, 
-  loadingStatusId, 
-  onEdit, 
-  onDelete, 
-  vehicleId, 
-  onAddClick, 
+export function VehicleStatusTimeline({
+  statuses,
+  isLoading,
+  loadingStatusId,
+  onEdit,
+  onDelete,
+  vehicleId,
+  onAddClick,
 }: VehicleStatusTimelineProps) {
   if (isLoading) {
     return (
@@ -30,14 +31,16 @@ export function VehicleStatusTimeline({
           Añade un estado a tu vehículo
         </p>
         {onAddClick && (
-          <Button
-            onClick={onAddClick}
-            size="lg"
-            className="h-16 w-16 rounded-full"
-            variant="default"
-          >
-            <Plus className="h-8 w-8" />
-          </Button>
+          <Can module="fleet" action="canCreate">
+            <Button
+              onClick={onAddClick}
+              size="lg"
+              className="h-16 w-16 rounded-full"
+              variant="default"
+            >
+              <Plus className="h-8 w-8" />
+            </Button>
+          </Can>
         )}
       </div>
     );
@@ -48,10 +51,10 @@ export function VehicleStatusTimeline({
       {statuses.map((status, index) => {
         const isLast = index === statuses.length - 1;
         const statusId = status.documentId || String(status.id);
-        const isStatusLoading = loadingStatusId !== null && (
-          (typeof loadingStatusId === 'string' && statusId === loadingStatusId) ||
-          (typeof loadingStatusId === 'number' && String(status.id) === String(loadingStatusId))
-        );
+        const isStatusLoading =
+          loadingStatusId !== null &&
+          ((typeof loadingStatusId === "string" && statusId === loadingStatusId) ||
+            (typeof loadingStatusId === "number" && String(status.id) === String(loadingStatusId)));
         return (
           <StatusItem
             key={status.id || status.documentId}
@@ -67,20 +70,3 @@ export function VehicleStatusTimeline({
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

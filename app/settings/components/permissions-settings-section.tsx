@@ -33,6 +33,7 @@ import {
 } from "@/components_shadcn/ui/dialog";
 import { Save, Loader2, ShieldCheck, Info, Plus, Pencil, Trash2 } from "lucide-react";
 import { typography } from "@/lib/design-system";
+import { Can } from "@/components/auth/can";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import type { ModulePermission } from "@/lib/permissions";
@@ -80,6 +81,8 @@ export function PermissionsSettingsSection() {
   const [modules, setModules] = useState<ModuleDefinition[]>([]);
   const [matrix, setMatrix] = useState<FullMatrix>({});
   const [roles, setRoles] = useState<Role[]>([]);
+  // Rol seleccionado en las tabs. `null` => usar el default calculado.
+  const [activeRole, setActiveRole] = useState<string | null>(null);
 
   // Estado del diálogo de crear/editar rol.
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
@@ -117,6 +120,11 @@ export function PermissionsSettingsSection() {
   const roleTabs = useMemo(() => roles.filter((r) => r.isActive), [roles]);
 
   const defaultTab = roleTabs.find((r) => r.key === "driver")?.key ?? roleTabs[0]?.key ?? "admin";
+
+  // Tab activo (controlado): respeta la selección del usuario y cae al default
+  // si el rol elegido ya no existe (p.ej. tras eliminarlo).
+  const activeTab =
+    activeRole && roleTabs.some((r) => r.key === activeRole) ? activeRole : defaultTab;
 
   const getPerm = (role: string, moduleKey: string): ModulePermission =>
     matrix[role]?.[moduleKey] ?? emptyPermission();
@@ -269,10 +277,12 @@ export function PermissionsSettingsSection() {
         <div className="flex flex-col gap-3 rounded-lg border p-4">
           <div className="flex items-center justify-between gap-2">
             <h4 className="text-sm font-medium">Roles del sistema</h4>
-            <Button size="sm" variant="outline" onClick={openCreateRole} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Nuevo rol
-            </Button>
+            <Can module="settings" action="canUpdate">
+              <Button size="sm" variant="outline" onClick={openCreateRole} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Nuevo rol
+              </Button>
+            </Can>
           </div>
           <div className="flex flex-wrap gap-2">
             {roles.map((role) => (
@@ -294,35 +304,37 @@ export function PermissionsSettingsSection() {
                     Sistema
                   </Badge>
                 ) : (
-                  <span className="flex items-center gap-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="size-6"
-                      onClick={() => openEditRole(role)}
-                      aria-label={`Editar ${role.label}`}
-                    >
-                      <Pencil className="size-3.5" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="size-6 text-destructive hover:text-destructive"
-                      onClick={() => handleDeleteRole(role)}
-                      aria-label={`Eliminar ${role.label}`}
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </span>
+                  <Can module="settings" action="canUpdate">
+                    <span className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-6"
+                        onClick={() => openEditRole(role)}
+                        aria-label={`Editar ${role.label}`}
+                      >
+                        <Pencil className="size-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-6 text-destructive hover:text-destructive"
+                        onClick={() => handleDeleteRole(role)}
+                        aria-label={`Eliminar ${role.label}`}
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </span>
+                  </Can>
                 )}
               </div>
             ))}
           </div>
         </div>
 
-        <Tabs value={defaultTab} className="w-full" key={defaultTab}>
+        <Tabs value={activeTab} onValueChange={setActiveRole} className="w-full">
           <TabsList className="w-full justify-start flex-wrap h-auto gap-1 bg-transparent p-0 mb-4">
             {roleTabs.map((role) => (
               <TabsTrigger
@@ -379,14 +391,26 @@ export function PermissionsSettingsSection() {
                             </TableCell>
                             {ACTION_COLUMNS.map((col) => (
                               <TableCell key={col.key} className="text-center">
-                                <Checkbox
-                                  checked={perm[col.key]}
-                                  disabled={isAdmin}
-                                  onCheckedChange={(v) =>
-                                    togglePermission(role.key, mod.key, col.key, v === true)
+                                <Can
+                                  module="settings"
+                                  action="canUpdate"
+                                  fallback={
+                                    <Checkbox
+                                      checked={perm[col.key]}
+                                      disabled
+                                      aria-label={`${mod.label} ${col.label}`}
+                                    />
                                   }
-                                  aria-label={`${mod.label} ${col.label}`}
-                                />
+                                >
+                                  <Checkbox
+                                    checked={perm[col.key]}
+                                    disabled={isAdmin}
+                                    onCheckedChange={(v) =>
+                                      togglePermission(role.key, mod.key, col.key, v === true)
+                                    }
+                                    aria-label={`${mod.label} ${col.label}`}
+                                  />
+                                </Can>
                               </TableCell>
                             ))}
                           </TableRow>
@@ -406,14 +430,16 @@ export function PermissionsSettingsSection() {
           })}
         </Tabs>
 
-        <Button onClick={handleSave} disabled={isSaving} className="w-full sm:w-auto">
-          {isSaving ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : (
-            <Save className="h-4 w-4 mr-2" />
-          )}
-          Guardar permisos
-        </Button>
+        <Can module="settings" action="canUpdate">
+          <Button onClick={handleSave} disabled={isSaving} className="w-full sm:w-auto">
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            Guardar permisos
+          </Button>
+        </Can>
       </CardContent>
 
       {/* Diálogo de crear/editar rol */}

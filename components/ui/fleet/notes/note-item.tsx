@@ -10,14 +10,10 @@ import { Button } from "@/components_shadcn/ui/button";
 import { Textarea } from "@/components_shadcn/ui/textarea";
 import { typography, spacing } from "@/lib/design-system";
 import { strapiImages } from "@/lib/strapi-images";
+import { Can } from "@/components/auth/can";
 import type { NoteItemProps } from "./types";
 
-export function NoteItem({
-  note,
-  isLast,
-  onEdit,
-  onDelete,
-}: NoteItemProps) {
+export function NoteItem({ note, isLast, onEdit, onDelete }: NoteItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(note.content);
   const [isSaving, setIsSaving] = useState(false);
@@ -27,7 +23,9 @@ export function NoteItem({
   const updatedDate = new Date(note.updatedAt);
   const isEdited = note.createdAt !== note.updatedAt;
   const formattedDate = format(date, "d 'de' MMMM, yyyy 'a las' HH:mm", { locale: es });
-  const formattedUpdatedDate = format(updatedDate, "d 'de' MMMM, yyyy 'a las' HH:mm", { locale: es });
+  const formattedUpdatedDate = format(updatedDate, "d 'de' MMMM, yyyy 'a las' HH:mm", {
+    locale: es,
+  });
   const authorName = note.author?.displayName || note.author?.email || "Usuario";
   const noteId = note.documentId || String(note.id);
 
@@ -63,10 +61,8 @@ export function NoteItem({
 
   return (
     <div className="relative flex gap-4">
-      {!isLast && (
-        <div className="absolute left-[11px] top-8 bottom-0 w-0.5 bg-border" />
-      )}
-      
+      {!isLast && <div className="absolute left-[11px] top-8 bottom-0 w-0.5 bg-border" />}
+
       <div className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 ring-2 ring-background">
         <div className="h-2 w-2 rounded-full bg-primary" />
       </div>
@@ -76,31 +72,37 @@ export function NoteItem({
           {!isEditing && (onEdit || onDelete) && (
             <div className="absolute top-2 right-2 flex gap-1">
               {onEdit && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => setIsEditing(true)}
-                  disabled={isDeleting}
-                >
-                  <Edit2 className="h-3.5 w-3.5" />
-                </Button>
+                <Can module="fleet" action="canUpdate">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setIsEditing(true)}
+                    disabled={isDeleting}
+                  >
+                    <Edit2 className="h-3.5 w-3.5" />
+                  </Button>
+                </Can>
               )}
               {onDelete && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-destructive hover:text-destructive"
-                  onClick={handleDelete}
-                  disabled={isDeleting || isSaving}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+                <Can module="fleet" action="canDelete">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-destructive hover:text-destructive"
+                    onClick={handleDelete}
+                    disabled={isDeleting || isSaving}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </Can>
               )}
             </div>
           )}
 
-          <div className={`flex flex-col ${spacing.gap.small} p-4 ${onEdit || onDelete ? "pr-12" : ""}`}>
+          <div
+            className={`flex flex-col ${spacing.gap.small} p-4 ${onEdit || onDelete ? "pr-12" : ""}`}
+          >
             <div className="flex items-start gap-3">
               {note.author?.avatar?.url ? (
                 <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full ring-2 ring-background">
@@ -119,22 +121,18 @@ export function NoteItem({
                   </span>
                 </div>
               )}
-              
+
               <div className="flex-1 min-w-0">
-                <p className={`${typography.body.small} font-semibold`}>
-                  {authorName}
-                </p>
+                <p className={`${typography.body.small} font-semibold`}>{authorName}</p>
                 <p className={`${typography.body.small} text-muted-foreground`}>
                   {formattedDate}
                   {isEdited && (
-                    <span className="ml-2 text-xs italic">
-                      (editado el {formattedUpdatedDate})
-                    </span>
+                    <span className="ml-2 text-xs italic">(editado el {formattedUpdatedDate})</span>
                   )}
                 </p>
               </div>
             </div>
-            
+
             {isEditing ? (
               <div className={`flex flex-col ${spacing.gap.small}`}>
                 <Textarea
@@ -175,20 +173,3 @@ export function NoteItem({
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

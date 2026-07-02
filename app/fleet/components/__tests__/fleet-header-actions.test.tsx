@@ -10,6 +10,10 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { FleetHeaderActions } from "../fleet-header-actions";
 
+vi.mock("@/components/auth/can", () => ({
+  Can: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 const createBaseProps = () => ({
   searchQuery: "",
   onSearchChange: vi.fn(),

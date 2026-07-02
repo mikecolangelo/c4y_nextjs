@@ -33,6 +33,7 @@ import {
 import { spacing, typography } from "@/lib/design-system";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { BackButton } from "@/components/admin/back-button";
+import { Can } from "@/components/auth/can";
 import { toast } from "@/lib/toast";
 import type { InventoryItemCard, StockStatus, InventoryIcon } from "@/validations/types";
 import { formatDistanceToNow } from "date-fns";
@@ -379,17 +380,21 @@ export default function StockDetailsPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="min-w-[8rem]">
-                  <DropdownMenuItem className="cursor-pointer" onClick={() => setIsEditing(true)}>
-                    Editar Pieza
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    variant="destructive"
-                    className="cursor-pointer"
-                    onClick={handleDelete}
-                    disabled={isDeleting}
-                  >
-                    {isDeleting ? "Eliminando..." : "Eliminar Pieza"}
-                  </DropdownMenuItem>
+                  <Can module="stock" action="canUpdate">
+                    <DropdownMenuItem className="cursor-pointer" onClick={() => setIsEditing(true)}>
+                      Editar Pieza
+                    </DropdownMenuItem>
+                  </Can>
+                  <Can module="stock" action="canDelete">
+                    <DropdownMenuItem
+                      variant="destructive"
+                      className="cursor-pointer"
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? "Eliminando..." : "Eliminar Pieza"}
+                    </DropdownMenuItem>
+                  </Can>
                   <DropdownMenuItem className="cursor-pointer">Exportar Datos</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -413,28 +418,32 @@ export default function StockDetailsPage() {
 
             {/* Botones de acción */}
             <div className={`flex items-center justify-center ${spacing.gap.small} w-full pt-2`}>
-              <Button
-                variant="default"
-                size="icon"
-                className="h-10 w-10 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center"
-                onClick={() => setIsEditing(!isEditing)}
-                disabled={isSaving}
-              >
-                <Edit className="h-5 w-5 flex-shrink-0" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-10 w-10 rounded-lg bg-muted hover:bg-muted/80 flex items-center justify-center"
-                onClick={handleDelete}
-                disabled={isDeleting}
-              >
-                {isDeleting ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Trash2 className="h-5 w-5 flex-shrink-0" />
-                )}
-              </Button>
+              <Can module="stock" action="canUpdate">
+                <Button
+                  variant="default"
+                  size="icon"
+                  className="h-10 w-10 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center"
+                  onClick={() => setIsEditing(!isEditing)}
+                  disabled={isSaving}
+                >
+                  <Edit className="h-5 w-5 flex-shrink-0" />
+                </Button>
+              </Can>
+              <Can module="stock" action="canDelete">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10 rounded-lg bg-muted hover:bg-muted/80 flex items-center justify-center"
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-5 w-5 flex-shrink-0" />
+                  )}
+                </Button>
+              </Can>
             </div>
           </CardContent>
         </Card>

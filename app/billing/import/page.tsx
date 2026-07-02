@@ -19,6 +19,7 @@ import {
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { BackButton } from "@/components/admin/back-button";
 import { Button } from "@/components_shadcn/ui/button";
+import { Can } from "@/components/auth/can";
 import {
   Card,
   CardContent,
@@ -363,15 +364,17 @@ export default function BillingImportPage() {
                   <Trash2 className="h-3.5 w-3.5" />
                   Limpiar
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={handleUpload}
-                  disabled={errorCount > 0}
-                  className="gap-1"
-                >
-                  <Upload className="h-3.5 w-3.5" />
-                  Importar Registros
-                </Button>
+                <Can module="billing" action="canCreate">
+                  <Button
+                    size="sm"
+                    onClick={handleUpload}
+                    disabled={errorCount > 0}
+                    className="gap-1"
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    Importar Registros
+                  </Button>
+                </Can>
               </div>
             </div>
 

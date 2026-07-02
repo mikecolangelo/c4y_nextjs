@@ -31,6 +31,7 @@ import { formatCurrency } from "@/lib/format";
 import { clientLogger } from "@/lib/client-logger";
 import { useServices } from "@/features/services/hooks/use-services";
 import { createService, fetchInventoryOptions } from "@/features/services/api/services.client";
+import { Can } from "@/components/auth/can";
 import type {
   ServiceCard,
   ServiceCoverage,
@@ -232,13 +233,15 @@ export function ServiceCatalog() {
             className="pl-9"
           />
         </div>
-        <Button
-          onClick={() => setShowAddForm(!showAddForm)}
-          variant={showAddForm ? "secondary" : "default"}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          {showAddForm ? "Cancelar" : "Nuevo Servicio"}
-        </Button>
+        <Can module="adm-services" action="canCreate">
+          <Button
+            onClick={() => setShowAddForm(!showAddForm)}
+            variant={showAddForm ? "secondary" : "default"}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            {showAddForm ? "Cancelar" : "Nuevo Servicio"}
+          </Button>
+        </Can>
       </div>
 
       {/* Formulario de agregar servicio */}
@@ -511,10 +514,12 @@ export function ServiceCatalog() {
                   : "No hay servicios registrados en el catálogo"}
               </p>
               {!searchQuery && (
-                <Button variant="outline" className="mt-4" onClick={() => setShowAddForm(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Añadir primer servicio
-                </Button>
+                <Can module="adm-services" action="canCreate">
+                  <Button variant="outline" className="mt-4" onClick={() => setShowAddForm(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Añadir primer servicio
+                  </Button>
+                </Can>
               )}
             </div>
           ) : (

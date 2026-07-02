@@ -25,6 +25,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { BackButton } from "@/components/admin/back-button";
+import { Can } from "@/components/auth/can";
 import { Button } from "@/components_shadcn/ui/button";
 import { Input } from "@/components_shadcn/ui/input";
 import { Label } from "@/components_shadcn/ui/label";
@@ -402,10 +403,12 @@ export default function AppointmentDetailsPage() {
                     </a>
                   </Button>
                 )}
-                <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Editar
-                </Button>
+                <Can module="calendar" action="canUpdate">
+                  <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Editar
+                  </Button>
+                </Can>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-9 w-9">
@@ -413,21 +416,27 @@ export default function AppointmentDetailsPage() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setIsEditing(true)}>
-                      <Pencil className="mr-2 h-4 w-4" />
-                      Editar Cita
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleCancelAppointment}>
-                      <Ban className="mr-2 h-4 w-4" />
-                      Cancelar Cita
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-destructive focus:text-destructive"
-                      onClick={handleDeleteAppointment}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Eliminar Cita
-                    </DropdownMenuItem>
+                    <Can module="calendar" action="canUpdate">
+                      <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Editar Cita
+                      </DropdownMenuItem>
+                    </Can>
+                    <Can module="calendar" action="canUpdate">
+                      <DropdownMenuItem onClick={handleCancelAppointment}>
+                        <Ban className="mr-2 h-4 w-4" />
+                        Cancelar Cita
+                      </DropdownMenuItem>
+                    </Can>
+                    <Can module="calendar" action="canDelete">
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={handleDeleteAppointment}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Eliminar Cita
+                      </DropdownMenuItem>
+                    </Can>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -689,18 +698,24 @@ export default function AppointmentDetailsPage() {
             <CardTitle className="text-base">Notas Adicionales</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Textarea
-              value={noteDraft}
-              onChange={(e) => setNoteDraft(e.target.value)}
-              placeholder="Añade notas sobre esta cita..."
-              rows={4}
-            />
-            <div className="flex justify-end">
-              <Button onClick={handleSaveNotes} disabled={isSaving}>
-                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Guardar Notas
-              </Button>
-            </div>
+            <Can
+              module="calendar"
+              action="canUpdate"
+              fallback={<p className="text-sm whitespace-pre-wrap">{noteDraft || "Sin notas."}</p>}
+            >
+              <Textarea
+                value={noteDraft}
+                onChange={(e) => setNoteDraft(e.target.value)}
+                placeholder="Añade notas sobre esta cita..."
+                rows={4}
+              />
+              <div className="flex justify-end">
+                <Button onClick={handleSaveNotes} disabled={isSaving}>
+                  {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Guardar Notas
+                </Button>
+              </div>
+            </Can>
           </CardContent>
         </Card>
       </div>

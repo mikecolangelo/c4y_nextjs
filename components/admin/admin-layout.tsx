@@ -2,6 +2,7 @@
 
 import { AdminHeader } from "./admin-header";
 import { commonClasses } from "@/lib/design-system";
+import { PermissionsProvider } from "@/lib/permissions-context";
 import { ReactNode } from "react";
 
 interface AdminLayoutProps {
@@ -43,17 +44,22 @@ export function AdminLayout({
   children,
 }: AdminLayoutProps) {
   return (
-    <div className="flex h-screen flex-col min-w-0 overflow-hidden">
-      <AdminHeader
-        title={title}
-        leftActions={leftActions}
-        rightActions={rightActions}
-        showFilterAction={showFilterAction}
-        onFilterActionClick={onFilterActionClick}
-      />
-      <div className="relative flex-1 min-h-0 overflow-y-auto scroll-smooth" style={surfaceTexture}>
-        <main className={commonClasses.mainContainer}>{children}</main>
+    <PermissionsProvider>
+      <div className="flex h-screen flex-col min-w-0 overflow-hidden">
+        <AdminHeader
+          title={title}
+          leftActions={leftActions}
+          rightActions={rightActions}
+          showFilterAction={showFilterAction}
+          onFilterActionClick={onFilterActionClick}
+        />
+        <div
+          className="relative flex-1 min-h-0 overflow-y-auto scroll-smooth"
+          style={surfaceTexture}
+        >
+          <main className={commonClasses.mainContainer}>{children}</main>
+        </div>
       </div>
-    </div>
+    </PermissionsProvider>
   );
 }

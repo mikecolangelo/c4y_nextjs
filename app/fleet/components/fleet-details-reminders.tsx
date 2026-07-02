@@ -2,21 +2,24 @@
 
 import { Button } from "@/components_shadcn/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components_shadcn/ui/card";
-import { Plus, Calendar } from "lucide-react";
+import { Plus } from "lucide-react";
 import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
 import { spacing, typography } from "@/lib/design-system";
-import {
-  FleetReminder,
-  ReminderType,
-  RecurrencePattern,
-} from "@/validations/types";
+import { FleetReminder, ReminderType, RecurrencePattern } from "@/validations/types";
 import { FleetReminders } from "@/components/ui/fleet-reminders";
 import { Label } from "@/components_shadcn/ui/label";
 import { Input } from "@/components_shadcn/ui/input";
 import { Textarea } from "@/components_shadcn/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components_shadcn/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components_shadcn/ui/select";
 import { Checkbox } from "@/components_shadcn/ui/checkbox";
 import { MultiSelectCombobox } from "@/components_shadcn/ui/multi-select-combobox";
+import { Can } from "@/components/auth/can";
 
 interface FleetDetailsRemindersCardProps {
   vehicleReminders: FleetReminder[];
@@ -57,8 +60,16 @@ interface FleetDetailsRemindersCardProps {
   onSaveReminder: () => void;
   onEditReminder: (reminder: FleetReminder) => void;
   onDeleteReminder: (reminderId: number | string) => Promise<void>;
-  onToggleReminderActive: (reminderId: number | string, isActive: boolean, loadVehicle?: () => Promise<void>) => Promise<void>;
-  onToggleReminderCompleted: (reminderId: number | string, isCompleted: boolean, loadVehicle?: () => Promise<void>) => Promise<void>;
+  onToggleReminderActive: (
+    reminderId: number | string,
+    isActive: boolean,
+    loadVehicle?: () => Promise<void>
+  ) => Promise<void>;
+  onToggleReminderCompleted: (
+    reminderId: number | string,
+    isCompleted: boolean,
+    loadVehicle?: () => Promise<void>
+  ) => Promise<void>;
   vehicleId: string;
 }
 
@@ -109,19 +120,25 @@ export function FleetDetailsRemindersCard({
       <CardHeader className="px-6 pt-6 pb-4 flex flex-row items-center justify-between">
         <CardTitle className={typography.h4}>Recordatorios del Vehículo</CardTitle>
         {vehicleReminders.length > 0 && !showReminderForm && (
-          <Button onClick={onAddReminder} size="sm" variant="outline" className="gap-2">
-            <Plus className="h-4 w-4" />
-            Agregar Recordatorio
-          </Button>
+          <Can module="fleet" action="canCreate">
+            <Button onClick={onAddReminder} size="sm" variant="outline" className="gap-2">
+              <Plus className="h-4 w-4" />
+              Agregar Recordatorio
+            </Button>
+          </Can>
         )}
       </CardHeader>
       <CardContent className={`flex flex-col ${spacing.gap.base} px-6 pb-6`}>
         {vehicleReminders.length === 0 && !showReminderForm && !isLoadingReminders && (
           <div className="flex flex-col items-center justify-center py-16 min-h-[300px] border-2 border-dashed border-border rounded-lg">
-            <p className={`${typography.body.base} text-muted-foreground mb-6`}>Añade un recordatorio a tu vehículo</p>
-            <Button onClick={onAddReminder} size="lg" className="h-16 w-16 rounded-full">
-              <Plus className="h-8 w-8" />
-            </Button>
+            <p className={`${typography.body.base} text-muted-foreground mb-6`}>
+              Añade un recordatorio a tu vehículo
+            </p>
+            <Can module="fleet" action="canCreate">
+              <Button onClick={onAddReminder} size="lg" className="h-16 w-16 rounded-full">
+                <Plus className="h-8 w-8" />
+              </Button>
+            </Can>
           </div>
         )}
 
@@ -149,16 +166,25 @@ export function FleetDetailsRemindersCard({
         )}
 
         {showReminderForm && (
-          <div className={`flex flex-col ${spacing.gap.small} ${vehicleReminders.length > 0 ? "pt-4 border-t border-border" : ""}`}>
+          <div
+            className={`flex flex-col ${spacing.gap.small} ${vehicleReminders.length > 0 ? "pt-4 border-t border-border" : ""}`}
+          >
             {vehicleReminders.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 min-h-[200px] border-2 border-dashed border-border rounded-lg">
-                <p className={`${typography.body.base} text-muted-foreground mb-6`}>Crea un recordatorio para este vehículo</p>
+                <p className={`${typography.body.base} text-muted-foreground mb-6`}>
+                  Crea un recordatorio para este vehículo
+                </p>
               </div>
             )}
 
             <div className={`flex flex-col ${spacing.gap.small}`}>
               <Label htmlFor="reminder-title">Título del Recordatorio</Label>
-              <Input id="reminder-title" value={reminderTitle} onChange={(e) => onReminderTitleChange(e.target.value)} placeholder="Ej: Revisar mantenimiento" />
+              <Input
+                id="reminder-title"
+                value={reminderTitle}
+                onChange={(e) => onReminderTitleChange(e.target.value)}
+                placeholder="Ej: Revisar mantenimiento"
+              />
             </div>
 
             <div className={`flex flex-col ${spacing.gap.small}`}>
@@ -176,7 +202,10 @@ export function FleetDetailsRemindersCard({
             <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${spacing.gap.small}`}>
               <div className={`flex flex-col ${spacing.gap.small}`}>
                 <Label htmlFor="reminder-type">Tipo de Recordatorio</Label>
-                <Select value={reminderType} onValueChange={(value) => onReminderTypeChange(value as ReminderType)}>
+                <Select
+                  value={reminderType}
+                  onValueChange={(value) => onReminderTypeChange(value as ReminderType)}
+                >
                   <SelectTrigger id="reminder-type">
                     <SelectValue placeholder="Selecciona el tipo" />
                   </SelectTrigger>
@@ -196,7 +225,7 @@ export function FleetDetailsRemindersCard({
                         type="date"
                         value={reminderScheduledDate}
                         onChange={(e) => onReminderScheduledDateChange(e.target.value)}
-                        min={new Date().toISOString().split('T')[0]}
+                        min={new Date().toISOString().split("T")[0]}
                       />
                     </div>
                     <div className="flex flex-row gap-2 lg:flex-1">
@@ -206,19 +235,23 @@ export function FleetDetailsRemindersCard({
                         onChange={(e) => onReminderScheduledTimeChange(e.target.value)}
                         disabled={isAllDay}
                         min={
-                          reminderScheduledDate === new Date().toISOString().split('T')[0]
+                          reminderScheduledDate === new Date().toISOString().split("T")[0]
                             ? (() => {
                                 const now = new Date();
                                 now.setMinutes(now.getMinutes() + 30);
-                                const hours = String(now.getHours()).padStart(2, '0');
-                                const minutes = String(now.getMinutes()).padStart(2, '0');
+                                const hours = String(now.getHours()).padStart(2, "0");
+                                const minutes = String(now.getMinutes()).padStart(2, "0");
                                 return `${hours}:${minutes}`;
                               })()
                             : undefined
                         }
                       />
                       <div className="flex items-center gap-2">
-                        <Checkbox id="reminder-all-day" checked={isAllDay} onCheckedChange={(checked) => onReminderIsAllDayChange(checked === true)} />
+                        <Checkbox
+                          id="reminder-all-day"
+                          checked={isAllDay}
+                          onCheckedChange={(checked) => onReminderIsAllDayChange(checked === true)}
+                        />
                         <Label htmlFor="reminder-all-day" className="cursor-pointer select-none">
                           Todo el día
                         </Label>
@@ -233,7 +266,12 @@ export function FleetDetailsRemindersCard({
               <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 ${spacing.gap.small}`}>
                 <div className={`flex flex-col ${spacing.gap.small}`}>
                   <Label htmlFor="reminder-recurrence-pattern">Patrón de Recurrencia</Label>
-                  <Select value={reminderRecurrencePattern} onValueChange={(value) => onReminderRecurrencePatternChange(value as RecurrencePattern)}>
+                  <Select
+                    value={reminderRecurrencePattern}
+                    onValueChange={(value) =>
+                      onReminderRecurrencePatternChange(value as RecurrencePattern)
+                    }
+                  >
                     <SelectTrigger id="reminder-recurrence-pattern">
                       <SelectValue placeholder="Selecciona el patrón" />
                     </SelectTrigger>
@@ -247,7 +285,9 @@ export function FleetDetailsRemindersCard({
                   </Select>
                 </div>
                 <div className={`flex flex-col ${spacing.gap.small}`}>
-                  <Label htmlFor="reminder-recurrence-end-date">Fecha de Finalización (opcional)</Label>
+                  <Label htmlFor="reminder-recurrence-end-date">
+                    Fecha de Finalización (opcional)
+                  </Label>
                   <Input
                     id="reminder-recurrence-end-date"
                     type="date"
@@ -289,7 +329,9 @@ export function FleetDetailsRemindersCard({
                       avatar: user.avatar,
                     }))}
                   selectedValues={selectedAssignedDrivers}
-                  onSelectionChange={(values) => onSelectedAssignedDriversChange(values as number[])}
+                  onSelectionChange={(values) =>
+                    onSelectedAssignedDriversChange(values as number[])
+                  }
                   placeholder="Selecciona conductores..."
                   searchPlaceholder="Buscar conductores..."
                   emptyMessage="No se encontraron usuarios."
@@ -298,10 +340,10 @@ export function FleetDetailsRemindersCard({
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 mt-4">
-              <Button 
-                onClick={onCancelReminder} 
-                variant="outline" 
-                size="lg" 
+              <Button
+                onClick={onCancelReminder}
+                variant="outline"
+                size="lg"
                 className="flex-1 min-h-[44px] text-base sm:text-sm font-medium"
               >
                 Cancelar
@@ -311,12 +353,17 @@ export function FleetDetailsRemindersCard({
                 variant="default"
                 size="lg"
                 className="flex-1 min-h-[44px] text-base sm:text-sm font-medium"
-                disabled={!reminderTitle.trim() || !reminderScheduledDate || (selectedResponsables.length === 0 && selectedAssignedDrivers.length === 0) || isSavingReminder}
+                disabled={
+                  !reminderTitle.trim() ||
+                  !reminderScheduledDate ||
+                  (selectedResponsables.length === 0 && selectedAssignedDrivers.length === 0) ||
+                  isSavingReminder
+                }
               >
-                {isSavingReminder 
-                  ? "Guardando..." 
-                  : editingReminderId 
-                    ? "Guardar Cambios" 
+                {isSavingReminder
+                  ? "Guardando..."
+                  : editingReminderId
+                    ? "Guardar Cambios"
                     : "Crear Recordatorio"}
               </Button>
             </div>
@@ -326,4 +373,3 @@ export function FleetDetailsRemindersCard({
     </Card>
   );
 }
-

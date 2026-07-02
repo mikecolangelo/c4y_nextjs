@@ -57,6 +57,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
 import { commonClasses, spacing, typography } from "@/lib/design-system";
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { Can } from "@/components/auth/can";
 import { FleetReminder, ReminderModule } from "@/validations/types";
 import { toast } from "@/lib/toast";
 import {
@@ -1739,15 +1740,17 @@ export default function NotificationsPage() {
 
   return (
     <AdminLayout title="Centro de Notificaciones">
-      {/* Header con botón de crear (todos los roles pueden crear) */}
+      {/* Header con botón de crear (visible solo para roles con permiso notifications/canCreate) */}
       <div className="flex justify-end mb-4">
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Crear Notificación
-            </Button>
-          </DialogTrigger>
+          <Can module="notifications" action="canCreate">
+            <DialogTrigger asChild>
+              <Button className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Crear Notificación
+              </Button>
+            </DialogTrigger>
+          </Can>
           <DialogContent className="max-w-md h-[90vh] p-0 !flex !flex-col overflow-hidden">
             <DialogHeader className={`${spacing.card.header} border-b shrink-0`}>
               <DialogTitle className={typography.h2}>Crear Nueva Notificación</DialogTitle>
@@ -2191,36 +2194,40 @@ export default function NotificationsPage() {
                                       </Button>
                                     )}
                                     {isReminder && !notification.isCompleted && (
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-7 w-7"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleToggleActive(notification);
-                                        }}
-                                        title={notification.isActive ? "Pausar" : "Activar"}
-                                      >
-                                        {notification.isActive ? (
-                                          <Pause className="h-3.5 w-3.5 text-muted-foreground" />
-                                        ) : (
-                                          <Play className="h-3.5 w-3.5 text-green-600" />
-                                        )}
-                                      </Button>
+                                      <Can module="notifications" action="canUpdate">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleToggleActive(notification);
+                                          }}
+                                          title={notification.isActive ? "Pausar" : "Activar"}
+                                        >
+                                          {notification.isActive ? (
+                                            <Pause className="h-3.5 w-3.5 text-muted-foreground" />
+                                          ) : (
+                                            <Play className="h-3.5 w-3.5 text-green-600" />
+                                          )}
+                                        </Button>
+                                      </Can>
                                     )}
                                     {isReminder && (
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-7 w-7 text-destructive hover:text-destructive"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleRequestDeleteReminder(notification);
-                                        }}
-                                        title="Eliminar"
-                                      >
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                      </Button>
+                                      <Can module="notifications" action="canDelete">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7 text-destructive hover:text-destructive"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleRequestDeleteReminder(notification);
+                                          }}
+                                          title="Eliminar"
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </Can>
                                     )}
                                     {/* Botón para marcar como leída - solo para notificaciones manuales no leídas */}
                                     {!isReminder &&
@@ -2241,18 +2248,20 @@ export default function NotificationsPage() {
                                       )}
                                     {/* Botón para eliminar - solo para notificaciones manuales */}
                                     {!isReminder && (
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-7 w-7 text-destructive hover:text-destructive"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleRequestDeleteManual(notification);
-                                        }}
-                                        title="Eliminar notificación"
-                                      >
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                      </Button>
+                                      <Can module="notifications" action="canDelete">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7 text-destructive hover:text-destructive"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleRequestDeleteManual(notification);
+                                          }}
+                                          title="Eliminar notificación"
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </Can>
                                     )}
                                   </div>
                                 </div>
@@ -2304,28 +2313,30 @@ export default function NotificationsPage() {
 
                               {/* Checkbox de completado */}
                               {isReminder && (
-                                <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      e.preventDefault();
-                                      handleToggleCompleted(notification);
-                                    }}
-                                    disabled={togglingCompleted.has(notification.id)}
-                                    className="h-6 w-6 shrink-0 flex items-center justify-center disabled:opacity-50"
-                                    title={
-                                      notification.isCompleted
-                                        ? "Marcar como pendiente"
-                                        : "Marcar como completado"
-                                    }
-                                  >
-                                    {notification.isCompleted ? (
-                                      <CheckCircle2 className="h-6 w-6 text-green-600" />
-                                    ) : (
-                                      <Circle className="h-6 w-6 text-muted-foreground/40 hover:text-primary transition-colors" />
-                                    )}
-                                  </button>
-                                </div>
+                                <Can module="notifications" action="canUpdate">
+                                  <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                        handleToggleCompleted(notification);
+                                      }}
+                                      disabled={togglingCompleted.has(notification.id)}
+                                      className="h-6 w-6 shrink-0 flex items-center justify-center disabled:opacity-50"
+                                      title={
+                                        notification.isCompleted
+                                          ? "Marcar como pendiente"
+                                          : "Marcar como completado"
+                                      }
+                                    >
+                                      {notification.isCompleted ? (
+                                        <CheckCircle2 className="h-6 w-6 text-green-600" />
+                                      ) : (
+                                        <Circle className="h-6 w-6 text-muted-foreground/40 hover:text-primary transition-colors" />
+                                      )}
+                                    </button>
+                                  </div>
+                                </Can>
                               )}
                             </div>
                           </CardContent>
@@ -2411,22 +2422,24 @@ export default function NotificationsPage() {
                               </span>
 
                               {isReminder && (
-                                <div className="flex items-center gap-1">
-                                  <button
-                                    onClick={() => handleToggleCompleted(notification)}
-                                    disabled={togglingCompleted.has(notification.id)}
-                                    className="p-1 rounded hover:bg-muted transition-colors"
-                                    title={
-                                      notification.isCompleted ? "Marcar pendiente" : "Completar"
-                                    }
-                                  >
-                                    {notification.isCompleted ? (
-                                      <CheckCircle2 className="h-4 w-4 text-green-600" />
-                                    ) : (
-                                      <Circle className="h-4 w-4 text-muted-foreground/50" />
-                                    )}
-                                  </button>
-                                </div>
+                                <Can module="notifications" action="canUpdate">
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      onClick={() => handleToggleCompleted(notification)}
+                                      disabled={togglingCompleted.has(notification.id)}
+                                      className="p-1 rounded hover:bg-muted transition-colors"
+                                      title={
+                                        notification.isCompleted ? "Marcar pendiente" : "Completar"
+                                      }
+                                    >
+                                      {notification.isCompleted ? (
+                                        <CheckCircle2 className="h-4 w-4 text-green-600" />
+                                      ) : (
+                                        <Circle className="h-4 w-4 text-muted-foreground/50" />
+                                      )}
+                                    </button>
+                                  </div>
+                                </Can>
                               )}
                             </div>
                           </div>
