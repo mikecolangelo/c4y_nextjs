@@ -15,6 +15,22 @@ export interface ModulePermission {
 
 export type RolePermissions = Record<string, ModulePermission>;
 
+/** Acciones auditables de un módulo (columnas de la matriz de permisos). */
+export type PermissionActionKey = keyof ModulePermission;
+
+/**
+ * ¿El rol con estos permisos puede ejecutar `action` sobre `moduleKey`?
+ * Fuente única de la lógica de acción; el bypass de admin se resuelve en el
+ * contexto (ver `permissions-context`), no aquí.
+ */
+export function can(
+  permissions: RolePermissions,
+  moduleKey: string,
+  action: PermissionActionKey
+): boolean {
+  return !!permissions?.[moduleKey]?.[action];
+}
+
 export interface MyPermissions {
   role: string;
   permissions: RolePermissions;
@@ -39,9 +55,7 @@ export const ROUTE_MODULE_MAP: Array<{ prefix: string; module: string }> = [
 
 /** Devuelve la clave de módulo para una ruta, o null si no está mapeada. */
 export function moduleForPath(path: string): string | null {
-  const match = ROUTE_MODULE_MAP.find(
-    (m) => path === m.prefix || path.startsWith(`${m.prefix}/`)
-  );
+  const match = ROUTE_MODULE_MAP.find((m) => path === m.prefix || path.startsWith(`${m.prefix}/`));
   return match ? match.module : null;
 }
 
@@ -66,10 +80,7 @@ export function landingForRole(role: string): string {
  * `/dashboard-user` (panel del conductor). Para el conductor debemos
  * enlazar a su propio panel, no al de admin.
  */
-export function resolveNavHref(
-  item: { href: string; module: string },
-  role: string
-): string {
+export function resolveNavHref(item: { href: string; module: string }, role: string): string {
   if (item.module === "dashboard" && role === "driver") {
     return "/dashboard-user";
   }

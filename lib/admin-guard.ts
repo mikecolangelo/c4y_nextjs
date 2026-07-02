@@ -1,4 +1,4 @@
-import { getCurrentUserProfileViaJwt, type CurrentUserProfile } from "./auth";
+import type { CurrentUserProfile } from "./auth";
 
 /**
  * Roles permitidos para acceder al módulo de Flota y operaciones administrativas.
@@ -26,6 +26,10 @@ export async function requireAdmin(): Promise<{
   role: string;
   profile: CurrentUserProfile;
 }> {
+  // Import dinámico: este archivo también lo importan componentes cliente
+  // (solo por `isAdminRole`/`ALLOWED_ROLES`), y `lib/auth.ts` usa
+  // `next/headers`, que rompe el bundle de cliente si se importa estático.
+  const { getCurrentUserProfileViaJwt } = await import("./auth");
   const profile = await getCurrentUserProfileViaJwt();
 
   if (!profile || !ALLOWED_ROLES.includes(profile.role)) {
