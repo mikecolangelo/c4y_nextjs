@@ -748,7 +748,10 @@ async function getCurrentUserProfile() {
 export async function PATCH(request: Request, context: RouteContext) {
   try {
     try {
-      await requireModulePermission("notifications", "canUpdate");
+      // Marcar como leída es autoservicio sobre el propio estado de lectura:
+      // basta con poder VER notificaciones. La verificación de que la
+      // notificación pertenece al usuario (recipient/audiencia) se hace abajo.
+      await requireModulePermission("notifications", "canRead");
     } catch {
       return NextResponse.json(
         { error: "Acceso restringido: Se requieren permisos de administrador" },
@@ -893,7 +896,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     // ya que no podemos modificar la original (afectaría a todos los usuarios)
     // Esto incluye: broadcast por rol, broadcast para todos, o notificaciones sin recipient/targetAudience
     if (
-      !recipientDocId &&
+      !isRecipient &&
       (isBroadcastForRole || isBroadcastForAll || isAdminCreatedWithoutAudience)
     ) {
       // Es una notificación broadcast - crear entrada individual para este usuario
@@ -917,10 +920,13 @@ export async function PATCH(request: Request, context: RouteContext) {
         }),
       };
 
+      // Escribir con el token de servidor: esta ruta ya autorizó la acción
+      // (canRead + destinatario/audiencia); con el JWT del usuario la policy
+      // de escritura del backend rechazaría a los roles de solo lectura.
       const createResponse = await fetch(`${STRAPI_BASE_URL}/api/notifications`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${jwt || STRAPI_API_TOKEN}`,
+          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ data: individualNotificationData }),
@@ -945,12 +951,15 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     // Para notificaciones individuales, actualizar directamente.
     // Strapi v5 solo resuelve documentId en la URL (un id numérico devuelve 404).
+    // Se usa el token de servidor porque la ruta ya autorizó la acción
+    // (canRead + destinatario); el JWT de un rol solo-lectura sería rechazado
+    // por la policy de escritura del backend.
     const updateResponse = await fetch(
       `${STRAPI_BASE_URL}/api/notifications/${notification.documentId || notification.id}`,
       {
         method: "PUT",
         headers: {
-          Authorization: `Bearer ${jwt || STRAPI_API_TOKEN}`,
+          Authorization: `Bearer ${STRAPI_API_TOKEN}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
