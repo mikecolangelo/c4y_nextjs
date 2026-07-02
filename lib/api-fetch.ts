@@ -3,9 +3,8 @@
  * para asegurar que las cookies (JWT) se envíen con cada petición.
  */
 
-export interface ApiFetchOptions extends RequestInit {
-  // Opciones adicionales específicas de la API si son necesarias
-}
+// Opciones adicionales específicas de la API si son necesarias
+export type ApiFetchOptions = RequestInit;
 
 export async function apiFetch(url: string, options: ApiFetchOptions = {}) {
   const defaultOptions: RequestInit = {

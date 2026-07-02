@@ -32,11 +32,14 @@ export function SignUpForm({ data }: { readonly data: Readonly<SingupFormData> }
   // Hooks primero (reglas de React)
   const [formState, setFormState] = useState<FormState>(INITIAL_STATE);
   const [isPending, startTransition] = useTransition();
-  
+  const form = useForm<z.infer<typeof SignUpFormSchema>>({
+    defaultValues: INITIAL_STATE.data,
+  });
+
   // Verificación de data después de los hooks
   if (!data) return null;
 
-  const { 
+  const {
     header,
     fullname_label,
     fullname_placeholder,
@@ -50,12 +53,8 @@ export function SignUpForm({ data }: { readonly data: Readonly<SingupFormData> }
     singin_previous_link_text,
     singin_link,
   } = data;
-  
-  const singinLink = singin_link?.[0];
 
-  const form = useForm<z.infer<typeof SignUpFormSchema>>({
-    defaultValues: INITIAL_STATE.data,
-  });
+  const singinLink = singin_link?.[0];
 
   async function onSubmit(values: z.infer<typeof SignUpFormSchema>) {
     const formData = new FormData();

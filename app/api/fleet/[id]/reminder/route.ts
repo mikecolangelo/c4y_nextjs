@@ -189,7 +189,7 @@ export async function GET(_: Request, context: RouteContext) {
     
     // Obtener los recordatorios del vehículo usando notifications como fuente principal
     // Primero intentamos buscar con la relación fleetVehicle
-    let reminderQuery = qs.stringify({
+    const reminderQuery = qs.stringify({
       filters: {
         type: { $eq: "reminder" },
         fleetVehicle: { id: { $eq: vehicleId } },

@@ -471,7 +471,7 @@ export function CrudSelect({
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción eliminará "{editingOption?.name}". Esta acción no se puede deshacer.
+              Esta acción eliminará &quot;{editingOption?.name}&quot;. Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

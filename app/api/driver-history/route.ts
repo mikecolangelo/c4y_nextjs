@@ -68,7 +68,7 @@ export async function GET(request: Request) {
     const vehicle = searchParams.get("vehicle");
     const status = searchParams.get("status");
 
-    let filters: any = {};
+    const filters: any = {};
     if (driver) filters.driver = { id: { $eq: driver } };
     if (vehicle) filters.vehicle = { id: { $eq: vehicle } };
     if (status) filters.status = { $eq: status };

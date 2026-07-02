@@ -692,8 +692,8 @@ export async function accruePenaltiesForFinancing(
       const alreadyPaid = Math.max(0, parseFloat((oldOriginal - oldPending).toFixed(2)));
 
       // Calculate new pending preserving alreadyPaid
-      let newPending = Math.max(0, parseFloat((penaltyAmount - alreadyPaid).toFixed(2)));
-      let newStatus = newPending <= 0 ? "paid" : (newPending < penaltyAmount ? "partially_paid" : "pending");
+      const newPending = Math.max(0, parseFloat((penaltyAmount - alreadyPaid).toFixed(2)));
+      const newStatus = newPending <= 0 ? "paid" : (newPending < penaltyAmount ? "partially_paid" : "pending");
 
       // Idempotency guard: skip update if nothing meaningful changed
       const oldDays = parseInt(epAttrs.daysAccrued || existingPenalty.daysAccrued || 0);
